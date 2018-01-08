@@ -32,6 +32,6 @@ The implementation is based on the ideas presented in:
 1. Chang B, Meng L, Haber E, Ruthotto L, Begert D, Holtham E: [Reversible Architectures for Arbitrarily Deep Residual Neural Networks](https://arxiv.org/abs/1709.03698), AAAI Conference on Artificial Intelligence 2018
 1. Haber E, Ruthotto L, Holtham E, Jun SH:  [Learning across scales - A multiscale method for Convolution Neural Networks](https://arxiv.org/abs/1703.02009), AAAI Conference on Artificial Intelligence 2018
 
-Acknowledgements
+## Acknowledgements
 
 This material is in part based upon work supported by the National Science Foundation under Grant Number 1522599. Any opinions, findings, and conclusions or recommendations expressed in this material are those of the author(s) and do not necessarily reflect the views of the National Science Foundation.
