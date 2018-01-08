@@ -1,6 +1,8 @@
-MIT License
+### The MIT License (MIT)
 
-Copyright (c) 2018 XtractOpen
+Copyright (c) 2017-2019: Lars Ruthotto, Eldad Haber, Eran Treister, and other contributors:
+
+https://github.com/XtractOpen/Meganet.m/graphs/contributors 
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
