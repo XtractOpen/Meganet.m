@@ -14,6 +14,7 @@ classdef sgd < optimizer
         momentum
         nesterov
 		ADAM
+        P
     end
     
     methods
@@ -29,6 +30,7 @@ classdef sgd < optimizer
             this.momentum  = .9;
             this.nesterov  = true;
 			this.ADAM      = false;
+            this.P = @(x) x;
             for k=1:2:length(varargin)     % overwrites default parameter
                 eval(['this.' varargin{k},'=varargin{',int2str(k+1),'};']);
             end
@@ -84,7 +86,7 @@ classdef sgd < optimizer
                     numel(xc), this.maxEpochs, this.maxStep,learningRate(1) ,this.momentum, this.ADAM,this.nesterov,this.miniBatch);
                 fprintf([repmat('%-12s',1,numel(str)) '\n'],str{:});
             end
-            
+            xc = this.P(xc);
             his = zeros(1,numel(str));
             
             while epoch <= this.maxEpochs
@@ -107,7 +109,7 @@ classdef sgd < optimizer
                     else
                        dJ = lr*dJk + this.momentum*dJ;
                     end
-                    xc = xc - dJ;
+                    xc = this.P(xc - dJ);
                 end
                 % we sample 2^12 images from the training set for displaying the objective.     
                 [Jc,para] = fctn(xc,ids(1:min(nex,2^12))); 

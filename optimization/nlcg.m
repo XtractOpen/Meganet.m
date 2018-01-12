@@ -45,6 +45,7 @@ classdef nlcg < optimizer
             doVal     = not(isempty(obj2Fctn));
             
             % evaluate training and validation
+            xc = this.LS.P(xc);
             [Jc,para,dJ] = fctn(xc); pVal = [];
             if doVal
                 if isa(objFctn,'dnnVarProBatchObjFctn') || isa(objFctn,'dnnVarProObjFctn')

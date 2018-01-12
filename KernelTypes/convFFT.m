@@ -66,6 +66,20 @@ classdef convFFT < convKernel
             title('output');
         end
         
+        function A = getMat(this,theta)
+            A = [];
+            theta = reshape(theta,this.sK);
+            for i=1:this.sK(3)
+                Acol = [];
+                for j=1:this.sK(4)
+                    Acol = [Acol; getConvMatPeriodic(flipdim(flipdim(theta(:,:,i,j),1),2),[vec(this.nImg(1:2)); 1]')];
+                end
+                A = [A Acol];
+            end
+        end
+                        
+            
+        
         function Y = Amv(this,theta,Y)
             nex   = numel(Y)/prod(nImgIn(this));
             

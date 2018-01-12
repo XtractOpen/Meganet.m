@@ -44,6 +44,7 @@ classdef sd < optimizer
             doVal     = not(isempty(obj2Fctn));
             
             % evaluate training and validation
+            xc = this.LS.P(xc);
             [Jc,para,dJ] = fctn(xc); pVal = [];
             if doVal
                 if isa(objFctn,'dnnVarProBatchObjFctn') ||isa(objFctn,'dnnMultiStepVarProBatchObjFctn') || isa(objFctn,'dnnVarProObjFctn')
@@ -84,7 +85,7 @@ classdef sd < optimizer
                 if (lsIter > this.LS.maxIter)
                     disp('LSB in sd'); %keyboard
                     his = his(1:iter,:);
-                    keyboard
+%                     keyboard
                     break;
                 end
                 his(iter,5:6) = [mu lsIter];

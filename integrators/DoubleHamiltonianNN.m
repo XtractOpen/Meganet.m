@@ -138,23 +138,6 @@ classdef DoubleHamiltonianNN < abstractMeganetElement
             end
         end
         
-%         function [dXdata,dX] = Jthetamv(this,dtheta,theta,~,tmp)
-%             dY = 0.0;
-%             dZ = 0.0;
-%             [th1,th2]   = split(this,theta);
-%             [dth1,dth2] = split(this,dtheta);
-%             dXdata = [];
-%             for i=1:this.nt
-%                 dZ = dZ - this.h*Jthetamv(this.layer1,dth1(:,i),th1(:,i),tmp{i,1},tmp{i,3});
-%                 dY = dY + this.h*Jthetamv(this.layer2,dth2(:,i),th2(:,i),tmp{i,2},tmp{i,4});
-%                 if this.outTimes(i)==1
-%                     dXdata = [dXdata; this.Q*[dY;dZ]];
-%                 end
-%             end
-%             dX = [dY;dZ];
-%         end
-%         
-        
         function [dXdata,dX] = Jmv(this,dtheta,dX,theta,~,tmp)
             if isempty(dX)
                 dY = 0.0;
