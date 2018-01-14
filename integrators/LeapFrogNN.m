@@ -79,6 +79,18 @@ classdef LeapFrogNN < abstractMeganetElement
             end
         end
         
+        function [net2,theta2] = prolongateWeights(this,theta)
+            % piecewise linear interpolation of network weights 
+            t1 = 0:this.h:(this.nt-1)*this.h;
+            
+            net2 = LeapFrogNN(this.layer,2*this.nt,this.h/2,'useGPU',this.useGPU,'Q',this.Q,'precision',this.precision);
+            net2.outTimes = (sum(this.outTimes)>0)*net2.outTimes;
+          
+            t2 = 0:net2.h:(net2.nt-1)*net2.h;
+            
+            theta2 = inter1D(theta,t1,t2);
+        end
+        
         % ------- apply forward problems -----------
         function [Ydata,Y,tmp] = apply(this,theta,Y0)
             nex = numel(Y0)/nFeatOut(this);

@@ -79,6 +79,18 @@ classdef DoubleHamiltonianNN < abstractMeganetElement
                             vec(initTheta(this.layer2))],this.nt,1);
         end
         
+        function [net2,theta2] = prolongateWeights(this,theta)
+            % piecewise linear interpolation of network weights 
+            t1 = 0:this.h:(this.nt-1)*this.h;
+            
+            net2 = DoubleHamiltonianNN(this.layer1,this.layer2,2*this.nt,this.h/2,'useGPU',this.useGPU,'Q',this.Q,'precision',this.precision);
+            net2.outTimes = (sum(this.outTimes)>0)*net2.outTimes;
+          
+            t2 = 0:net2.h:(net2.nt-1)*net2.h;
+            
+            theta2 = inter1D(theta,t1,t2);
+        end
+        
         function [th1,th2] = split(this,x)
            x   = reshape(x,[],this.nt);
            th1 = x(1:nTheta(this.layer1),:);
