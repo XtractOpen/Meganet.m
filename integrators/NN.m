@@ -103,16 +103,16 @@ classdef NN < abstractMeganetElement
             Y = Y0;
             nt = numel(this.layers);
             
-            if nargout>1;    tmp = cell(nt+1,2); tmp{1,1} = Y0; end
+            if nargout>1;    tmp = cell(nt,2); end
             Ydata = [];
             cnt = 0;
             for i=1:nt
                 ni = nTheta(this.layers{i});
+                if (nargout>1), tmp{i,1} = Y; end
                 [Y,~,tmp{i,2}] = this.layers{i}.apply(theta(cnt+(1:ni)),Y);
                 if this.outTimes(i)==1 
                     Ydata = [Ydata; this.Q*Y];
                 end
-                if nargout>1, tmp{i+1,1} = Y; end
                 cnt = cnt + ni;
             end
         end
@@ -165,6 +165,7 @@ classdef NN < abstractMeganetElement
             
             cnt = 0; cnt2 = 0;
             for i=nt:-1:1
+                Yi = tmp{i,1};
                 ni = nTheta(this.layers{i});
                 if this.outTimes(i)==1
                     nn = nFeatOut(this.layers{i});
@@ -172,7 +173,7 @@ classdef NN < abstractMeganetElement
                     cnt2 = cnt2 + nn;
                 end
                 W  = JYTmv(this.layers{i}, W,[],theta(end-cnt-ni+1:end-cnt),...
-                    tmp{i,1},tmp{i,2});
+                    Yi,tmp{i,2});
                 cnt = cnt+ni;
             end
         end
@@ -197,6 +198,7 @@ classdef NN < abstractMeganetElement
             
             cnt = 0; cnt2 = 0;
             for i=nt:-1:1
+                Yi = tmp{i,1};
                 if this.outTimes(i)==1
                     nn = nFeatOut(this.layers{i});
                     W = W+ this.Q'*Wdata(end-cnt2-nn+1:end-cnt2,:);
@@ -204,7 +206,7 @@ classdef NN < abstractMeganetElement
                 end
                 ni        = nTheta(this.layers{i});
                 [dmbi,W] = JTmv(this.layers{i},W,[],theta(end-cnt-ni+1:end-cnt),...
-                    tmp{i,1},tmp{i,2});
+                    Yi,tmp{i,2});
                 dtheta(end-cnt-ni+1:end-cnt)  = dmbi;
                 cnt = cnt+ni;
             end

@@ -106,10 +106,11 @@ classdef DoubleHamiltonianNN < abstractMeganetElement
         function [Xdata,X,tmp] = apply(this,theta,X0)
             
             [Y,Z] = splitData(this,X0);
-            if nargout>1;    tmp = cell(this.nt+1,4); tmp{1,1} = Y; end
+            if nargout>1;    tmp = cell(this.nt,4);  end
             [th1,th2] = split(this,theta);
             Xdata = zeros(0,size(Y,2),'like',Y);
             for i=1:this.nt
+                if nargout>1, tmp{i,1} = Y; tmp{i,2} = Z; end
                 
                 [dZ,~,tmp{i,3}] = apply(this.layer1,th1(:,i),Y);
                 Z = Z - this.h*dZ;
@@ -118,7 +119,6 @@ classdef DoubleHamiltonianNN < abstractMeganetElement
                 [dY,~,tmp{i,4}] = apply(this.layer2,th2(:,i),Z);
                 Y = Y + this.h*dY;
                 
-                if nargout>1, tmp{i+1,1} = Y; tmp{i+1,2} = Z; end
                 if this.outTimes(i)==1
                     Xdata = [Xdata; this.Q*[Y;Z]];
                 end

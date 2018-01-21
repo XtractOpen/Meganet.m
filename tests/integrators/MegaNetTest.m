@@ -1,4 +1,4 @@
-classdef MeganetTest < IntegratorTest
+classdef MegaNetTest < IntegratorTest
     % classdef MeganetTest < blockTest
     %
     % tests some Meganets. Extend to cover more cases.

@@ -95,7 +95,7 @@ classdef LeapFrogNN < abstractMeganetElement
         function [Ydata,Y,tmp] = apply(this,theta,Y0)
             nex = numel(Y0)/nFeatOut(this);
             Y   = reshape(Y0,[],nex);
-            if nargout>1;    tmp = cell(this.nt+1,2); tmp{1,1} = Y0; end
+            if nargout>1;    tmp = cell(this.nt,2);  end
             
             theta = reshape(theta,[],this.nt);
             
@@ -103,6 +103,7 @@ classdef LeapFrogNN < abstractMeganetElement
             
             Yold = 0;
             for i=1:this.nt
+                if nargout>1, tmp{i,1} = Y; end
                 [Z,~,tmp{i,2}] = apply(this.layer,theta(:,i),Y);
                 Ytemp = Y;
                 Y =  2*Y - Yold + this.h^2 * Z;
@@ -110,7 +111,6 @@ classdef LeapFrogNN < abstractMeganetElement
                 if this.outTimes(i)==1
                     Ydata = [Ydata;this.Q*Y];
                 end
-                if nargout>1, tmp{i+1,1} = Y; end
             end
         end
         
