@@ -24,16 +24,19 @@ classdef regressionLoss
                 eval([varargin{k},'=varargin{',int2str(k+1),'};']);
             end
             dWF = []; d2WF = []; dYF =[]; d2YF = [];
-            szW  = [size(C,1),size(Y,1)+1];
+            szW  = [size(C,1),size(Y,1)+this.addBias];
             W    = reshape(W,szW);
             
             nex = size(Y,2);
+            Cp   = getLabels(this,W,Y);
+            err  = nnz(C-Cp)/2;
+            
             if this.addBias==1
                 Y = [Y; ones(1,nex)];
             end
             res = W*Y - C;
             F   = .5*sum(vec(res.^2))/nex;
-            para = [nex*F,nex];
+            para = [nex*F,nex,err];
             
             if (doDW) && (nargout>=3)
                dWF  = vec(res*(Y'/nex));
@@ -55,11 +58,11 @@ classdef regressionLoss
         
         
         function [str,frmt] = hisNames(this)
-            str  = {'F'};
-            frmt = {'%-12.2e'};
-        end
+              str  = {'F','accuracy'};
+            frmt = {'%-12.2e','%-12.2f'};
+       end
         function str = hisVals(this,para)
-            str = para(1)/para(2);
+            str = [para(1)/para(2),(1-para(3)/para(2))*100];
         end 
         
         function Cp = getLabels(this,W,Y)

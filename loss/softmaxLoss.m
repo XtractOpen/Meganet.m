@@ -4,7 +4,6 @@ classdef softmaxLoss
     % object describing softmax loss function
     
     properties
-       shift
        theta
        addBias
     end
@@ -12,7 +11,6 @@ classdef softmaxLoss
     
     methods
         function this = softmaxLoss(varargin)
-            this.shift   = 0;
             this.theta   = 1e-3;
             this.addBias = 1;
             for k=1:2:length(varargin)     % overwrites default parameter
@@ -38,13 +36,14 @@ classdef softmaxLoss
             szW  = [size(C,1),size(Y,1)];
             
             W    = reshape(W,szW);
-            Y   = Y - this.shift;
+            WY   = W*Y;
+            WY   = WY - max(WY,[],1);
             
-            S    = exp(W*Y);
+            S    = exp(WY);
             
             Cp   = getLabels(this,S);
             err  = nnz(C-Cp)/2;
-            F    = -sum(sum(C.*(W*Y))) + sum(log(sum(S,1)));
+            F    = -sum(sum(C.*(WY))) + sum(log(sum(S,1)));
             para = [F,nex,err];
             F    = F/nex;
 
@@ -93,9 +92,9 @@ classdef softmaxLoss
                 if this.addBias==1
                     Y     = [Y; ones(1,nex)];
                 end
-                Y     = Y - this.shift;
-                
-                S      = exp(W*Y);
+                WY     = W*Y;
+                WY     = WY - max(WY,[],1);
+                S      = exp(WY);
             end
             P      = S./sum(S,1);
             [~,jj] = max(P,[],1);
