@@ -218,7 +218,7 @@ classdef singleLayer < abstractMeganetElement
             dA    = tmp{2};
             nex   = numel(Y)/nFeatIn(this);
             [th1,th2,~,th4] = this.split(theta);
-            if Z==0
+            if all(Z(:)==0)
                 dY = 0*Y;
                 return
             end
