@@ -38,13 +38,13 @@ classdef opTimeDer < RegularizationOperator
             this.Amv = @(x) der(this,x);
             this.ATmv = @(x)derTranspose(this,x);
         end
-        
-        function this = gpuVar(this,useGPU,precision)
+        function this = convertGPUorPrecision(this,useGPU,precision)
             if strcmp(this.precision,'double') && (isa(this.lam,'single') || isa(this.lamInv,'single'))
                 [this.lam,this.lamInv] = getEigs(this);
             end
             [this.lam, this.lamInv] = gpuVar(useGPU,precision,this.lam,this.lamInv);
         end
+        
         
         function [lam,lamInv] = getEigs(this)
             lam         = eigLap1D(this.nt,this.h);

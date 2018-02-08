@@ -22,8 +22,8 @@ classdef opDiag < RegularizationOperator
         function y = PCmv(this,x)
             y = x;
         end
-        
-        function this = gpuVar(this,useGPU,precision,varargin)
+        function this = convertGPUorPrecision(this,useGPU,precision)
+            % do nothing
         end
 
     end

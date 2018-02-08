@@ -19,16 +19,16 @@ classdef RegularizationOperator < LinearOperator
                 error('useGPU must be 0 or 1.')
             else
                 this.useGPU = value;
-                this = gpuVar(this,this.useGPU,this.precision);
             end
+            this = convertGPUorPrecision(this,value,this.precision);
         end
         function this = set.precision(this,value)
             if not(strcmp(value,'single') || strcmp(value,'double'))
                 error('precision must be single or double.')
             else
                 this.precision = value;
-                this = gpuVar(this,this.useGPU,this.precision);
             end
+            this = convertGPUorPrecision(this,this.useGPU,value);
         end    
     end
        
