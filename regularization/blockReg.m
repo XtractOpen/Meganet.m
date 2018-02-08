@@ -44,7 +44,7 @@ classdef blockReg
         function [Sc,para,dS,d2S] = regularizer(this,x)
             nb  = numel(this.blocks);
             Sc  = 0;
-            dS  = zeros(nTheta(this),1);
+            dS  = zeros(nTheta(this),1,'like',x);
             d2S = cell(nb,1);
             cnt = 0;
             for k=1:nb
