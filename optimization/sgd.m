@@ -133,7 +133,9 @@ classdef sgd < optimizer
                         fprintf([frmt{5:end}],his(epoch,5:end));
                     end
                 end
-                fprintf('\n');
+                if this.out>0
+                    fprintf('\n');
+                end
                 epoch = epoch + 1;
             end
             His = struct('str',{str},'frmt',{frmt},'his',his(1:min(epoch,this.maxEpochs),:));

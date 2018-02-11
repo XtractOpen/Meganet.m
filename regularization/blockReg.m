@@ -69,7 +69,12 @@ classdef blockReg
         end       
         
         function PC = getPC(this)
-            PC = getPCop(this.B);
+            nb  = numel(this.blocks);
+            PC = cell(nb,1);
+            for k=1:nb
+                PC{k} = getPCop(this.blocks{k}.B);
+            end
+            PC = blkdiag(PC{:});
         end
         
         function runMinimalExample(~)
