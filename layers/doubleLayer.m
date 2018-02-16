@@ -183,7 +183,39 @@ classdef doubleLayer < abstractMeganetElement
         
         % ----------- Jacobian matvecs -----------
         function [dZ] = Jthetamv(this,dtheta,theta,Y,dA)
-            if isempty(dtheta); dZ = []; return; end
+            dZ = Jmv(this,dtheta,[],theta,Y,dA);
+        end
+        
+        function [dZ] = JYmv(this,dY,theta,~,dA)
+            nex = numel(dY)/nFeatIn(this);
+            if not(isempty(dY)) && (not(isscalar(dY) && dY==0))
+                % load temps and recompute activations
+                dY  = reshape(dY,[],nex);
+                [th1, th2,th3,th4,~,th6,th7] = this.split(theta);
+                K1Y = dA{1};
+                if not(isempty(this.nLayer1))
+                    [K1Y,~,tmpNL1] = apply(this.nLayer1,th6,K1Y);
+                end
+                [~,dA1] = this.activation1(K1Y + this.Bin1*th3);
+                K2Z = dA{2};
+                if not(isempty(this.nLayer2))
+                    [K2Z,~,tmpNL2] = apply(this.nLayer2,th7,K2Z);
+                end
+                [~,dA2] = this.activation2(K2Z + this.Bin2*th4);
+
+                K1dY  = getOp(this.K1,th1)* dY;
+                if not(isempty(this.nLayer1))
+                    K1dY = JYmv(this.nLayer1,K1dY,th6,dA{1},tmpNL1);
+                end
+                K2dZ = getOp(this.K2,th2)* (dA1.*(K1dY));
+                if not(isempty(this.nLayer2))
+                    K2dZ = JYmv(this.nLayer2,K2dZ,th7,dA{2},tmpNL2);
+                end
+                dZ = dA2.*(K2dZ);
+            end
+        end
+        
+        function [dZ] = Jmv(this,dtheta,dY,theta,Y,dA)
             nex = numel(Y)/nFeatIn(this);
             Y  = reshape(Y,[],nex);
             
@@ -209,7 +241,11 @@ classdef doubleLayer < abstractMeganetElement
             dK2Op = getOp(this.K2,dth2);
             K2Op  = getOp(this.K2,th2);
             
-            dK1dY = dK1Op*Y;
+            dK1dY = dK1Op*Y; 
+            if not(isempty(dY)) || (numel(dY>1) && dY~=0)
+                dY  = reshape(dY,[],nex);
+                dK1dY = dK1dY + getOp(this.K1,th1)* dY;
+            end
             if not(isempty(this.nLayer1))
                 dK1dY = Jmv(this.nLayer1,dth6,dK1dY,th6,dA{1},tmpNL1);
             end
@@ -222,49 +258,9 @@ classdef doubleLayer < abstractMeganetElement
             dZ = dZ + this.Bout*dth5;
         end
         
-        function [dZ] = JYmv(this,dY,theta,~,dA)
-            nex = numel(dY)/nFeatIn(this);
-            dY  = reshape(dY,[],nex);
-            if not(isempty(dY)) && (not(isscalar(dY) && dY==0))
-                % load temps and recompute activations
-                [th1, th2,th3,th4,~,th6,th7] = this.split(theta);
-                K1Y = dA{1};
-                if not(isempty(this.nLayer1))
-                    [K1Y,~,tmpNL1] = apply(this.nLayer1,th6,K1Y);
-                end
-                [~,dA1] = this.activation1(K1Y + this.Bin1*th3);
-                K2Z = dA{2};
-                if not(isempty(this.nLayer2))
-                    [K2Z,~,tmpNL2] = apply(this.nLayer2,th7,K2Z);
-                end
-                [~,dA2] = this.activation2(K2Z + this.Bin2*th4);
-
-                K1dY  = getOp(this.K1,th1)* dY;
-                if not(isempty(this.nLayer1))
-                    K1dY = JYmv(this.nLayer1,K1dY,th6,dA{1},tmpNL1);
-                end
-                K2dZ = getOp(this.K2,th2)* (dA1.*(K1dY));
-                if not(isempty(this.nLayer2))
-                    K2dZ = JYmv(this.nLayer2,K2dZ,th7,dA{2},tmpNL2);
-                end
-                dZ = dA2.*(K2dZ);
-            end
-        end
-        
-        function [dZ] = Jmv(this,dtheta,dY,theta,Y,tmp)
-            if not(isempty(dtheta))
-                dZ = Jthetamv(this,dtheta,theta,Y,tmp);
-            else
-                dZ = 0.0;
-            end
-            if not(isempty(dY)) && (not(isscalar(dY) && dY==0))
-                dZ = dZ + JYmv(this,dY,theta,Y,tmp);
-            end
-        end
-        
         % ----------- Jacobian' matvecs ----------
         
-        function dth = JthetaTmv(this,W,~,theta,Y,dA)
+        function [dth,dAZ1] = JthetaTmv(this,W,~,theta,Y,dA)
             nex        = numel(W)/nFeatOut(this);
             W          = reshape(W,[],nex);
             dth6 = []; dth7=[];
@@ -342,14 +338,10 @@ classdef doubleLayer < abstractMeganetElement
             
             dY = [];
             
-            [th1, th2] = this.split(theta);
-            
-            
-            
-            dth  = JthetaTmv(this,Z,[],theta,Y,tmp);
-            
+            [th1, ~] = this.split(theta);
+            [dth,dA1Z]  = JthetaTmv(this,Z,[],theta,Y,tmp);
             if nargout==2 || doDerivative(2)==1
-                dY  = JYTmv(this,Z,[],theta,Y,tmp);
+                dY  = getOp(this.K1,th1)'*dA1Z;
             end
             if nargout==1 && all(doDerivative==1)
                 dth = [dth(:);dY(:)];
