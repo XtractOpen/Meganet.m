@@ -157,29 +157,27 @@ classdef doubleLayer < abstractMeganetElement
         
         % ------- apply forward model ----------
         function [Ydata,Y,tmp] = apply(this,theta,Y,varargin)
-            doDerivative  = (nargout>1);
-            for k=1:2:length(varargin)     % overwrites default parameter
-                eval([varargin{k},'=varargin{',int2str(k+1),'};']);
-            end
+            
             nex = numel(Y)/nFeatIn(this);
             Y   = reshape(Y,[],nex);
             
-            tmp        = cell(1,5);
+            tmp        = cell(1,2);
             [th1,th2,th3,th4,th5,th6,th7] = this.split(theta);
             K1Y         = getOp(this.K1,th1)* Y;
+            tmp{1} = K1Y;
             if not(isempty(this.nLayer1))
-                [K1Y,~,tmp{4}] = apply(this.nLayer1,th6,K1Y);
+                K1Y = apply(this.nLayer1,th6,K1Y);
             end
             T          =  K1Y + this.Bin1*th3;
-            [Z1,tmp{2}] = this.activation1(T,'doDerivative',doDerivative);
+            Z1 = this.activation1(T);
             K2Z        = getOp(this.K2, th2)* Z1;
+            tmp{2} = K2Z;
             if not(isempty(this.nLayer2))
-                [K2Z,~,tmp{5}] = apply(this.nLayer2,th7,K2Z);
+                K2Z = apply(this.nLayer2,th7,K2Z);
             end
-            T         = K2Z + this.Bin2*th4;
-            [Y,tmp{3}] = this.activation2(T,'doDerivative',doDerivative);
-            Y      = Y+  this.Bout*th5;
-            tmp{1} = Z1; 
+            T     = K2Z + this.Bin2*th4;
+            Y     = this.activation2(T);
+            Y     = Y+  this.Bout*th5;
             Ydata = Y;
         end
         
@@ -190,45 +188,64 @@ classdef doubleLayer < abstractMeganetElement
             Y  = reshape(Y,[],nex);
             
             [dth1,dth2,dth3,dth4,dth5,dth6,dth7] = this.split(dtheta);
-            [th1, th2, ~, ~, ~,th6,th7]      = this.split(theta);
+            [th1, th2,th3,th4,~,th6,th7] = this.split(theta);
             
-            A1 = dA{1}; dA1 = dA{2}; dA2 = dA{3};
+            % load temps and recompute activations
+            K1Y = dA{1};
+            if not(isempty(this.nLayer1))
+                [K1Y,~,tmpNL1] = apply(this.nLayer1,th6,K1Y);
+            end
+            [A1,dA1] = this.activation1(K1Y + this.Bin1*th3);
+            K2Z = dA{2};
+            if not(isempty(this.nLayer2))
+                [K2Z,~,tmpNL2] = apply(this.nLayer2,th7,K2Z);
+            end
+            [~,dA2] = this.activation2(K2Z + this.Bin2*th4);
             
+            % now compute sensitivities
             dZ = 0.0;
             dK1Op = getOp(this.K1,dth1);
-            K1Op  = getOp(this.K1,th1);
             
             dK2Op = getOp(this.K2,dth2);
             K2Op  = getOp(this.K2,th2);
             
             dK1dY = dK1Op*Y;
-           
             if not(isempty(this.nLayer1))
-                dK1dY = Jmv(this.nLayer1,dth6,dK1dY,th6,K1Op*Y,dA{4});
+                dK1dY = Jmv(this.nLayer1,dth6,dK1dY,th6,dA{1},tmpNL1);
             end
             d1  = dA1.*(dK1dY + this.Bin1*dth3);
             dK2Z = dK2Op*A1 + K2Op*d1;
             if not(isempty(this.nLayer2))
-                dK2Z = Jmv(this.nLayer2,dth7,dK2Z,th7,K2Op*A1,dA{5});
+                dK2Z = Jmv(this.nLayer2,dth7,dK2Z,th7,dA{2},tmpNL2);
             end
             dZ = dZ + dA2 .* ( dK2Z + this.Bin2*dth4);
             dZ = dZ + this.Bout*dth5;
         end
         
-        function [dZ] = JYmv(this,dY,theta,Y,dA)
+        function [dZ] = JYmv(this,dY,theta,~,dA)
             nex = numel(dY)/nFeatIn(this);
-            Y  = reshape(Y,[],nex);
             dY  = reshape(dY,[],nex);
             if not(isempty(dY)) && (not(isscalar(dY) && dY==0))
-                A1 = dA{1}; dA1 = dA{2}; dA2 = dA{3};
-                [th1, th2,~,~,~,th6,th7] = this.split(theta);
+                % load temps and recompute activations
+                [th1, th2,th3,th4,~,th6,th7] = this.split(theta);
+                K1Y = dA{1};
+                if not(isempty(this.nLayer1))
+                    [K1Y,~,tmpNL1] = apply(this.nLayer1,th6,K1Y);
+                end
+                [~,dA1] = this.activation1(K1Y + this.Bin1*th3);
+                K2Z = dA{2};
+                if not(isempty(this.nLayer2))
+                    [K2Z,~,tmpNL2] = apply(this.nLayer2,th7,K2Z);
+                end
+                [~,dA2] = this.activation2(K2Z + this.Bin2*th4);
+
                 K1dY  = getOp(this.K1,th1)* dY;
                 if not(isempty(this.nLayer1))
-                    K1dY = JYmv(this.nLayer1,K1dY,th6,getOp(this.K1,th1)*Y,dA{4});
+                    K1dY = JYmv(this.nLayer1,K1dY,th6,dA{1},tmpNL1);
                 end
                 K2dZ = getOp(this.K2,th2)* (dA1.*(K1dY));
                 if not(isempty(this.nLayer2))
-                    K2dZ = JYmv(this.nLayer2,K2dZ,th7,getOp(this.K2,th2)*A1,dA{5});
+                    K2dZ = JYmv(this.nLayer2,K2dZ,th7,dA{2},tmpNL2);
                 end
                 dZ = dA2.*(K2dZ);
             end
@@ -250,15 +267,27 @@ classdef doubleLayer < abstractMeganetElement
         function dth = JthetaTmv(this,W,~,theta,Y,dA)
             nex        = numel(W)/nFeatOut(this);
             W          = reshape(W,[],nex);
-            A1 = dA{1}; dA1 = dA{2}; dA2 = dA{3}; dth6 = []; dth7=[];
-            
+            dth6 = []; dth7=[];
             dth5 = vec(sum(this.Bout'*W,2));
-            [th1, th2,~,~,~,th6,th7] = this.split(theta);
+            [th1, th2,th3,th4,~,th6,th7] = this.split(theta);
             
+            % load temps and recompute activations
+            K1Y = dA{1};
+            if not(isempty(this.nLayer1))
+                [K1Y,~,tmpNL1] = apply(this.nLayer1,th6,K1Y);
+            end
+            [A1,dA1] = this.activation1(K1Y + this.Bin1*th3);
+            K2Z = dA{2};
+            if not(isempty(this.nLayer2))
+                [K2Z,~,tmpNL2] = apply(this.nLayer2,th7,K2Z);
+            end
+            [~,dA2] = this.activation2(K2Z + this.Bin2*th4);
+            
+            % the actual sensitivity computation
             dAZ2 = dA2.*W;
             dth4 = vec(sum(this.Bin2'*reshape(dAZ2,[],nex),2));
             if not(isempty(this.nLayer2))
-                [dth7,dAZ2] = JTmv(this.nLayer2,dAZ2,[],th7,getOp(this.K2, th2)* A1,dA{5});
+                [dth7,dAZ2] = JTmv(this.nLayer2,dAZ2,[],th7,dA{2},tmpNL2);
             end
             dth2 = JthetaTmv(this.K2,dAZ2,th2,A1);
             
@@ -266,7 +295,7 @@ classdef doubleLayer < abstractMeganetElement
             dAZ1 = dA1.*(getOp(this.K2,th2)'*dAZ2);
             dth3      = vec(sum(this.Bin1'*reshape(dAZ1,[],nex),2));
             if not(isempty(this.nLayer1))
-                [dth6,dAZ1] = JTmv(this.nLayer1,dAZ1,[],th6,getOp(this.K1,th1)* Y,dA{4});
+                [dth6,dAZ1] = JTmv(this.nLayer1,dAZ1,[],th6,dA{1},tmpNL1);
             end
             dth1 = JthetaTmv(this.K1,dAZ1,th1,Y);
             
@@ -274,21 +303,32 @@ classdef doubleLayer < abstractMeganetElement
         end
         
         function dY = JYTmv(this,Z,~,theta,Y,dA)
-            [th1, th2,~,~,~,th6,th7] = this.split(theta);
+            [th1, th2,th3,th4,~,th6,th7] = this.split(theta);
             nex = numel(Z)/nFeatOut(this);
             Z   = reshape(Z,[],nex);
-            dA1 = dA{2}; dA2 = dA{3};
+            
+            % load temps and recompute activations
+            K1Y = dA{1};
+            if not(isempty(this.nLayer1))
+                [K1Y,~,tmpNL1] = apply(this.nLayer1,th6,K1Y);
+            end
+            [~,dA1] = this.activation1(K1Y + this.Bin1*th3);
+            K2Z = dA{2};
+            if not(isempty(this.nLayer2))
+                [K2Z,~,tmpNL2] = apply(this.nLayer2,th7,K2Z);
+            end
+            [~,dA2] = this.activation2(K2Z + this.Bin2*th4);
             
             K1Op = getOp(this.K1,th1);
             K2Op = getOp(this.K2,th2);
             
             dA2Z = dA2.*Z;
             if not(isempty(this.nLayer2))
-               dA2Z = JYTmv(this.nLayer2,dA2Z,[],th7,getOp(this.K2, th2)* dA{1},dA{5});
+               dA2Z = JYTmv(this.nLayer2,dA2Z,[],th7,dA{2},tmpNL2);
             end
             dA1Z = (dA1.*(K2Op'*dA2Z));
             if not(isempty(this.nLayer1))
-                dA1Z = JYTmv(this.nLayer1,dA1Z,[],th6,getOp(this.K1,th1)* Y,dA{4});
+                dA1Z = JYTmv(this.nLayer1,dA1Z,[],th6,dA{1},tmpNL1);
             end
             dY  = K1Op'*dA1Z;
         end
@@ -303,6 +343,7 @@ classdef doubleLayer < abstractMeganetElement
             dY = [];
             
             [th1, th2] = this.split(theta);
+            
             
             
             dth  = JthetaTmv(this,Z,[],theta,Y,tmp);
