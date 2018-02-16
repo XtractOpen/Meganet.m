@@ -212,7 +212,7 @@ classdef DoubleHamiltonianNN < abstractMeganetElement
                WdataY = Wdata(1:nFeatIn(this.layer1),:,:);
                WdataZ = Wdata(nFeatIn(this.layer1)+1:end,:,:);
             end
-            if isempty(W)
+            if isempty(W) || numel(W)==1
                 WY = 0;
                 WZ = 0;
             elseif not(isscalar(W))
