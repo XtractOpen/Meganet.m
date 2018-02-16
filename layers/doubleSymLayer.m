@@ -73,7 +73,6 @@ classdef doubleSymLayer < abstractMeganetElement
         
         function [Z,QZ,tmp] = apply(this,theta,Y,varargin)
             QZ =[];
-            tmp = cell(1,2);
             nex        = numel(Y)/nFeatIn(this);
             Y          = reshape(Y,[],nex);
             storedAct  = (nargout>1);
@@ -81,11 +80,11 @@ classdef doubleSymLayer < abstractMeganetElement
             [theta1,theta2,theta3,th4] = split(this,theta);
             Kop    = getOp(this.K,theta1);
             KY     = Kop*Y;
+            tmp    = KY;
             if not(isempty(this.nLayer))
-                [KY,~,tmp{1}] = apply(this.nLayer,th4,KY);
+                KY = apply(this.nLayer,th4,KY);
             end
             Yt     = KY + this.Bin*theta2;
-            tmp{2} = Yt;
             Z      = this.activation(Yt,'doDerivative',storedAct);
             Z      = -(Kop'*Z) + this.Bout*theta3;
         end
@@ -120,45 +119,58 @@ classdef doubleSymLayer < abstractMeganetElement
         end
         
         function dY = Jthetamv(this,dtheta,theta,Y,tmp)
-            [A,dA] = this.activation(tmp{2});
             
-            [th1, ~,~,th4]  = split(this,theta);
+            [th1, th2,~,th4]  = split(this,theta);
             [dth1,dth2,dth3,dth4] = split(this,dtheta);
+            KY = tmp;
+            if not(isempty(this.nLayer))
+                [KY,~,tmpNL] = apply(this.nLayer,th4,KY);
+            end
+            [A,dA] = this.activation( KY + this.Bin*th2);
             
             Kop    = getOp(this.K,th1);
             dKop   = getOp(this.K,dth1);
             dY     = dKop*Y;
             if not(isempty(this.nLayer))
-                dY = Jmv(this.nLayer,dth4,dY,th4,Kop*Y,tmp{1});
+                dY = Jmv(this.nLayer,dth4,dY,th4,tmp,tmpNL);
             end
             dY     = dY + this.Bin*dth2;
             
             dY = -(Kop'*(dA.*dY) + dKop'*A) + this.Bout*dth3;
         end
         
-        function dZ = JYmv(this,dY,theta,Y,tmp)
-            [~,dA] = this.activation(tmp{2});
+        function dZ = JYmv(this,dY,theta,~,tmp)
+            
+            [th1, th2,~,th4]  = split(this,theta);
+            KY = tmp;
+            if not(isempty(this.nLayer))
+                [KY,~,tmpNL] = apply(this.nLayer,th4,KY);
+            end
+            [~,dA] = this.activation( KY + this.Bin*th2);
+            
             nex = numel(dY)/nFeatIn(this);
             dY  = reshape(dY,[],nex);
-            Y  = reshape(Y,[],nex);
-            [th1, ~,~,th4]  = split(this,theta);
             
             Kop = getOp(this.K,th1);
             dY = Kop*dY;
             if not(isempty(this.nLayer))
-                dY = JYmv(this.nLayer,dY,th4,Kop*Y,tmp{1});
+                dY = JYmv(this.nLayer,dY,th4,tmp,tmpNL);
             end
             dZ = -(Kop'*(dA.*dY));
             
         end
         
         function dY = Jmv(this,dtheta,dY,theta,Y,tmp)
-            [A,dA] = this.activation(tmp{2});
+            [th1, th2,~,th4]  = split(this,theta);
+            [dth1,dth2,dth3,dth4] = split(this,dtheta);
+            KY = tmp;
+            if not(isempty(this.nLayer))
+                [KY,~,tmpNL] = apply(this.nLayer,th4,KY);
+            end
+            [A,dA] = this.activation( KY + this.Bin*th2);
             nex = numel(Y)/nFeatIn(this);
             
-            [th1, ~,~,th4]  = split(this,theta);
-            [dth1,dth2,dth3,dth4] = split(this,dtheta);
-            
+
             Kop    = getOp(this.K,th1);
             dKop   = getOp(this.K,dth1);
             if numel(dY)>1
@@ -169,7 +181,7 @@ classdef doubleSymLayer < abstractMeganetElement
             end
             dY = dKop*Y+KdY;
             if not(isempty(this.nLayer))
-                dY = Jmv(this.nLayer,dth4,dY,th4,Kop*Y,tmp{1});
+                dY = Jmv(this.nLayer,dth4,dY,th4,tmp,tmpNL);
             end
             dY     = dY + this.Bin*dth2;
             
@@ -178,17 +190,23 @@ classdef doubleSymLayer < abstractMeganetElement
         
         
         function dtheta = JthetaTmv(this,Z,~,theta,Y,tmp)
+            [th1, th2,~,th4]  = split(this,theta);
+            KY = tmp;
+            if not(isempty(this.nLayer))
+                [KY,~,tmpNL] = apply(this.nLayer,th4,KY);
+            end
+            [A,dA] = this.activation( KY + this.Bin*th2);
+            
+            
             nex       = numel(Y)/nFeatIn(this);
             Z         = reshape(Z,[],nex);
-            [th1,~,~,th4]  = split(this,theta);
             Kop       = getOp(this.K,th1);
-            [A,dA]    = this.activation(tmp{2});
             
             dth3      = vec(sum(this.Bout'*Z,2));
             dAZ       = dA.*(Kop*Z);
             dth2      = vec(sum(this.Bin'*dAZ,2));
             if not(isempty(this.nLayer))
-               [dth4,dAZ] = JTmv(this.nLayer,dAZ,[],th4,Kop*Y,tmp{1}); 
+               [dth4,dAZ] = JTmv(this.nLayer,dAZ,[],th4,tmp,tmpNL); 
             else
                dth4 = [];
             end
@@ -198,16 +216,21 @@ classdef doubleSymLayer < abstractMeganetElement
         end
         
         function dY = JYTmv(this,Z,~,theta,Y,tmp)
+            [th1, th2,~,th4]  = split(this,theta);
+            KY = tmp;
+            if not(isempty(this.nLayer))
+                [KY,~,tmpNL] = apply(this.nLayer,th4,KY);
+            end
+            [~,dA] = this.activation( KY + this.Bin*th2);
+            
             nex       = numel(Y)/nFeatIn(this);
             Z         = reshape(Z,[],nex);
-            [th1, ~,~,th4]  = split(this,theta);
             Kop       = getOp(this.K,th1);
-            [~,dA]    = this.activation(tmp{2});
             
             dAZ       = dA.*(Kop*Z);
             %dAZ       = dA.*Z;
             if not(isempty(this.nLayer))
-                dAZ = JYTmv(this.nLayer,dAZ,[],th4,Kop*Y,tmp{1});
+                dAZ = JYTmv(this.nLayer,dAZ,[],th4,tmp,tmpNL);
             end
             dY  = -(Kop'*dAZ);
         end
@@ -216,20 +239,25 @@ classdef doubleSymLayer < abstractMeganetElement
             if not(exist('doDerivative','var')) || isempty(doDerivative)
                 doDerivative =[1;0];
             end
+            [th1, th2,~,th4]  = split(this,theta);
+            KY = tmp;
+            if not(isempty(this.nLayer))
+                [KY,~,tmpNL] = apply(this.nLayer,th4,KY);
+            end
+            [A,dA] = this.activation( KY + this.Bin*th2);
+            
+            
+            
             dY = [];
             nex       = numel(Y)/nFeatIn(this);
             Z         = reshape(Z,[],nex);
-            Yt        = reshape(tmp{2},[],nex);
-            Y        = reshape(Y,[],nex);
-            [th1, ~,~,th4]  = split(this,theta);
             Kop       = getOp(this.K,th1);
-            [A,dA]    = this.activation(Yt);
             
             dth3      = vec(sum(this.Bout'*Z,2));
             dAZ       = dA.*(Kop*Z);
             dth2      = vec(sum(this.Bin'*dAZ,2));
             if not(isempty(this.nLayer))
-               [dth4,dAZ] = JTmv(this.nLayer,dAZ,[],th4,Kop*Y,tmp{1}); 
+               [dth4,dAZ] = JTmv(this.nLayer,dAZ,[],th4,tmp,tmpNL); 
             else
                dth4 = [];
             end
