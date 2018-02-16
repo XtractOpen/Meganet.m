@@ -68,13 +68,14 @@ classdef singleLayer < abstractMeganetElement
             nex = numel(Y)/nFeatIn(this);
             Y   = reshape(Y,[],nex);
             [th1,th2,th3,th4] = split(this,theta);
-            tmp = cell(1,2);
             
-            Y      =  getOp(this.K,th1)*Y + this.Bin * th2;
+            Y      =  getOp(this.K,th1)*Y;
+            tmp    = Y;
             if not(isempty(this.nLayer))
-                [Y,~,tmp{1}] = apply(this.nLayer,th4,Y);
+                Y = apply(this.nLayer,th4,Y);
             end
-            [Y,tmp{2}] = this.activation(Y,'doDerivative',doDerivative);
+            Y = Y + this.Bin * th2;
+            Y = this.activation(Y,'doDerivative',doDerivative);
             Y = Y +this.Bout*th3;
             Ydata = Y;
         end
@@ -105,42 +106,56 @@ classdef singleLayer < abstractMeganetElement
            end
         end
         
-        
         function [dZ] = Jthetamv(this,dtheta,theta,Y,tmp)
-            dA  = tmp{2};
+            [th1, th2,~,th4]  = split(this,theta);
+            KY = tmp;
+            if not(isempty(this.nLayer))
+                [KY,~,tmpNL] = apply(this.nLayer,th4,KY);
+            end
+            [A,dA] = this.activation( KY + this.Bin*th2);
+            
             nex = numel(Y)/nFeatIn(this);
             Y   = reshape(Y,[],nex);
-            [th1,th2,~,th4]= split(this,theta);
-            [dth1,dth2,dth3,dth4]= split(this,dtheta);
+            [dth1,dth2,dth3,dth4] = split(this,dtheta);
             
-            dZ = Jthetamv(this.K,dth1,th1,Y) + this.Bin*dth2;
+            dZ = Jthetamv(this.K,dth1,th1,Y);
             if not(isempty(this.nLayer))
-                Kop = getOp(this.K,th1);
-                dZ  = Jmv(this.nLayer,dth4,dZ,th4,Kop*Y+this.Bin*th2,tmp{1});
+                dZ  = Jmv(this.nLayer,dth4,dZ,th4,tmp,tmpNL);
             end
+            dZ = dZ +  this.Bin*dth2;
             dZ = dA.*dZ+this.Bout*dth3;
         end
         
         function [dZ] = JYmv(this,dY,theta,Y,tmp)
-            dA  = tmp{2};
-            nex = numel(dY)/nFeatIn(this);
-            Y  = reshape(Y,[],nex);
+            [th1, th2,~,th4]  = split(this,theta);
+            KY = tmp;
+            if not(isempty(this.nLayer))
+                [KY,~,tmpNL] = apply(this.nLayer,th4,KY);
+            end
+            [A,dA] = this.activation( KY + this.Bin*th2);
             
-            [th1,th2,~,th4] = split(this,theta);
+            nex = numel(dY)/nFeatIn(this);
+            
             Kop = getOp(this.K,th1);
             dY   = reshape(dY,[],nex);
             dZ = Kop*dY;
             if not(isempty(this.nLayer))
-                dZ = JYmv(this.nLayer,dZ,th4,Kop*Y+this.Bin*th2,tmp{1});
+                dZ = JYmv(this.nLayer,dZ,th4,tmp,tmpNL);
             end
             dZ = dA.*dZ;
         end
         
         function [dZ] = Jmv(this,dtheta,dY,theta,Y,tmp)
-            dA = tmp{2};
+            [th1, th2,~,th4]  = split(this,theta);
+            KY = tmp;
+            if not(isempty(this.nLayer))
+                [KY,~,tmpNL] = apply(this.nLayer,th4,KY);
+            end
+            [A,dA] = this.activation( KY + this.Bin*th2);
+            
             nex = numel(Y)/nFeatIn(this);
             Y   = reshape(Y,[],nex);
-            [th1,th2,~,th4]= split(this,theta);
+            
             [dth1,dth2,dth3,dth4]= split(this,dtheta);
             Kop = getOp(this.K,th1);
             if isempty(dY) || (numel(dY)==1 && abs(dY)==0)
@@ -149,11 +164,11 @@ classdef singleLayer < abstractMeganetElement
                 dY = reshape(dY,[],nex);
                 dZ = Kop*dY;
             end
-            dZ = dZ + Jthetamv(this.K,dth1,th1,Y) + this.Bin*dth2;
+            dZ = dZ + Jthetamv(this.K,dth1,th1,Y);
             if not(isempty(this.nLayer))
-                dZ = Jmv(this.nLayer,dth4,dZ,th4,Kop*Y+this.Bin*th2,tmp{1});
+                dZ = Jmv(this.nLayer,dth4,dZ,th4,tmp,tmpNL);
             end
-            
+            dZ = dZ +  this.Bin*dth2;
             dZ = dA.*dZ + this.Bout*dth3;
         end
         
@@ -161,7 +176,13 @@ classdef singleLayer < abstractMeganetElement
             if not(exist('doDerivative','var')) || isempty(doDerivative)
                doDerivative =[1;0]; 
             end
-            dA = tmp{2};
+            [th1, th2,~,th4]  = split(this,theta);
+            KY = tmp;
+            if not(isempty(this.nLayer))
+                [KY,~,tmpNL] = apply(this.nLayer,th4,KY);
+            end
+            [~,dA] = this.activation( KY + this.Bin*th2);
+            
             nex       = numel(Y)/nFeatIn(this);
             dY = [];
             if isscalar(Z) && Z==0
@@ -170,18 +191,17 @@ classdef singleLayer < abstractMeganetElement
                 return
             end
             Z         = reshape(Z,[],nex);
-            [th1,th2,~,th4] = split(this,theta);
             Kop = getOp(this.K,th1);
             
             dth3      = vec(sum(this.Bout'*Z,2));
             dAZ       = dA.*Z;
             
+            dth2   = vec(sum(this.Bin'*reshape(dAZ,[],nex),2));
             if not(isempty(this.nLayer))
-               [dth4,dAZ] = JTmv(this.nLayer,dAZ,[],th4,Kop*Y+this.Bin*th2,tmp{1}); 
+               [dth4,dAZ] = JTmv(this.nLayer,dAZ,[],th4,tmp,tmpNL); 
             else
                dth4 = [];
             end
-            dth2   = vec(sum(this.Bin'*reshape(dAZ,[],nex),2));
             dth1   = JthetaTmv(this.K, dAZ,theta,Y);
             
             if nargout==2 || doDerivative(2)==1
@@ -196,28 +216,37 @@ classdef singleLayer < abstractMeganetElement
         end
         
         function dtheta = JthetaTmv(this,Z,~,theta,Y,tmp)
-            dA        = tmp{2};
+            [th1, th2,~,th4]  = split(this,theta);
+            KY = tmp;
+            if not(isempty(this.nLayer))
+                [KY,~,tmpNL] = apply(this.nLayer,th4,KY);
+            end
+            [~,dA] = this.activation( KY + this.Bin*th2);
+            
             nex       = numel(Y)/nFeatIn(this);
             Z         = reshape(Z,[],nex);
             dth3      = vec(sum(this.Bout'*Z,2));
             dAZ       = dA.*Z;
+            dth2      = vec(sum(this.Bin'*reshape(dAZ,[],nex),2));
             if not(isempty(this.nLayer))
-               [th1,th2,~,th4]  = split(this,theta);
-               Kop       = getOp(this.K,th1);
-               [dth4,dAZ] = JTmv(this.nLayer,dAZ,[],th4,Kop*Y+this.Bin*th2,tmp{1}); 
+               [dth4,dAZ] = JTmv(this.nLayer,dAZ,[],th4,tmp,tmpNL); 
             else
                dth4 = [];
             end
             
             dth1      = JthetaTmv(this.K,dAZ,theta,Y);
-            dth2      = vec(sum(this.Bin'*reshape(dAZ,[],nex),2));
             dtheta = [dth1(:); dth2(:); dth3(:);dth4(:)];
         end
         
         function dY = JYTmv(this,Z,~,theta,Y,tmp)
-            dA    = tmp{2};
+            [th1, th2,~,th4]  = split(this,theta);
+            KY = tmp;
+            if not(isempty(this.nLayer))
+                [KY,~,tmpNL] = apply(this.nLayer,th4,KY);
+            end
+            [A,dA] = this.activation( KY + this.Bin*th2);
+            
             nex   = numel(Y)/nFeatIn(this);
-            [th1,th2,~,th4] = this.split(theta);
             if all(Z(:)==0)
                 dY = 0*Y;
                 return
@@ -227,7 +256,7 @@ classdef singleLayer < abstractMeganetElement
             Z     = reshape(Z,[],nex);
             dAZ   = dA.*Z;
             if not(isempty(this.nLayer))
-                dAZ = JYTmv(this.nLayer,dAZ,[],th4,Kop*Y+this.Bin*th2,tmp{1});
+                dAZ = JYTmv(this.nLayer,dAZ,[],th4,tmp,tmpNL);
             end
             dY    = Kop'*dAZ;
         end

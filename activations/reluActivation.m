@@ -33,7 +33,7 @@ dA = [];
 Y = max(Y,0);
 
 if doDerivative
-    dA = logical(sign(Y));
+    dA = sign(Y);
 end
 
 
