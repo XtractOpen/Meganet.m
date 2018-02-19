@@ -41,6 +41,10 @@ else
 end
 
 % setup network
+% nLayer = @getTVNormLayer
+nLayer = @getBatchNormLayer;
+miniBatchSize=64;
+
 act = @reluActivation;
 nc  = 6;
 nt  = 6;
@@ -48,35 +52,20 @@ h   = 1.0;
 
 B = gpuVar(useGPU,precision,kron(eye(nc),ones(prod(nImg),1)));
 blocks    = cell(0,1); RegOps = cell(0,1);
-blocks{end+1} = NN({singleLayer(conv(nImg,[3 3 1 nc]),'activation', act,'Bin',B)});
-regD = gpuVar(useGPU,precision,[ones(nTheta(blocks{end}.layers{1}.K),1); zeros(size(B,2),1)]);
+nL = nLayer([prod(nImg(1:2)) nc miniBatchSize],'isWeight',1);
+blocks{end+1} = NN({singleLayer(conv(nImg,[3 3 1 nc]),'activation', act,'Bin',B,'nLayer',nL)});
+regD = gpuVar(useGPU,precision,[ones(nTheta(blocks{end}.layers{1}.K),1); zeros(size(B,2)+nTheta(nL),1)]);
 RegOps{end+1} = opDiag(regD);
-
-if doInstNorm
-    blocks{end+1} = NN({instNormLayer(nFeatOut(blocks{end}))});
-    RegOps{end+1} = opEye(0);
-end
-
 
 K = conv(nImg,[3 3 nc nc]);
-blocks{end+1} = ResNN(doubleLayer(K,K,'Bin1',B,'Bin2',B,'activation1', act,'activation2',@identityActivation),nt,h);
-regD = gpuVar(useGPU,precision,repmat([ones(2*nTheta(blocks{end}.layer.K1),1); zeros(2*size(B,2),1)],nt,1));
+blocks{end+1} = ResNN(doubleLayer(K,K,'Bin1',B,'Bin2',B,...
+    'activation1', act,'activation2',@identityActivation,'nLayer1',nL,'nLayer2',nL),nt,h);
+regD = gpuVar(useGPU,precision,repmat([ones(2*nTheta(blocks{end}.layer.K1),1); zeros(2*(size(B,2)+nTheta(nL)),1)],nt,1));
 RegOps{end+1} = opDiag(regD);
 
-if doInstNorm
-    blocks{end+1} = NN({instNormLayer(nFeatOut(blocks{end}))});
-    RegOps{end+1} = opEye(0);
-end
-
-
-blocks{end+1} = NN({singleLayer(conv(nImg,[1 1 nc nc]),'activation', act,'Bin',B)});
-regD = gpuVar(useGPU,precision,[ones(nTheta(blocks{end}.layers{1}.K),1); zeros(size(B,2),1)]);
+blocks{end+1} = NN({singleLayer(conv(nImg,[1 1 nc nc]),'activation', act,'Bin',B,'nLayer',nL)});
+regD = gpuVar(useGPU,precision,[ones(nTheta(blocks{end}.layers{1}.K),1); zeros(size(B,2)+nTheta(nL),1)]);
 RegOps{end+1} = opDiag(regD);
-
-if doInstNorm
-    blocks{end+1} = NN({instNormLayer(nFeatOut(blocks{end}))});
-    RegOps{end+1} = opEye(0);
-end
 
 % final layer takes average of each channel
 blocks{end+1} = connector((B/prod(nImg))');
@@ -120,7 +109,7 @@ if doTrain || not(exist(resFile,'file'))
     opt.maxEpochs    = 50;
     opt.nesterov     = false;
     opt.ADAM         = false;
-    opt.miniBatch    = 64;
+    opt.miniBatch    = miniBatchSize;
     opt.momentum     = 0.9;
     opt.out          = 1;
     
