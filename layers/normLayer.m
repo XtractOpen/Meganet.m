@@ -128,9 +128,7 @@ classdef normLayer < abstractMeganetElement
             S2y = compMean(this,Fy.^2);
             den = sqrt(S2y+this.eps);
             
-            t1 = FdY./den;
-            t2 = - ( Fy.*compMean(this,Fy.*FdY) ./(den.^3)) ;
-            dZ = t1+t2;
+            dZ = FdY./den  - ( Fy.* (compMean(this,Fy.*FdY) ./(den.^3))) ;
             dZ = reshape(dZ,[],nex);
         end
         
@@ -170,12 +168,10 @@ classdef normLayer < abstractMeganetElement
             
             Fy  = Y-compMean(this,Y);
             FdY = Z-compMean(this,Z);
-            S2y = compMean(this,Fy.^2);
-            den = sqrt(S2y+this.eps);
+            den = sqrt(compMean(this,Fy.^2)+this.eps);
             
-            t1 = FdY./den;
-            t2 = - ( Fy.*compMean(this,Fy.*FdY) ./(den.^3)) ;
-            dY = t1+t2;
+            dY = FdY./den  - ( Fy.* (compMean(this,Fy.*FdY) ./(den.^3)));
+            clear Fy FdY;
             dY = dY - compMean(this,dY);
             dY = reshape(dY,[],nex);
         end
