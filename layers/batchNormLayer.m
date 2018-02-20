@@ -138,7 +138,8 @@ classdef batchNormLayer < abstractMeganetElement
            FdY = dY-mean(dY,3);
            den = sqrt(mean(Fy.^2,3)+this.eps);
            
-           dY = FdY./den  - ( Fy.* (mean(Fy.*FdY,3) ./(den.^3)));
+           tt = mean(Fy.*FdY,3) ./(den.^3);
+           dY = FdY./den  - Fy.*tt;
            dY = reshape(dY,[],nex);
         end
         
