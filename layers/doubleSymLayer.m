@@ -104,7 +104,7 @@ classdef doubleSymLayer < abstractMeganetElement
             end
             Y     = Y + this.Bin*th2;
             Z      = this.activation(Y,'doDerivative',storedAct);
-            Z      = -Kop'*Z;
+            Z      = -(Kop'*Z);
             if not(isempty(this.nLayer2))
                 if this.storeInterm
                     tmp{2} = Z;
@@ -146,7 +146,7 @@ classdef doubleSymLayer < abstractMeganetElement
             [A,dA] = this.activation( KYn + this.Bin*th2);
             if not(isempty(this.nLayer2))
                 if not(this.storeInterm)
-                    KZ = -getOp(this.K,th1)*A;
+                    KZ = - (getOp(this.K,th1)*A);
                 else
                     KZ = tmp{2};
                 end
