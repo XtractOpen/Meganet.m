@@ -17,8 +17,9 @@ end
 bnL = normLayer(nData,'doNorm',[0,1,0],'useGPU',useGPU,'precision',precision);
 
 if isWeight==1
-    affL = affineScalingLayer(nData,'useGPU',useGPU,'precision',precision,'isWeight',[0,1,0]);
-    L = NN({bnL,affL});
+    L    = tvNormLayer(nData,'useGPU',useGPU,'precision',precision);
+%     affL = affineScalingLayer(nData,'useGPU',useGPU,'precision',precision,'isWeight',[0,1,0]);
+%     L = NN({bnL,affL});
 else
     L = bnL;
 end
