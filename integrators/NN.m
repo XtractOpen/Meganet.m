@@ -97,6 +97,16 @@ classdef NN < abstractMeganetElement
         end
         
         
+        function vars = split(this,var)
+            nb = numel(this.layers);
+            vars = cell(nb,1);
+            cnt = 0;
+            for k=1:nb
+                nk = nTheta(this.layers{k});
+                vars{k} = var(cnt+(1:nk));
+                cnt = cnt + nk;
+            end
+        end
         
         % --------- forward problem ----------
         function [Ydata,Y,tmp] = apply(this,theta,Y0)
