@@ -116,11 +116,15 @@ classdef sgd < optimizer
                 if doVal
                     [Fval,pVal] = fval(xc,[]);
                     valAcc = obj2His(pVal);
-                    if valAcc(2)>optVal
+                    if (nargout>2) && (valAcc(2)>optVal)
                         xOpt = xc;
                         optVal = valAcc(2);
                     end
+                    valHis = gather(obj2His(pVal));
+                else
+                    valHis =[];
                 end
+                
                 his(epoch,1:4)  = [epoch,gather(Jc),gather(norm(xOld(:)-xc(:))),lr];
                 if this.out>0
                     fprintf([frmt{1:4}], his(epoch,1:4));
@@ -128,7 +132,7 @@ classdef sgd < optimizer
                 xOld       = xc;
                 
                 if size(his,2)>=5
-                    his(epoch,5:end) = [gather(objHis(para)), gather(obj2His(pVal))];
+                    his(epoch,5:end) = [gather(objHis(para)), valHis];
                     if this.out>0
                         fprintf([frmt{5:end}],his(epoch,5:end));
                     end

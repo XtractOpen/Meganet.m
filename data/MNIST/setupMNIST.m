@@ -1,43 +1,63 @@
-function [Y0,C,Ytest,Ctest] = setupMNIST(nex)
-%[Y0,C,Ytest,Ctest] = setupPeaks(np)
+function [Ytrain,Ctrain,Yval,Cval] = setupMNIST(nTrain,nVal)
 
-if not(exist('nex','var')) || isempty(nex)
-    nex = 5000;
+if nargin==0
+    runMinimalExample;
+    return;
 end
 
-baseDir = fileparts(which('Meganet.m'));
-% mnistDir = fullfile(baseDir,'data','MNIST');
+if not(exist('nTrain','var')) || isempty(nTrain)
+    nTrain = 50000;
+end
+if not(exist('nVal','var')) || isempty(nVal)
+    nVal = round(nTrain/5);
+end
 
 I      = loadMNISTImages('train-images.idx3-ubyte');
 labels = loadMNISTLabels('train-labels.idx1-ubyte');
 
-I  = I';
-idv = (1:round(nex/5));
-Iv = I(idv,:);   
-labelsv = labels(idv);
+% get class probability matrix
+C      = zeros(10,numel(labels));
+ind    = sub2ind(size(C),labels+1,(1:numel(labels))');
+C(ind) = 1;
 
-idt  = idv(end)+1:min(idv(end)+nex,numel(labels));
-I = I(idt,:);
-labels = labels(idt);
+idx = randperm(size(C,2));
 
-[Y0,C]   = sortAndScaleMNISTData(I,labels);
-[Ytest,Ctest] = sortAndScaleMNISTData(Iv,labelsv);
+idTrain = idx(1:nTrain);
+idVal   = idx(nTrain+(1:nVal));
 
+% Scale images between [-0.5 0.5]
+Ytrain = I(:,idTrain);
+Ctrain = C(:,idTrain);
+Ytrain = Ytrain/max(abs(Ytrain(:))) - 0.5;
+[~,k] = sort((1:10)*Ctrain);
+Ytrain = Ytrain(:,k);
+Ctrain = Ctrain(:,k);
 
-function[X,Y] = sortAndScaleMNISTData(X,labels)
-%[X,Y] = sortAndScaleData(X,labels)
-%
-
-% Scale X [-0.5 0.5]
-X  = X/max(abs(X(:))) - 0.5;
-
-% Organize labels
-[~,k] = sort(labels);
-labels = labels(k);
-X      = X(k,:);
-
-Y = zeros(size(X,1),max(labels)-min(labels)+1);
-for i=1:size(X,1)
-    Y(i,labels(i)+1) = 1;
+if nargout>2
+    Yval = I(:,idVal);
+    Cval = C(:,idVal);
+    Yval = Yval/max(abs(Yval(:))) - 0.5;
+    [~,k] = sort((1:10)*Cval);
+    Yval = Yval(:,k);
+    Cval = Cval(:,k);
 end
+
+function runMinimalExample
+[Yt,Ct,Yv,Cv] = feval(mfilename,50,10);
+figure(1);clf;
+subplot(2,1,1);
+montageArray(reshape(Yt,28,28,[]),10);
+axis equal tight
+colormap(flipud(colormap('gray')))
+title('training images');
+
+
+subplot(2,1,2);
+montageArray(reshape(Yv,28,28,[]),10);
+axis equal tight
+colormap(flipud(colormap('gray')))
+title('validation images');
+
+
+
 

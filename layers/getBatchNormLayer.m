@@ -17,8 +17,6 @@ end
 if isWeight==1
     
     L = batchNormLayer(nData,'useGPU',useGPU,'precision',precision);
-%     ,'isWeight',[0,1,0]);
-
 else
     L = normLayer(nData,'doNorm',[0,0,1],'useGPU',useGPU,'precision',precision);
 end
