@@ -125,22 +125,24 @@ classdef batchNormLayer < abstractMeganetElement
             dYdata = dY;
         end
         
-        function dY = JYTmv(this,dY,~,theta,Y,~)
-           dY   = reshape(dY,this.nData(1), this.nData(2),[]); 
+        function FdY = JYTmv(this,FdY,~,theta,Y,~)
+           FdY   = reshape(FdY,this.nData(1), this.nData(2),[]); 
            Y   = reshape(Y,this.nData(1), this.nData(2),[]); 
-           nex = size(dY,3);
+           nex = size(FdY,3);
            % scaling
            s2 = split(this,theta);
-           dY = dY.*s2;
+           FdY = FdY.*s2;
            
            % normalization
            Fy  = Y-mean(Y,3);
-           FdY = dY-mean(dY,3);
+           FdY = FdY-mean(FdY,3);
            den = sqrt(mean(Fy.^2,3)+this.eps);
            
            tt = mean(Fy.*FdY,3) ./(den.^3);
-           dY = FdY./den  - Fy.*tt;
-           dY = reshape(dY,[],nex);
+           FdY = FdY./den;
+           clear den;
+           FdY = FdY - Fy.*tt;
+           FdY = reshape(FdY,[],nex);
         end
         
         
