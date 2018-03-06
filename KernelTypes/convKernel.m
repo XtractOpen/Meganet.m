@@ -20,6 +20,7 @@ classdef convKernel
     properties
         nImg  % image size
         sK    % kernel size: [nxfilter,nyfilter,nInputChannels,nOutputChannels]
+        Q
         stride
         useGPU
         precision
@@ -33,6 +34,7 @@ classdef convKernel
             nImg = nImg(1:2);
             stride = 1;
             useGPU = 0;
+            Q = opEye(prod(sK));
             precision = 'double';
             for k=1:2:length(varargin)     % overwrites default parameter
                 eval([ varargin{k},'=varargin{',int2str(k+1),'};']);
@@ -43,7 +45,7 @@ classdef convKernel
             this.stride = stride;
             this.useGPU = useGPU;
             this.precision = precision;
-            
+            this.Q = Q;
         end
         
         function n = nFeatIn(this)
@@ -76,6 +78,7 @@ classdef convKernel
             theta(id2(:)) = randn(numel(id2),1);
             
             theta = max(min(2*sd, theta),-2*sd);
+            theta = gpuVar(this.useGPU,this.precision,theta);
 %            theta = randn(this.sK);
 %            if this.sK(3)==this.sK(4) && this.sK(4)>1
 %             theta = theta/sum(theta(:));

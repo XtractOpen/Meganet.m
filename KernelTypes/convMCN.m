@@ -55,7 +55,7 @@ classdef convMCN < convKernel
             
             % compute convolution
             Y   = reshape(Y,[nImgIn(this) nex]);
-            K   = reshape(theta,this.sK);
+            K   = reshape(this.Q*theta(:),this.sK);
             Y   = vl_nnconv(Y,K,[],'pad',this.pad,'stride',this.stride);
             Y   = reshape(Y,[],nex);
         end
@@ -63,7 +63,7 @@ classdef convMCN < convKernel
         function dY = Jthetamv(this,dtheta,~,Y,~)
             nex    =  numel(Y)/nFeatIn(this);
             Y      = reshape(Y,[],nex);
-            dY = getOp(this,dtheta)*Y;
+            dY = getOp(this,this.Q*dtheta(:))*Y;
         end
         
         
@@ -74,13 +74,14 @@ classdef convMCN < convKernel
             Z      = reshape(Z,[nImgOut(this) nex]);
             % get derivative w.r.t. convolution kernels
             [~,dtheta] = vl_nnconv(Y,zeros(this.sK,'like',Y), [],Z,'pad',this.pad,'stride',this.stride);
+            dtheta = this.Q'*dtheta(:);
         end
 
        function dY = ATmv(this,theta,Z)
             
             nex    =  numel(Z)/prod(nImgOut(this));
             Z      = reshape(Z,[nImgOut(this) nex]);
-            theta = reshape(theta,this.sK);
+            theta = reshape(this.Q*theta(:),this.sK);
 
             crop = this.pad;
             if this.stride==2 && this.sK(1)==3
