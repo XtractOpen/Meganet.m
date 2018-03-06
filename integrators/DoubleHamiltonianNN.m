@@ -79,6 +79,18 @@ classdef DoubleHamiltonianNN < abstractMeganetElement
                             vec(initTheta(this.layer2))],this.nt,1);
         end
         
+        function [net2,theta2] = prolongateWeights(this,theta)
+            % piecewise linear interpolation of network weights 
+            t1 = 0:this.h:(this.nt-1)*this.h;
+            
+            net2 = DoubleHamiltonianNN(this.layer1,this.layer2,2*this.nt,this.h/2,'useGPU',this.useGPU,'Q',this.Q,'precision',this.precision);
+            net2.outTimes = (sum(this.outTimes)>0)*net2.outTimes;
+          
+            t2 = 0:net2.h:(net2.nt-1)*net2.h;
+            
+            theta2 = inter1D(theta,t1,t2);
+        end
+        
         function [th1,th2] = split(this,x)
            x   = reshape(x,[],this.nt);
            th1 = x(1:nTheta(this.layer1),:);
@@ -94,10 +106,11 @@ classdef DoubleHamiltonianNN < abstractMeganetElement
         function [Xdata,X,tmp] = apply(this,theta,X0)
             
             [Y,Z] = splitData(this,X0);
-            if nargout>1;    tmp = cell(this.nt+1,4); tmp{1,1} = Y; end
+            if nargout>1;    tmp = cell(this.nt,4);  end
             [th1,th2] = split(this,theta);
             Xdata = zeros(0,size(Y,2),'like',Y);
             for i=1:this.nt
+                if nargout>1, tmp{i,1} = Y; tmp{i,2} = Z; end
                 
                 [dZ,~,tmp{i,3}] = apply(this.layer1,th1(:,i),Y);
                 Z = Z - this.h*dZ;
@@ -106,7 +119,6 @@ classdef DoubleHamiltonianNN < abstractMeganetElement
                 [dY,~,tmp{i,4}] = apply(this.layer2,th2(:,i),Z);
                 Y = Y + this.h*dY;
                 
-                if nargout>1, tmp{i+1,1} = Y; tmp{i+1,2} = Z; end
                 if this.outTimes(i)==1
                     Xdata = [Xdata; this.Q*[Y;Z]];
                 end
@@ -200,7 +212,7 @@ classdef DoubleHamiltonianNN < abstractMeganetElement
                WdataY = Wdata(1:nFeatIn(this.layer1),:,:);
                WdataZ = Wdata(nFeatIn(this.layer1)+1:end,:,:);
             end
-            if isempty(W)
+            if isempty(W) || numel(W)==1
                 WY = 0;
                 WZ = 0;
             elseif not(isscalar(W))

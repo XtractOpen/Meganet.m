@@ -24,7 +24,7 @@ if nclass==1
 else
     ph = [];
     for k=1:nclass
-        pk = plot(Y(1,C(k,:)==1),Y(2,C(k,:)==1),Y(3,C(k,:)==1),'.','MarkerSize',markerSize);
+        pk = plot3(Y(1,C(k,:)==1),Y(2,C(k,:)==1),Y(3,C(k,:)==1),'.','MarkerSize',markerSize);
         hold on;
         ph = [ph;pk];
     end

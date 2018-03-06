@@ -124,6 +124,10 @@ methods
             [dYdata,dY] = Jmv(this,[],dY,theta,Y,tmp);
         end
         
+        function [this,theta] = prolongateWeights(this,theta)
+            
+        end
+        
         
         function [Z,J] = linearizeY(this,theta,Y)
             % function [K,dK] = linearizeY(this,theta,Y)

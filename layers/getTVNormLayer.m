@@ -14,11 +14,9 @@ for k=1:2:length(varargin)     % overwrites default parameter
     eval([varargin{k},'=varargin{',int2str(k+1),'};']);
 end
 
-bnL = normLayer(nData,'doNorm',[0,1,0],'useGPU',useGPU,'precision',precision);
 
 if isWeight==1
-    affL = affineScalingLayer(nData,'useGPU',useGPU,'precision',precision,'isWeight',[0,1,0]);
-    L = NN({bnL,affL});
+    L    = tvNormLayer(nData,'useGPU',useGPU,'precision',precision);
 else
-    L = bnL;
+    L = normLayer(nData,'doNorm',[0,1,0],'useGPU',useGPU,'precision',precision);;
 end

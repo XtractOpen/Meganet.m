@@ -13,11 +13,13 @@ classdef doubleSymLayer < abstractMeganetElement
     properties
         activation     % activation function
         K              % Kernel model, e.g., convMod
-        nLayer         % normalization layer
+        nLayer1        % inner normalization layer
+        nLayer2        % outer normalization layer
         Bin            % Bias inside the nonlinearity
         Bout           % bias outside the nonlinearity
         useGPU
         precision
+        storeInterm   % flag for storing intermediates
     end
     methods
         function this = doubleSymLayer(K,varargin)
@@ -29,8 +31,10 @@ classdef doubleSymLayer < abstractMeganetElement
             precision = [];
             Bout      = [];
             Bin       = [];
-            nLayer    = [];
+            nLayer1    = [];
+            nLayer2    = [];
             activation = @tanhActivation;
+            storeInterm=0;
             for k=1:2:length(varargin)     % overwrites default parameter
                 eval([varargin{k},'=varargin{',int2str(k+1),'};']);
             end
@@ -50,15 +54,22 @@ classdef doubleSymLayer < abstractMeganetElement
             if not(exist('Bout','var')) || isempty(Bout)
                 Bout = zeros(nFeatIn(K),0);
             end
-            if not(isempty(nLayer)) && nFeatIn(nLayer) ~= nFeatOut(this.K)
+            if not(isempty(nLayer1)) && nFeatIn(nLayer1) ~= nFeatOut(this.K)
                 error('input dimension of normalization layer must match output dimension of K')
             end
-            this.nLayer = nLayer;
+            this.nLayer1 = nLayer1;
+            
+            if not(isempty(nLayer2)) && nFeatIn(nLayer2) ~= nFeatIn(this.K)
+                error('input dimension of normalization layer must match output dimension of K')
+            end
+            this.nLayer2 = nLayer2;
+            
+            this.storeInterm=storeInterm;
             
             [this.Bin,this.Bout] = gpuVar(this.K.useGPU,this.K.precision,Bin,Bout);
         end
         
-        function [th1,th2,th3,th4] = split(this,theta)
+        function [th1,th2,th3,th4,th5] = split(this,theta)
             th1 = theta(1:nTheta(this.K));
             cnt = numel(th1);
             th2 = theta(cnt+(1:size(this.Bin,2)));
@@ -66,34 +77,91 @@ classdef doubleSymLayer < abstractMeganetElement
             th3 = theta(cnt+size(this.Bin,2)+(1:size(this.Bout,2)));
             cnt = cnt + numel(th3);
             th4 = [];
-            if not(isempty(this.nLayer))
-                th4 = theta(cnt+1:end);
+            if not(isempty(this.nLayer1))
+                th4 = theta(cnt+(1:nTheta(this.nLayer1)));
+                cnt = cnt + numel(th4);
+            end
+            th5 = [];
+            if not(isempty(this.nLayer2))
+                th5 = theta(cnt+1:end);
             end
         end
         
         function [Z,QZ,tmp] = apply(this,theta,Y,varargin)
-            QZ =[];
-            tmp = cell(1,2);
+            QZ =[]; tmp =  cell(1,2);
             nex        = numel(Y)/nFeatIn(this);
             Y          = reshape(Y,[],nex);
             storedAct  = (nargout>1);
             
-            [theta1,theta2,theta3,th4] = split(this,theta);
-            Kop    = getOp(this.K,theta1);
-            KY     = Kop*Y;
-            if not(isempty(this.nLayer))
-                [KY,~,tmp{1}] = apply(this.nLayer,th4,KY);
+            [th1,th2,th3,th4,th5] = split(this,theta);
+            Kop    = getOp(this.K,th1);
+            Y     = Kop*Y;
+            if this.storeInterm
+                tmp{1}    = Y;
             end
-            Yt     = KY + this.Bin*theta2;
-            tmp{2} = Yt;
-            Z      = this.activation(Yt,'doDerivative',storedAct);
-            Z      = -(Kop'*Z) + this.Bout*theta3;
+            if not(isempty(this.nLayer1))
+                Y = apply(this.nLayer1,th4,Y);
+            end
+            Y     = Y + this.Bin*th2;
+            Z      = this.activation(Y,'doDerivative',storedAct);
+            Z      = -(Kop'*Z);
+            if not(isempty(this.nLayer2))
+                if this.storeInterm
+                    tmp{2} = Z;
+                end
+                Z = apply(this.nLayer2,th5,Z);
+            end
+            Z      = Z + this.Bout*th3;
+        end
+        
+        function [A,dA,KY,KZ,tmpNL1,tmpNL2] = getTempsForSens(this,theta,Y,tmp)
+            % re-computes temp variables needed for sensitivity computations
+            %
+            % Input:
+            %   theta - current weights
+            %   Y     - input features
+            %   tmp    - either {K*Y,-K'*Z} stored during apply or empty
+            %
+            % Output:
+            %   dA    - derivative of activation
+            %   KY    - K(theta)*Y
+            %   tmpNL - temp results of norm Layer
+            
+            nex = numel(Y)/nFeatIn(this);
+            tmpNL1 =[]; tmpNL2 = []; KZ = [];
+            [th1, th2,~,th4,th5]  = split(this,theta);
+            
+            if not(this.storeInterm)
+                Y = reshape(Y,[],nex);
+                KY = getOp(this.K,th1)*Y;
+            else
+                KY = tmp{1};
+            end
+            
+            if not(isempty(this.nLayer1))
+                [KYn,~,tmpNL1] = apply(this.nLayer1,th4,KY);
+            else
+                KYn = KY;
+            end
+            [A,dA] = this.activation( KYn + this.Bin*th2);
+            if not(isempty(this.nLayer2))
+                if not(this.storeInterm)
+                    KZ = - (getOp(this.K,th1)*A);
+                else
+                    KZ = tmp{2};
+                end
+                [~,~,tmpNL2] = apply(this.nLayer2,th5,KZ);
+            end
+                
         end
         
         function n = nTheta(this)
             n = nTheta(this.K) + size(this.Bin,2)+ size(this.Bout,2); 
-            if not(isempty(this.nLayer))
-                n = n + nTheta(this.nLayer);
+            if not(isempty(this.nLayer1))
+                n = n + nTheta(this.nLayer1);
+            end
+            if not(isempty(this.nLayer2))
+                n = n + nTheta(this.nLayer2);
             end
         end
         
@@ -113,52 +181,66 @@ classdef doubleSymLayer < abstractMeganetElement
             theta = [vec(initTheta(this.K)); ...
                      0.1*ones(size(this.Bin,2),1);...
                      0.1*ones(size(this.Bout,2),1)];
-           if not(isempty(this.nLayer))
-               theta = [theta; initTheta(this.nLayer)];
+           if not(isempty(this.nLayer1))
+               theta = [theta; initTheta(this.nLayer1)];
+           end
+           if not(isempty(this.nLayer2))
+               theta = [theta; initTheta(this.nLayer2)];
            end
           
         end
         
-        function dY = Jthetamv(this,dtheta,theta,Y,tmp)
-            [A,dA] = this.activation(tmp{2});
+        function dY = Jthetamv(this,dtheta,theta,Y,KY)
             
-            [th1, ~,~,th4]  = split(this,theta);
-            [dth1,dth2,dth3,dth4] = split(this,dtheta);
+            [th1, ~,~,th4,th5]  = split(this,theta);
+            [dth1,dth2,dth3,dth4,dth5] = split(this,dtheta);
+            
+            [A,dA,KY,KZ,tmpNL1,tmpNL2] = getTempsForSens(this,theta,Y,KY);
             
             Kop    = getOp(this.K,th1);
             dKop   = getOp(this.K,dth1);
             dY     = dKop*Y;
-            if not(isempty(this.nLayer))
-                dY = Jmv(this.nLayer,dth4,dY,th4,Kop*Y,tmp{1});
+            if not(isempty(this.nLayer1))
+                dY = Jmv(this.nLayer1,dth4,dY,th4,KY,tmpNL1);
             end
             dY     = dY + this.Bin*dth2;
             
-            dY = -(Kop'*(dA.*dY) + dKop'*A) + this.Bout*dth3;
+            dY = -(Kop'*(dA.*dY) + dKop'*A);
+            if not(isempty(this.nLayer2))
+                dY = Jmv(this.nLayer2,dth5,dY,th5,KZ,tmpNL2);
+            end
+            dY = dY + this.Bout*dth3;
         end
         
-        function dZ = JYmv(this,dY,theta,Y,tmp)
-            [~,dA] = this.activation(tmp{2});
+        function dZ = JYmv(this,dY,theta,Y,KY)
+            nex       = numel(Y)/nFeatIn(this);
+            Y   = reshape(Y,[],nex);
+            [th1, ~,~,th4,th5]  = split(this,theta);
+            
+            [A,dA,KY,KZ,tmpNL1,tmpNL2] = getTempsForSens(this,theta,Y,KY);
+            
+            
             nex = numel(dY)/nFeatIn(this);
             dY  = reshape(dY,[],nex);
-            Y  = reshape(Y,[],nex);
-            [th1, ~,~,th4]  = split(this,theta);
             
             Kop = getOp(this.K,th1);
             dY = Kop*dY;
-            if not(isempty(this.nLayer))
-                dY = JYmv(this.nLayer,dY,th4,Kop*Y,tmp{1});
+            if not(isempty(this.nLayer1))
+                dY = JYmv(this.nLayer1,dY,th4,KY,tmpNL1);
             end
             dZ = -(Kop'*(dA.*dY));
-            
+            if not(isempty(this.nLayer2))
+                dZ = Jmv(this.nLayer2,[],dZ,th5,KZ,tmpNL2);
+            end
         end
         
-        function dY = Jmv(this,dtheta,dY,theta,Y,tmp)
-            [A,dA] = this.activation(tmp{2});
+        function dY = Jmv(this,dtheta,dY,theta,Y,KY)
+            [th1, ~,~,th4,th5]  = split(this,theta);
+            [dth1,dth2,dth3,dth4,dth5] = split(this,dtheta);
+            
+            [A,dA,KY,KZ,tmpNL1,tmpNL2] = getTempsForSens(this,theta,Y,KY);
+            
             nex = numel(Y)/nFeatIn(this);
-            
-            [th1, ~,~,th4]  = split(this,theta);
-            [dth1,dth2,dth3,dth4] = split(this,dtheta);
-            
             Kop    = getOp(this.K,th1);
             dKop   = getOp(this.K,dth1);
             if numel(dY)>1
@@ -168,75 +250,93 @@ classdef doubleSymLayer < abstractMeganetElement
                 KdY = 0;
             end
             dY = dKop*Y+KdY;
-            if not(isempty(this.nLayer))
-                dY = Jmv(this.nLayer,dth4,dY,th4,Kop*Y,tmp{1});
+            if not(isempty(this.nLayer1))
+                dY = Jmv(this.nLayer1,dth4,dY,th4,KY,tmpNL1);
             end
             dY     = dY + this.Bin*dth2;
             
-            dY = -(Kop'*(dA.*dY) + dKop'*A) + this.Bout*dth3;
+            dY = -(Kop'*(dA.*dY) + dKop'*A);
+            if not(isempty(this.nLayer2))
+                dY = Jmv(this.nLayer2,dth5,dY,th5,KZ,tmpNL2);
+            end
+            dY = dY + this.Bout*dth3;
         end
         
         
-        function dtheta = JthetaTmv(this,Z,~,theta,Y,tmp)
+        function dtheta = JthetaTmv(this,Z,~,theta,Y,KY)
+            [th1, ~,~,th4,th5]  = split(this,theta);
+            [A,dA,KY,KZ,tmpNL1,tmpNL2] = getTempsForSens(this,theta,Y,KY);
+            
             nex       = numel(Y)/nFeatIn(this);
             Z         = reshape(Z,[],nex);
-            [th1,~,~,th4]  = split(this,theta);
             Kop       = getOp(this.K,th1);
-            [A,dA]    = this.activation(tmp{2});
             
             dth3      = vec(sum(this.Bout'*Z,2));
+            if not(isempty(this.nLayer2))
+               [dth5,Z] = JTmv(this.nLayer2,Z,[],th5,KZ,tmpNL2); 
+            else
+               dth5 = [];
+            end
             dAZ       = dA.*(Kop*Z);
             dth2      = vec(sum(this.Bin'*dAZ,2));
-            if not(isempty(this.nLayer))
-               [dth4,dAZ] = JTmv(this.nLayer,dAZ,[],th4,Kop*Y,tmp{1}); 
+            if not(isempty(this.nLayer1))
+               [dth4,dAZ] = JTmv(this.nLayer1,dAZ,[],th4,KY,tmpNL1); 
             else
                dth4 = [];
             end
             dth1      = JthetaTmv(this.K,dAZ,[],Y);
             dth1      = dth1 + JthetaTmv(this.K,A,[],Z);
-            dtheta    = [-dth1(:); -dth2(:); dth3(:); -dth4(:)];
+            dtheta    = [-dth1(:); -dth2(:); dth3(:); -dth4(:);dth5(:)];
         end
         
-        function dY = JYTmv(this,Z,~,theta,Y,tmp)
+        function dY = JYTmv(this,Z,~,theta,Y,KY)
+            [th1, ~,~,th4,th5]  = split(this,theta);
+            [A,dA,KY,KZ,tmpNL1,tmpNL2] = getTempsForSens(this,theta,Y,KY);
+            
             nex       = numel(Y)/nFeatIn(this);
             Z         = reshape(Z,[],nex);
-            [th1, ~,~,th4]  = split(this,theta);
             Kop       = getOp(this.K,th1);
-            [~,dA]    = this.activation(tmp{2});
             
+            if not(isempty(this.nLayer2))
+               Z = JYTmv(this.nLayer2,Z,[],th5,KZ,tmpNL2); 
+            end
             dAZ       = dA.*(Kop*Z);
-            %dAZ       = dA.*Z;
-            if not(isempty(this.nLayer))
-                dAZ = JYTmv(this.nLayer,dAZ,[],th4,Kop*Y,tmp{1});
+            if not(isempty(this.nLayer1))
+                dAZ = JYTmv(this.nLayer1,dAZ,[],th4,KY,tmpNL1);
             end
             dY  = -(Kop'*dAZ);
         end
         
-        function [dtheta,dY] = JTmv(this,Z,~,theta,Y,tmp,doDerivative)
+        function [dtheta,dY] = JTmv(this,Z,~,theta,Y,KY,doDerivative)
             if not(exist('doDerivative','var')) || isempty(doDerivative)
                 doDerivative =[1;0];
             end
+            [th1, ~,~,th4,th5]  = split(this,theta);
+            [A,dA,KY,KZ,tmpNL1,tmpNL2] = getTempsForSens(this,theta,Y,KY);
+            
             dY = [];
             nex       = numel(Y)/nFeatIn(this);
             Z         = reshape(Z,[],nex);
-            Yt        = reshape(tmp{2},[],nex);
-            Y        = reshape(Y,[],nex);
-            [th1, ~,~,th4]  = split(this,theta);
             Kop       = getOp(this.K,th1);
-            [A,dA]    = this.activation(Yt);
             
             dth3      = vec(sum(this.Bout'*Z,2));
+            if not(isempty(this.nLayer2))
+               [dth5,Z] = JTmv(this.nLayer2,Z,[],th5,KZ,tmpNL2); 
+            else
+               dth5 = [];
+            end
+            
             dAZ       = dA.*(Kop*Z);
             dth2      = vec(sum(this.Bin'*dAZ,2));
-            if not(isempty(this.nLayer))
-               [dth4,dAZ] = JTmv(this.nLayer,dAZ,[],th4,Kop*Y,tmp{1}); 
+            if not(isempty(this.nLayer1))
+               [dth4,dAZ] = JTmv(this.nLayer1,dAZ,[],th4,KY,tmpNL1); 
             else
                dth4 = [];
             end
             dth1      = JthetaTmv(this.K,dAZ,[],Y);
             
             dth1      = dth1 + JthetaTmv(this.K,A,[],Z);
-            dtheta    = [-dth1(:); -dth2(:); dth3(:);-dth4(:)];
+            dtheta    = [-dth1(:); -dth2(:); dth3(:);-dth4(:);dth5(:)];
             
             if nargout==2 || doDerivative(2)==1
                 dY  = -(Kop'*dAZ);

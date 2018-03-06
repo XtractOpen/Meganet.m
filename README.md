@@ -1,6 +1,13 @@
 # Meganet.m
 A fresh approach to deep learning written in MATLAB
 
+## Reporting Bugs
+
+We are just getting started, so please be patient with us. If you find a bug,
+ please report it by opening an issue or email lruthotto@emory.edu. In any case,
+ include a small example that helps us re-produce the error. 
+We'll work on this as quickly as possible.
+
 ## Getting started
 
 1. Clone or download the code 

@@ -37,7 +37,8 @@ for k=0:nc-1
    Y0 = [Y0; xk(inds,:)];
 end
 
-C = kron(eye(nc),ones(npc,1));
+Y0 = Y0';
+C = kron(eye(nc),ones(npc,1))';
 
 % viewFeatures2D(Y0,C);
 % 

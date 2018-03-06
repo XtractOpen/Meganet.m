@@ -1,0 +1,68 @@
+close all; clear all;
+
+[Ytrain,Ctrain] = setupPeaks(5000,5);
+[Yv,Cv] = setupPeaks(200,5);
+
+% rng(20); %seed random number generator
+
+figure(1); clf;
+subplot(1,2,1);
+viewFeatures2D(Ytrain,Ctrain)
+title('input features');
+%% setup network
+T  = 5;   % final time
+nt = 16;  % number of time steps
+nc = 8;   % number of channels (width)
+
+
+% first block (single layer that opens up)
+block1 = NN({singleLayer(dense([nc,2]))});
+
+% second block (ResNN, keeps size fixed)
+K      = dense([nc,nc]);
+layer  = singleLayer(K,'Bout',ones(nc,1));
+block2 = ResNN(layer,nt,T/nt);
+h      = block2.h;
+
+% combine both blocks
+net = Meganet({block1,block2});
+%% regularization
+alpha  = 5e-6;
+reg1 = tikhonovReg(opEye(nTheta(block1)),alpha);
+reg2 = tikhonovReg(opTimeDer(nTheta(block2),nt,h),alpha);
+pRegTh = blockReg({reg1,reg2});
+regOpW = opEye((nFeatOut(net)+1)*size(Ctrain,1));
+pRegW = tikhonovReg(regOpW,1e-10);
+
+%% setup classification and Newton solver for this subproblem
+pLoss = softmaxLoss();
+classSolver = newton();
+classSolver.maxIter=10;
+classSolver.linSol.maxIter=10;
+
+%% setup outer optimization scheme
+opt      = newton();
+opt.out  = 2;
+opt.atol = 1e-16;
+opt.maxIter=40;
+opt.LS.maxIter=20;
+opt.linSol.maxIter=20;
+
+%% setup objective function with training and validation data
+fctn = dnnVarProObjFctn(net,pRegTh,pLoss,pRegW,classSolver,Ytrain,Ctrain);
+fval = dnnObjFctn(net,[],pLoss,[],Yv,Cv);
+
+%% solve the problem
+th0       = 1e-1*initTheta(net);
+thetaOpt  = solve(opt,fctn,th0,fval);
+[Jc,para] = eval(fctn,thetaOpt);
+WOpt      = reshape(para.W,[],5);
+
+%% plot results
+[Ydata,Yn,tmp] = apply(net,thetaOpt,Yv);
+figure(1);
+subplot(1,2,2);
+viewContour2D([-3 3 -3 3],thetaOpt,WOpt,net,pLoss);
+hold on
+viewFeatures2D(Yv,Cv);
+title('classification result');

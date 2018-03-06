@@ -78,6 +78,21 @@ classdef Meganet < abstractMeganetElement
             end
             theta = gpuVar(this.useGPU,this.precision,theta);
         end
+        
+        function [net2,theta2] = prolongateWeights(this,theta)
+            % piecewise linear interpolation of network weights 
+            nb   = numel(this.blocks);
+            net2 = cell(nb,1);
+            th   = split(this,theta);
+            theta2 = [];
+            for k=1:nb
+                [n2,th2] = prolongateWeights(this.blocks{k},th{k});
+                theta2 = [theta2; vec(th2)];
+                net2{k}=n2;
+            end
+            net2 = Meganet(net2);
+        end
+        
         function vars = split(this,var)
             nb = numel(this.blocks);
             vars = cell(nb,1);

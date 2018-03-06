@@ -64,12 +64,13 @@ classdef opGrad < RegularizationOperator
             lamInv      = 1./lam;
             lamInv(isnan(lamInv) | isinf(lamInv)) = 0;
         end
-        function this = gpuVar(this,useGPU,precision)
+        function this = convertGPUorPrecision(this,useGPU,precision)
             if strcmp(this.precision,'double') && (isa(this.lam,'single') || isa(this.lamInv,'single'))
                 [this.lam,this.lamInv] = getEigs(this);
             end
             [this.lam, this.lamInv] = gpuVar(useGPU,precision,this.lam,this.lamInv);
         end
+        
         
         function Y = derTranspose(this,Z)
             m1 = prod(this.nImg-[1,0]);

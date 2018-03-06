@@ -8,8 +8,9 @@
 clear all; clc;
 
 
-[Y0,C,Ytest,Ctest] = setupMNIST(2^10);
-nImg = [28 28];
+[Y0,C,Ytest,Ctest] = setupCIFAR10(2^10);
+nImg = [32 32];
+ncin = 3;
 
 % choose file for results and specify whether or not to retrain
 resFile = sprintf('%s.mat',mfilename); 
@@ -32,7 +33,7 @@ end
 % setup network
 act = @reluActivation;
 blocks    = cell(0,1);
-blocks{end+1} = NN({singleLayer(conv(nImg,[5 5 1 32]),'activation', act)});
+blocks{end+1} = NN({singleLayer(conv(nImg,[5 5 ncin 32]),'activation', act)});
 
 blocks{end+1} = connector(opPoolMCN([nImg 32],2));
 blocks{end+1} = NN({singleLayer(conv(nImg/2,[5 5 32 64]),'activation', act)});

@@ -62,25 +62,34 @@ classdef ResNN < abstractMeganetElement
         
         function theta = initTheta(this)
             theta = repmat(vec(initTheta(this.layer)),this.nt,1);
-%             
-%             for k=1:this.nt
-%                 theta = [theta; vec(initTheta(this.layer))];
-%             end
         end
-
+        
+        function [net2,theta2] = prolongateWeights(this,theta)
+            % piecewise linear interpolation of network weights 
+            t1 = 0:this.h:(this.nt-1)*this.h;
+            
+            net2 = ResNN(this.layer,2*this.nt,this.h/2,'useGPU',this.useGPU,'Q',this.Q,'precision',this.precision);
+            net2.outTimes = (sum(this.outTimes)>0)*net2.outTimes;
+          
+            t2 = 0:net2.h:(net2.nt-1)*net2.h;
+            
+            theta2 = inter1D(theta,t1,t2);
+        end
+        
+        
         % ------- apply forward problems -----------
         function [Ydata,Y,tmp] = apply(this,theta,Y0)
             nex = numel(Y0)/nFeatIn(this);
             Y   = reshape(Y0,[],nex);
-            if nargout>1;    tmp = cell(this.nt+1,2); tmp{1,1} = Y0; end
+            if nargout>1;    tmp = cell(this.nt,2); end
             
             theta = reshape(theta,[],this.nt);
             
             Ydata = [];
             for i=1:this.nt
+                if (nargout>1), tmp{i,1} = Y; end
                 [Z,~,tmp{i,2}] = apply(this.layer,theta(:,i),Y);
                 Y =  Y + this.h * Z;
-                if nargout>1, tmp{i+1,1} = Y; end
                 if this.outTimes(i)==1
                     Ydata = [Ydata;this.Q*Y];
                 end
@@ -141,11 +150,12 @@ classdef ResNN < abstractMeganetElement
             
             cnt = nnz(this.outTimes);
             for i=this.nt:-1:1
+                Yi = tmp{i,1};
                 if  this.outTimes(i)==1
                     W = W + this.Q'*squeeze(Wdata(:,cnt,:));
                     cnt = cnt-1;
                 end
-                dW = JYTmv(this.layer,W,[],theta(:,i),tmp{i,1},tmp{i,2});
+                dW = JYTmv(this.layer,W,[],theta(:,i),Yi,tmp{i,2});
                 W  = W + this.h*dW;
             end
         end
@@ -169,11 +179,12 @@ classdef ResNN < abstractMeganetElement
             cnt = nnz(this.outTimes);
             dtheta = 0*theta;
             for i=this.nt:-1:1
+                Yi = tmp{i,1};
                 if  this.outTimes(i)==1
                     W = W + this.Q'* squeeze(Wdata(:,cnt,:));
                     cnt = cnt-1;
                 end
-                [dmbi,dW] = JTmv(this.layer,W,[],theta(:,i),tmp{i,1},tmp{i,2});
+                [dmbi,dW] = JTmv(this.layer,W,[],theta(:,i),Yi,tmp{i,2});
                 dtheta(:,i)  = this.h*dmbi;
                 W = W + this.h*dW;
             end
