@@ -4,6 +4,7 @@ if nargin==0
     return;
 end
 
+
 if not(exist('nVal','var')) || isempty(nVal)
     nVal = ceil(nTrain/5);
 end
@@ -26,6 +27,7 @@ if nTrain<nex
 else
     ptrain = 1:nex;
 end
+Ctrain = Ctrain(:,ptrain);
 Ytrain = double(X);
 Ytrain = Ytrain(ptrain,:);
 Ytrain = reshape(normalizeData(reshape(Ytrain',96*96,[])')',[],numel(ptrain));
@@ -38,7 +40,6 @@ if nargout>2
     ind    = sub2ind(size(Cval),y,(1:nv)');
     Cval(ind) = 1;
     if nVal<nv
-        % get random permutation that ensures equal number of examples per class
         idx = [];
         for k=1:10
             ik = find(Cval(k,:));
@@ -50,18 +51,20 @@ if nargout>2
     else
         pval = 1:nv;
     end
+    Cval = Cval(:,pval);
     Yval = double(X);
     Yval = Yval(pval,:);
     Yval = reshape(normalizeData(reshape(Yval',96*96,[])')',[],numel(pval));
 end
 
 function runMinimalExample
-[Yt,Ct,Yv,Cv] = feval(mfilename,50,10);
+[Yt,Ct,Yv,Cv] = feval(mfilename,50,40);
 figure(1);clf;
 subplot(2,1,1);
 montageArray(reshape(Yt(1:96*96,:),96,96,[]),10);
 axis equal tight
 colormap gray
+colorbar
 title('training images');
 
 
@@ -69,4 +72,5 @@ subplot(2,1,2);
 montageArray(reshape(Yv(1:96*96,:),96,96,[]),10);
 axis equal tight
 colormap gray
+colorbar
 title('validation images');

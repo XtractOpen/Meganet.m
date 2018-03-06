@@ -70,7 +70,7 @@ classdef convCuDNN2D < convKernel
             % compute convolution
             Y   = reshape(Y,[nImgIn(this) nex]);
             Z = Y;
-            K   = reshape(theta,this.sK);
+            K   = reshape(this.Q*theta(:),this.sK);
             if  isempty(this.session)
                 Y = convCuDNN2D_conv(Y,[nImgIn(this),nex],K,this.sK,this.stride);
             else
@@ -92,7 +92,7 @@ classdef convCuDNN2D < convKernel
         function dY = Jthetamv(this,dtheta,~,Y,~)
             nex    =  numel(Y)/nFeatIn(this);
             Y      = reshape(Y,[],nex);
-            dY = getOp(this,dtheta)*Y;
+            dY = getOp(this,this.Q*dtheta)*Y;
         end
         
         function dtheta = JthetaTmv(this,Z,~,Y,~)
@@ -106,13 +106,14 @@ classdef convCuDNN2D < convKernel
             else
                 dtheta  = convCuDNN2D_dYdK_T(Y,[nImgIn(this) nex],Z,this.sK,this.stride,this.session.sessionArray);
             end
+            dtheta = this.Q'*dtheta;
 %             [~,dtheta] = vl_nnconv(Y,zeros(this.sK,'like',Y), [],Z,'pad',(this.sK(1)-1)/2,'stride',this.stride);
         end
 
        function dY = ATmv(this,theta,Z)
             nex     = numel(Z)/prod(nImgOut(this));
             Z       = reshape(Z,[nImgOut(this) nex]);
-            K       = reshape(theta,this.sK);
+            K       = reshape(this.Q*theta,this.sK);
             if  isempty(this.session)
                  dY  = convCuDNN2D_dYdX_T(K,[nImgIn(this) nex],Z,this.sK,this.stride);
             else

@@ -9,6 +9,9 @@ classdef convCuDNN2DTest < kernelTest
             ks{2} = convCuDNN2D(convCuDNN2DSession(),[14 24],[3 3,2,2]);
             ks{2} = convCuDNN2D([],[14 24],[3 3,2,2]);
             ks{3} = convCuDNN2D([],[16 32],[3 3,2,2]);
+            Q = opRemoveAvg([3 3 1 4]);
+            ks{end+1} = convCuDNN2D(convCuDNN2DSession(),[16 32],[3 3,1,4],'stride',2,'Q',Q);
+
             testCase.kernels = ks;
         end
     end
