@@ -20,7 +20,7 @@ classdef batchNormLayer < abstractMeganetElement
             end
             useGPU     = 0;
             precision  = 'double';
-            eps = 1e-3;
+            eps = 1e-4;
             for k=1:2:length(varargin)     % overwrites default parameter
                     eval([varargin{k},'=varargin{',int2str(k+1),'};']);
             end
@@ -37,10 +37,13 @@ classdef batchNormLayer < abstractMeganetElement
         end
         
         function [Ydata,Y,dA] = apply(this,theta,Y,varargin)
-            Y   = reshape(Y,this.nData(1), this.nData(2),[]); dA = [];
+           
+           Y   = reshape(Y,this.nData(1), this.nData(2),[]); dA = [];
            nex = size(Y,3);
            % normalization
+           
            Y  = Y-mean(Y,3);
+           
            Y  = Y./sqrt(mean(Y.^2,3)+this.eps);
            
            % scaling

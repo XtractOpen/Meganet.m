@@ -20,7 +20,7 @@ classdef tvNormLayer < abstractMeganetElement
             end
             useGPU     = 0;
             precision  = 'double';
-            eps = 1e-3;
+            eps = 1e-4;
             for k=1:2:length(varargin)     % overwrites default parameter
                     eval([varargin{k},'=varargin{',int2str(k+1),'};']);
             end
