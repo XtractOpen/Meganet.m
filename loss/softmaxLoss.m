@@ -75,7 +75,43 @@ classdef softmaxLoss
                 d2YF = LinearOperator(prod(szY),prod(szY),d2YFmv,d2YFmv);
             end
         end
+
+        %%
+        function [F,para,dF,d2F] = getMisfitS(this,WY,C,varargin)
+            
+            nex   = size(C,2);
+            doDF  = (nargout>2);
+            doD2F = (nargout>3);
+            for k=1:2:length(varargin)     % overwrites default parameter
+                eval([varargin{k},'=varargin{',int2str(k+1),'};']);
+            end
+            dF = []; d2F = [];
+            
+            s  = max(WY,[],2);
+            WY = WY-s;
+            S    = exp(WY);
+            
+            Cp   = getLabels(this,S);
+            err  = nnz(C-Cp)/2;
+            F    = -sum(sum(C.*(WY))) + sum(log(sum(S,1)));
+            para = [F,nex,err];
+            F    = F/nex;
+           
+            if (doDF) && (nargout>=2)
+               dF   = vec(-C + S./sum(S,1))/nex; %S./sum(S,2));
+            end
+            if (doD2F) && (nargout>=3)
+                matU  = @(U) reshape(U,size(S));
+                d2Fmv = @(U) vec((matU(U).*S)./sum(S,1)/size(S,1)); 
+                        %- S.*sum(S.*matU(U),1)./sum(S,1).^2;
+                
+                szS = size(S);       
+                d2F = LinearOperator(prod(szS),prod(szS),d2Fmv,d2Fmv);
+            end
+        end
+
         
+        %%
         function [str,frmt] = hisNames(this)
             str  = {'F','accuracy'};
             frmt = {'%-12.2e','%-12.2f'};
