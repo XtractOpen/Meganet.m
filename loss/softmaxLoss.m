@@ -82,7 +82,7 @@ classdef softmaxLoss
         function str = hisVals(this,para)
             str = [para(1)/para(2),(1-para(3)/para(2))*100];
         end       
-        function Cp = getLabels(this,W,Y)
+        function [Cp,P] = getLabels(this,W,Y)
             if nargin==2
                 S = W;
                 nex = size(S,2);

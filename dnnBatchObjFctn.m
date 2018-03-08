@@ -166,7 +166,25 @@ classdef dnnBatchObjFctn < objFctn
             
         end
         
-
+        function [Cp,P] = getLabels(this,thetaW)
+            Cp = 0*this.C;
+            P  = 0*this.C;
+            nex = size(this.Y,2);
+            nb = nBatches(this,nex);
+            
+            [theta,W] = split(this,thetaW);
+            % compute loss
+            for k=nb:-1:1
+                idk = this.getBatchIds(k,nex);
+                if nb>1
+                    Yk  = this.Y(:,idk);
+                else
+                    Yk = this.Y;
+                end
+                [YNk]     = apply(this.net,theta,Yk); % forward propagation
+                [Cp(:,idk),P(:,idk)] = getLabels(this.pLoss,W,YNk);
+            end      
+        end
         
         function nb = nBatches(this,nex)
             if this.batchSize==Inf
