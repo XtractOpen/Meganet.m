@@ -48,8 +48,7 @@ classdef opTimeDer < RegularizationOperator
         
         function [lam,lamInv] = getEigs(this)
             lam         = eigLap1D(this.nt,this.h);
-            lam         = lam+.5*min(lam(lam>0));
-            lamInv      = 1./lam;
+            lamInv      = 1./(lam+.5*min(lam(lam>0)));
 %             lamInv(isnan(lamInv) | isinf(lamInv)) = min(lamInv(~isnan(lamInv)));
             lamInv(isnan(lamInv) | isinf(lamInv)) = min(lamInv(~isnan(lamInv)));
         end
@@ -68,13 +67,22 @@ classdef opTimeDer < RegularizationOperator
             PCop = LinearOperator(this.n,this.n, @(x) PCmv(this,x), @(x) PCmv(this,x));
         end
         
-        function y = PCmv(this,x)
-            % computes L'*L \ x (used in preconditioning)
-             y = x;
-            % x    = reshape(x,[],this.nt);
-            % xhat = dctn(x,'dimFlag',[0 1]);
-            % xhat = xhat .* reshape(this.lamInv,1,[]);
-            % y    = vec(idctn(xhat/this.beta^2,'dimFlag',[0,1]));
+        function y = PCmv(A,x,alpha,gamma)
+            % x = argmin_x alpha/2*|A*x|^2+gamma/2*|x-y|^2
+            % minimum norm solution when rank-deficient
+            if not(exist('alpha','var')) || isempty(alpha)
+                alpha = 1;
+            end
+            if not(exist('gamma','var')) || isempty(gamma)
+                gamma = 0;
+            end
+            x    = reshape(x,[],A.nt);
+            xhat = dctn(x,'dimFlag',[0 1]);
+            s=1./ reshape((alpha*A.beta^2)*A.lam + gamma,1,[]);
+            s(isnan(s))=0;
+            s(isinf(s))=0;
+            xhat = xhat.*s ;
+            y    = vec(idctn(xhat,'dimFlag',[0,1]));
         end
         
 

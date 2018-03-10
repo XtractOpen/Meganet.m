@@ -83,7 +83,7 @@ classdef sd < optimizer
                 if iter == 1; mu = 1.0; end
                 [xt,mu,lsIter] = lineSearch(this.LS,fctn,xc,mu,s,Jc,dJ);
                 if (lsIter > this.LS.maxIter)
-                    disp('LSB in sd'); %keyboard
+                    if this.out>=0; disp('LSB in sd');end; %keyboard
                     his = his(1:iter,:);
 %                     keyboard
                     break;
@@ -107,13 +107,13 @@ classdef sd < optimizer
                     
                 end
                 
-                if size(his,2)>=6
+                if size(his,2)>6
                     his(iter,7:end) = [gather(objHis(para)), gather(obj2His(pVal))];
                     if this.out>0
                         fprintf([frmt{7:end}],his(iter,7:end));
                     end
                 end
-                fprintf('\n');
+                if this.out>0, thisfprintf('\n'); end;
                 iter = iter + 1;
             end
             His = struct('str',{str},'frmt',{frmt},'his',his(1:min(iter,this.maxIter),:));
