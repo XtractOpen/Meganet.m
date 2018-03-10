@@ -113,7 +113,7 @@ classdef sd < optimizer
                         fprintf([frmt{7:end}],his(iter,7:end));
                     end
                 end
-                fprintf('\n');
+                if this.out>0, thisfprintf('\n'); end;
                 iter = iter + 1;
             end
             His = struct('str',{str},'frmt',{frmt},'his',his(1:min(iter,this.maxIter),:));
