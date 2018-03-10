@@ -59,6 +59,26 @@ classdef opBlkdiag < LinearOperator
             PCop = opBlkdiag(pcs{:});       
         end
         
+        function y = PCmv(this,x,alpha,gamma)
+            % x = argmin_x alpha/2*|D*x|^2+gamma/2*|x-y|^2
+            % minimum norm solution when rank-deficient
+            if not(exist('alpha','var')) || isempty(alpha)
+                alpha = 1;
+            end
+            if not(exist('gamma','var')) || isempty(gamma)
+                gamma = 0;
+            end
+            cntn = 0;
+            y  = zeros(this.n,size(x,2),'like',x);
+            for k=1:numel(this.blocks)
+                nk = this.blocks{k}.n;
+                xk = x(cntn+(1:nk),:);
+                y(cntn+(1:nk),:) = PCmv(this.blocks{k},xk,alpha,gamma);
+               
+               cntn = cntn+nk;
+            end
+        end
+        
         % ------- functions for handling GPU computing and precision ----
         function this = set.useGPU(this,value)
             if (value~=0) && (value~=1)
@@ -86,8 +106,9 @@ classdef opBlkdiag < LinearOperator
                     error('all blocks need to be on GPU or CPU')
                 end
             end
-            
         end
+        
+   
         function precision = get.precision(this)
             precision = this.blocks{1}.precision;
             for k=2:length(this.blocks)
@@ -100,6 +121,14 @@ classdef opBlkdiag < LinearOperator
                 end
             end
         end
+        
+        function this = convertGPUorPrecision(this,useGPU,precision)
+            if strcmp(this.precision,'double') && (isa(this.lam,'single') || isa(this.lamInv,'single'))
+                [this.lam,this.lamInv] = getEigs(this);
+            end
+            [this.lam, this.lamInv] = gpuVar(useGPU,precision,this.lam,this.lamInv);
+        end
+        
         
 %         function this = gpuVar(this,useGPU,precision)
 %             %% TODO: rethink this

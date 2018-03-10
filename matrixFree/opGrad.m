@@ -21,8 +21,8 @@ classdef opGrad < RegularizationOperator
             if not(exist('precision','var')) || isempty(precision)
                 precision = 'double';
             end
-            this.nImg      = nImg;
-            this.h      = h;
+            this.nImg = nImg;
+            this.h    = h;
             
             m = prod(this.nImg-[1,0])+prod(this.nImg-[0,1]);
 
@@ -60,7 +60,7 @@ classdef opGrad < RegularizationOperator
                 otherwise
                     error('nyi');
             end
-            lam         = lam + .5*min(lam(lam>0));
+%             lam         = lam;% + .5*min(lam(lam>0));
             lamInv      = 1./lam;
             lamInv(isnan(lamInv) | isinf(lamInv)) = 0;
         end
@@ -89,14 +89,24 @@ classdef opGrad < RegularizationOperator
             PCop = LinearOperator(this.n,this.n, @(x) PCmv(this,x), @(x) PCmv(this,x));
         end
         
-        function y = PCmv(this,x)
-            % computes L'*L \ x (used in preconditioning)
-            x    = reshape(x,[this.nImg, this.nChannels]);
+        function y = PCmv(A,y,alpha,gamma)
+            % x = argmin_x alpha/2*|A*x|^2+gamma/2*|x-y|^2
+            if not(exist('alpha','var')) || isempty(alpha)
+                alpha = 1;
+            end
+            if not(exist('gamma','var')) || isempty(gamma)
+                gamma = 0;
+            end
+            % computes (beta^2*alpha*L'*L+gamma*I) \ x (used in preconditioning)
+            y    = reshape(y,[A.nImg, A.nChannels]);
             
-            xhat = dctn(x,'dimFlag',[1 1,0]);
+            xhat = dctn(y,'dimFlag',[1 1,0]);
+            s = 1./(alpha*A.beta^2*A.lam+gamma);
+            s(isnan(s))=0;
+            s(isinf(s))=0;
             
-            xhat = this.lamInv.*xhat;
-            y    = vec(idctn(xhat/this.beta^2,'dimFlag',[1,1,0]));
+            xhat = xhat.*s;
+            y    = vec(idctn(xhat,'dimFlag',[1,1,0]));
         end
         
         function this = set.beta(this,val)
