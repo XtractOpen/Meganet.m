@@ -12,7 +12,7 @@ if nargin==0
     runMinimalExample;
     return;
 end
-maxIter = 10;
+maxIter = 100;
 
 opt = sd();
 opt.out = -1;

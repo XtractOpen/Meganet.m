@@ -46,18 +46,20 @@ classdef blockReg
             Sc  = 0;
             dS  = zeros(nTheta(this),1,'like',x);
             d2S = cell(nb,1);
+            para = [];
             cnt = 0;
             for k=1:nb
                 nk  = nTheta(this.blocks{k});
                 idx = cnt + (1:nk);
                 [Sk,~,dSk,d2Sk] = regularizer(this.blocks{k},x(idx));
+                para = [para Sk];
                 Sc = Sc + Sk;
                 dS(idx) = dSk;
                 d2S{k} = d2Sk;
                 cnt = cnt + nk;                
             end
             d2S = blkdiag(d2S{:});
-            para = [Sc 1.0];
+            para = [Sc 1.0 para];
         end
         
         function [str,frmt] = hisNames(this)
@@ -65,7 +67,7 @@ classdef blockReg
             frmt = {'%-12.2e','%-12.2e'};
         end
         function str = hisVals(this,para)
-            str = para;
+            str = para(1:2);
         end       
         
         function PC = getPC(this)

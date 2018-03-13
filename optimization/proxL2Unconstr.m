@@ -1,16 +1,19 @@
-function xp = proxL2Unconstr(A,p,alpha,tau)
+function xp = proxL2Unconstr(A,p,alpha,tau,xref)
 % evaluates proximal operator
 %
-%  xp =  argmin_x alpha/2*|A*x|^2 + tau/2*|x-p|^2
-%     =  argmin_x (alpha/(2*tau))|A*x|^2 + 1/2*|x-p|^2
+%  xp =  argmin_x alpha/2*|A*(x-xref)|^2 + tau/2*|x-p|^2
+%     =  argmin_x (alpha/(2*tau))|A*(x-xref)|^2 + 1/2*|x-p|^2
 %
 %  The closed-form solution is
 %
-%  xp = ((alpha/tau) A'*A + I) \ p 
+%  xp = ((alpha/tau) A'*A + I) \ (p - alpha/tau*xref) 
 %
 if nargin==0
     runMinimalExample;
     return;
+end
+if exist('xref','var') && not(isempty(xref))
+    p = p - (alpha/tau)*(A'*xref);
 end
 xp = PCmv(A,p,alpha/tau,1);
 
