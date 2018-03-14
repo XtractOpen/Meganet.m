@@ -172,16 +172,22 @@ classdef doubleLayer < abstractMeganetElement
             if not(isempty(this.nLayer1))
                 K1Y = apply(this.nLayer1,th6,K1Y);
             end
-            T          =  K1Y + this.Bin1*th3;
-            Z1 = this.activation1(T);
+            if not(isempty(th3))
+                K1Y          =  K1Y + this.Bin1*th3;
+            end
+            Z1 = this.activation1(K1Y);
             K2Z        = getOp(this.K2, th2)* Z1;
             tmp{2} = K2Z;
             if not(isempty(this.nLayer2))
                 K2Z = apply(this.nLayer2,th7,K2Z);
             end
-            T     = K2Z + this.Bin2*th4;
-            Y     = this.activation2(T);
-            Y     = Y+  this.Bout*th5;
+            if not(isempty(th4))
+                K2Z = K2Z + this.Bin2*th4
+            end
+            Y     = this.activation2(K2Z);
+            if not(isempty(th5))
+                Y     = Y+  this.Bout*th5;
+            end
             Ydata = Y;
         end
         
@@ -213,7 +219,10 @@ classdef doubleLayer < abstractMeganetElement
             else
                 K1Yn = K1Y;
             end
-            [A1,dA1] = this.activation1(K1Yn + this.Bin1*th3);
+            if not(isempty(th3))
+                K1Yn = K1Yn + this.Bin1*th3
+            end
+            [A1,dA1] = this.activation1(K1Yn);
             if not(this.storeInterm) || isempty(tmp{2})
                 K2Z        = getOp(this.K2, th2)* A1;
             else
@@ -225,7 +234,10 @@ classdef doubleLayer < abstractMeganetElement
             else
                 K2Zn= K2Z;
             end
-            [A2,dA2] = this.activation2(K2Zn + this.Bin2*th4);
+            if not(isempty(th4))
+                K2Zn = K2Zn + this.Bin2*th4;
+            end
+            [A2,dA2] = this.activation2(K2Zn );
         end
         
         % ----------- Jacobian matvecs -----------

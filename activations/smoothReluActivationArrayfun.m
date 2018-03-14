@@ -3,7 +3,7 @@ function [A,dA] = smoothReluActivation(Y,varargin)
 %
 % smoothed relu activation function A = smoothReluActivation(Y). The idea
 % is to use a quadratic model close to the origin to ensure
-% differentiability. The implementation here follows FAIR
+% differentiability. 
 %
 % Input:
 %  

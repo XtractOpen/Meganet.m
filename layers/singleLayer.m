@@ -79,9 +79,14 @@ classdef singleLayer < abstractMeganetElement
             if not(isempty(this.nLayer))
                 Y = apply(this.nLayer,th4,Y);
             end
-            Y = Y + this.Bin * th2;
+            
+            if not(isempty(th2))
+                Y = Y + this.Bin * th2;
+            end
             Y = this.activation(Y,'doDerivative',doDerivative);
-            Y = Y +this.Bout*th3;
+            if not(isempty(th3))
+                Y = Y +this.Bout*th3;
+            end
             Ydata = Y;
         end
         
@@ -137,7 +142,10 @@ classdef singleLayer < abstractMeganetElement
             else
                 KYn = KY;
             end
-            [~,dA] = this.activation( KYn + this.Bin*th2);
+            if not(isempty(th2))
+                KYn = KYn + this.Bin*th2;
+            end
+            [~,dA] = this.activation( KYn);
         end
         
         function [dZ] = Jthetamv(this,dtheta,theta,Y,KY)

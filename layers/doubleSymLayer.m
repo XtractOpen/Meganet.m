@@ -102,7 +102,9 @@ classdef doubleSymLayer < abstractMeganetElement
             if not(isempty(this.nLayer1))
                 Y = apply(this.nLayer1,th4,Y);
             end
-            Y     = Y + this.Bin*th2;
+            if not(isempty(th2))
+                Y     = Y + this.Bin*th2;
+            end
             Z      = this.activation(Y,'doDerivative',storedAct);
             Z      = -(Kop'*Z);
             if not(isempty(this.nLayer2))
@@ -111,7 +113,11 @@ classdef doubleSymLayer < abstractMeganetElement
                 end
                 Z = apply(this.nLayer2,th5,Z);
             end
-            Z      = Z + this.Bout*th3;
+            if not(isempty(th3))
+                Z      = Z + this.Bout*th3;
+            end
+        end
+
         end
         
         function [A,dA,KY,KZ,tmpNL1,tmpNL2] = getTempsForSens(this,theta,Y,tmp)
@@ -143,7 +149,10 @@ classdef doubleSymLayer < abstractMeganetElement
             else
                 KYn = KY;
             end
-            [A,dA] = this.activation( KYn + this.Bin*th2);
+            if not(isempty(th2))
+                KYn = KYn + this.Bin*th2;
+            end
+            [A,dA] = this.activation( KYn );
             if not(isempty(this.nLayer2))
                 if not(this.storeInterm)
                     KZ = - (getOp(this.K,th1)*A);
