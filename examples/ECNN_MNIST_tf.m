@@ -65,8 +65,10 @@ opt.momentum = 0.9;
 opt.out = 1;
 
 % run optimization
+tic;
 [xOpt,His] = solve(opt,fctn,[theta(:); W(:)],fval);
-[thOpt,WOpt] = split(fctn,xOpt);
+[thOpt,WOpt] = split(fctn,gather(xOpt));
+toc
 save(resFile,'thOpt','WOpt','His')
 else
 load(resFile)

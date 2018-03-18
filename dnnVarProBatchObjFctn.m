@@ -55,21 +55,29 @@ classdef dnnVarProBatchObjFctn < objFctn
 
         end
         
-        function [Jc,para,dJ,H,PC] = eval(this,theta)
+        function [Jc,para,dJ,H,PC] = eval(this,theta,idx)
+            if not(exist('idx','var')) || isempty(idx)
+                Y = this.Y;
+                C = this.C;
+            else
+                Y = this.Y(:,idx);
+                C = this.C(:,idx);
+            end
+            
             compGrad = nargout>2;
             compHess = nargout>3;
             dJ = 0.0; H = []; PC = [];
             
-            nex = size(this.Y,2);
+            nex = size(Y,2);
             nb  = nBatches(this,nex);
             % forward prop
             YN = zeros(nDataOut(this.net),nex,'like',this.Y);
             for k=1:nb
                 if nb>1
                     idk = this.getBatchIds(k,nex);
-                    Yk  = this.Y(:,idk);
+                    Yk  = Y(:,idk);
                 else
-                    Yk = this.Y;
+                    Yk = Y;
                 end
                 YNk = apply(this.net,theta,Yk);
                 if nb>1
@@ -80,19 +88,19 @@ classdef dnnVarProBatchObjFctn < objFctn
             end
             %classify
 %             [YN,J] = linearizeTheta(this.net,theta,this.Y); % forward propagation
-            fctn   = classObjFctn(this.pLoss,this.pRegW,YN,this.C);
-            W      = solve(this.optClass,fctn,zeros(size(this.C,1)*(size(YN,1)+1),1));
+            fctn   = classObjFctn(this.pLoss,this.pRegW,YN,C);
+            W      = solve(this.optClass,fctn,zeros(size(C,1)*(size(YN,1)+1),1,'like',theta));
             
             %compute loss
             F = 0.0; hisLoss = []; dJth = 0.0;
             for k=nb:-1:1
                 idk = this.getBatchIds(k,nex);
                 if nb>1
-                    Yk  = this.Y(:,idk);
-                    Ck  = this.C(:,idk);
+                    Yk  = Y(:,idk);
+                    Ck  = C(:,idk);
                 else
-                    Yk = this.Y;
-                    Ck = this.C;
+                    Yk = Y;
+                    Ck = C;
                 end
                 
                 if compGrad
