@@ -90,6 +90,9 @@ classdef convMCN < convKernel
                 crop=0*crop;
             end
             dY = vl_nnconvt(Z,theta,[],'crop',crop,'upsample',this.stride);
+            if this.stride==2 && this.sK(1)==1
+                dY = padarray(dY,[1 1],0,'post');
+            end
             dY = reshape(dY,[],nex);
        end
     end

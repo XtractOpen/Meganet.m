@@ -7,15 +7,15 @@ classdef convKernel
     %
     %     Y(theta,Y0)  = K(theta) * Y0
     %
-    %  where 
-    % 
+    %  where
+    %
     %      K - convolution matrix (computed using FFTs for periodic bc)
     %
     % convKernels must provide at least the following methods
     %
     %  apply - evaluate transformation
     %  Jmv   - Jacobian*vector
-    %  JTmv  - Jacobian'*vector 
+    %  JTmv  - Jacobian'*vector
     
     properties
         nImg  % image size
@@ -56,33 +56,40 @@ classdef convKernel
         end
         
         function n = nImgIn(this)
-           n = [this.nImg(1:2) this.sK(3)];
+            n = [this.nImg(1:2) this.sK(3)];
         end
         
         function n = nImgOut(this)
-           n = [this.nImg(1:2)./this.stride this.sK(4)];
+            n = [this.nImg(1:2)./this.stride this.sK(4)];
         end
         function this = gpuVar(this,useGPU,precision)
         end
-
+        
         
         function theta = initTheta(this)
-%             n = prod(this.sK([1,2,4]));
-%             sd = sqrt(2/n);
-            sd= 0.1;
-            theta = sd*randn(this.sK);
-            id1 = find(theta>2*sd);
-            theta(id1(:)) = randn(numel(id1),1);
-            
-            id2 = find(theta< -2*sd);
-            theta(id2(:)) = randn(numel(id2),1);
-            
-            theta = max(min(2*sd, theta),-2*sd);
+            %             n = prod(this.sK([1,2,4]));
+            %             sd = sqrt(2/n);
+            if all(this.sK(1:2)==1)
+                theta = randn(squeeze(this.sK));
+                [U,S,V] = svd(squeeze(theta),'econ');
+                s = min(1,diag(S));
+                theta(1,1,:,:) = U*diag(s)*V';
+            else
+                sd= 0.1;
+                theta = sd*randn(this.sK);
+                id1 = find(theta>2*sd);
+                theta(id1(:)) = randn(numel(id1),1);
+                
+                id2 = find(theta< -2*sd);
+                theta(id2(:)) = randn(numel(id2),1);
+                
+                theta = max(min(2*sd, theta),-2*sd);
+            end
             theta = gpuVar(this.useGPU,this.precision,theta);
-%            theta = randn(this.sK);
-%            if this.sK(3)==this.sK(4) && this.sK(4)>1
-%             theta = theta/sum(theta(:));
-%            end
+            %            theta = randn(this.sK);
+            %            if this.sK(3)==this.sK(4) && this.sK(4)>1
+            %             theta = theta/sum(theta(:));
+            %            end
         end
         
         % ------ handling GPU and precision -------
@@ -110,7 +117,7 @@ classdef convKernel
             ATf = @(Y) this.ATmv(K,Y);
             A   = LinearOperator(m,n,Af,ATf);
         end
-
+        
         function n = nTheta(this)
             n = prod(this.sK);
         end
@@ -127,12 +134,12 @@ classdef convKernel
             %Kh = fft2(K);
             %V  = diag(vec((h*conj(Kh).*Kh + 1)));
             %W   = V\vec(fft2(Y)));
-            %Z = real(ifft2(reshape(W,n1,n2));   
+            %Z = real(ifft2(reshape(W,n1,n2));
             disp('NIY');
         end
-  
-
-       
+        
+        
+        
     end
 end
 

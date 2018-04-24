@@ -14,20 +14,15 @@
 % =========================================================================
 clear all; clc;
 
-% normalize examples after each block
-doInstNorm = 1;
-
 nImg = [28 28];
-fprintf('loading data using Meganet2\n')
-[Y0,C,Ytest,Ctest] = setupMNIST(2^11);
-Y0  = normalizeData(Y0)'; Ytest = normalizeData(Ytest)'; C = C'; Ctest = Ctest';
+[Y0,C,Ytest,Ctest] = setupMNIST(2^10);
 
 % choose file for results and specify whether or not to retrain
 resFile = sprintf('%s.mat',mfilename);
 doTrain = true;
 
 % set GPU flag and precision
-useGPU = 0;
+useGPU = 1;
 precision='single';
 
 [Y0,C] = gpuVar(useGPU,precision,Y0,C);
@@ -41,14 +36,15 @@ else
 end
 
 % setup network
-% nLayer = @getTVNormLayer
-nLayer = @getBatchNormLayer;
+nLayer = @getTVNormLayer;
+% nLayer = @getBatchNormLayer;
+% nLayer = @(varargin) [];
 miniBatchSize=64;
 
 act = @reluActivation;
 nc  = 6;
 nt  = 6;
-h   = 1.0;
+h   = .10;
 
 B = gpuVar(useGPU,precision,kron(eye(nc),ones(prod(nImg),1)));
 blocks    = cell(0,1); RegOps = cell(0,1);
@@ -100,24 +96,81 @@ if doTrain || not(exist(resFile,'file'))
     [theta,W] = gpuVar(fctn.useGPU,fctn.precision,theta,W);
     
     % setup optimization
-    opt = sgd();
-    if doInstNorm
-        opt.learningRate = @(epoch) .1/sqrt(epoch);
-    else
-        opt.learningRate =.01;
-    end
-    opt.maxEpochs    = 50;
-    opt.nesterov     = false;
-    opt.ADAM         = false;
-    opt.miniBatch    = miniBatchSize;
-    opt.momentum     = 0.9;
-    opt.out          = 1;
+%     opt = sgd();
+%     opt.learningRate = @(epoch) .1/sqrt(epoch);
+%     opt.maxEpochs    = 50;
+%     opt.nesterov     = false;
+%     opt.ADAM         = false;
+%     opt.miniBatch    = miniBatchSize;
+%     opt.momentum     = 0.9;
+%     opt.out          = 1;
+    opt = sd()
+    opt.out = 1;
     
     % run optimization
     [xOpt,His] = solve(opt,fctn,[theta(:); W(:)],fval);
-    [thOpt,WOpt] = split(fctn,xOpt);
+    [thOpt,WOpt] = split(fctn,gather(xOpt));
     save(resFile,'thOpt','WOpt','His')
 else
     load(resFile)
 end
+return
+%%
+xOpt = gpuVar(useGPU,precision,[thOpt;WOpt]);
+id = randperm(size(Y0,2)); id = id(1:miniBatchSize); % pick two random images
 
+[Y,~,Yall] = apply(net,xOpt,Y0(:,id));
+th = split(net,gpuVar(useGPU,precision,thOpt));
+%%
+fig = figure(1); clf;
+fig.Name = 'input';
+montageArray(reshape(gather(Y0(:,id(1:2))),28,28,[]),1);
+axis equal tight
+%%
+[~,Yin] = apply(net.blocks{1},th{1},Y0(:,id));
+fig = figure(2); clf;
+fig.Name = 'inputResNN';
+montageArray(reshape(gather(Yin(:,1:2)),28,28,[]),nc);
+axis equal tight
+colormap(flipud(colormap('gray')))
+
+
+%%
+[~,Yres] = apply(net.blocks{2},th{2},Yin);
+fig = figure(3); clf;
+fig.Name = 'outputResNN';
+montageArray(reshape(gather(Yres(:,1:2)),28,28,[]),nc);
+axis equal tight
+colormap(flipud(colormap('gray')))
+
+
+%%
+[~,Ycoup] = apply(net.blocks{3},th{3},Yres);
+fig = figure(3); clf;
+fig.Name = 'outputCoup';
+montageArray(reshape(gather(Ycoup(:,1:2)),28,28,[]),nc);
+axis equal tight
+colormap(flipud(colormap('gray')))
+
+%%
+[~,Yout] = apply(net.blocks{4},th{4},Ycoup);
+fig = figure(4); clf;
+fig.Name = 'outputResNN';
+montageArray(reshape(gather(Yout(:,1:2))',1,1,[]),nc);
+axis equal tight
+colormap(flipud(colormap('gray')))
+
+
+%%
+doPrint = 1;
+%%
+if doPrint
+    figDir = '/Users/lruthot/Dropbox/TeX-Base/images/DeepLearning/architectures';
+    for k=1:4
+        fig=figure(k);
+        axis off;
+        printFigure(gcf,fullfile(figDir,['singleBlock-' fig.Name '.png']),...
+            'printOpts','-dpng','printFormat','.png');
+    end
+end
+        
