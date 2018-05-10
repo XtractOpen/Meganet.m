@@ -132,6 +132,22 @@ classdef Meganet < abstractMeganetElement
             end
         end
         
+        function YN = applyBatch(this,theta,Y0,batchSize)
+           nex = numel(Y0)/nFeatIn(this);
+           YN = zeros(nDataOut(this),nex,'like',Y0);
+           nb = ceil(nex/batchSize);
+           id = randperm(nex);
+           cnt = 1;
+           for k=1:nb
+               idk = id(cnt:min(nex,cnt+batchSize));
+               if numel(idk)==0
+                   break;
+               end
+                YN(:,idk) = apply(this,theta,Y0(:,idk));
+                cnt = cnt + numel(idk);
+            end
+        end
+        
         % ----------- Jacobian matvecs -------------
         function [dYdata,dY] = JYmv(this,dY,theta,~,tmp)
             nex = numel(dY)/nFeatIn(this);
