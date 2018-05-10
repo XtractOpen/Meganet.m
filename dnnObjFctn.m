@@ -3,7 +3,7 @@ classdef dnnObjFctn < objFctn
     %
     % objective function for deep neural networks 
     %
-    % J(theta,W) = loss(h(W*Y(theta)), C) + Rtheta(Kb) + R(W),
+    % J(theta,W) = loss(h(W*Y(theta)), C) + Rtheta(theta) + R(W),
     %
     
     properties

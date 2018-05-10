@@ -18,11 +18,19 @@ maxIter = 100;
 opt = sd();
 opt.out = -1;
 opt.LS.P = P;
+opt.LS.maxIter = 20;
 opt.maxIter = maxIter;
+opt.atol=1e-8;
+opt.rtol=1e-8;
 
 fctn = @(x) LSobjFun(x,A,p,alpha,tau);
 xp = solve(opt,fctn,p);
-
+if not(isempty(Reg.xref))
+    xt = solve(opt,fctn,Reg.xref);
+    if fctn(xt)<fctn(xp)
+        xp = xt;
+    end
+end
 
 function [Jc,para,dJ] = LSobjFun(x,A,p,alpha,tau)
 % computes objective function so that SD can handle it

@@ -36,10 +36,16 @@ classdef classObjFctn < objFctn
             
         end
         
-        function [Jc,para,dJ,H,PC] = eval(this,W)
+        function [Jc,para,dJ,H,PC] = eval(this,W,idx)
+            if not(exist('idx','var')) || isempty(idx)
+                Y = this.Y;
+                C = this.C;
+            else
+                Y = this.Y(:,idx);
+                C = this.C(:,idx);
+            end
             
-            
-            [Jc,hisLoss,dJ,H] = getMisfit(this.pLoss,W,this.Y,this.C);
+            [Jc,hisLoss,dJ,H] = getMisfit(this.pLoss,W,Y,C);
             para = struct('F',Jc,'hisLoss',hisLoss);
             
             

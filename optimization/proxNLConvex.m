@@ -12,15 +12,23 @@ if nargin==0
     runMinimalExample;
     return;
 end
-maxIter = 100;
+maxIter = 1000;
 
 opt = sd();
 opt.out = -1;
 opt.LS.P = P;
 opt.maxIter = maxIter;
+opt.atol=1e-8;
+opt.rtol=1e-8;
 
 fctn = @(x) objFun(x,Reg,p,tau);
 xp = solve(opt,fctn,p);
+if not(isempty(Reg.xref))
+    xt = solve(opt,fctn,Reg.xref);
+    if fctn(xt)<fctn(xp)
+        xp = xt;
+    end
+end
 
 
 function [Jc,para,dJ] = objFun(x,Reg,p,tau)

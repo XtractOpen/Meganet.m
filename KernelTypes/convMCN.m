@@ -23,7 +23,7 @@ classdef convMCN < convKernel
                 this.runMinimalExample;
                 return;
             end
-            this.pad    = ceil((this.sK(1)-1)/2);
+            this.pad    = floor((this.sK(1)-1)/2);
         end
         
 
@@ -60,6 +60,7 @@ classdef convMCN < convKernel
             Y   = reshape(Y,[],nex);
         end
 
+        
         function dY = Jthetamv(this,dtheta,~,Y,~)
             nex    =  numel(Y)/nFeatIn(this);
             Y      = reshape(Y,[],nex);
@@ -90,6 +91,9 @@ classdef convMCN < convKernel
                 crop=0*crop;
             end
             dY = vl_nnconvt(Z,theta,[],'crop',crop,'upsample',this.stride);
+            if this.stride==2 && this.sK(1)==1
+                dY = padarray(dY,[1 1],0,'post');
+            end
             dY = reshape(dY,[],nex);
        end
     end

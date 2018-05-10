@@ -15,36 +15,63 @@ classdef dnnVarProObjFctn < objFctn
         Y
         C
         optClass 
+        useGPU      % flag for GPU computing
+        precision   % flag for precision
     end
     
     methods
-        function this = dnnVarProObjFctn(net,pRegTheta,pLoss,pRegW,optClass,Y,C)
+        function this = dnnVarProObjFctn(net,pRegTheta,pLoss,pRegW,optClass,Y,C,varargin)
+            
             
             if nargout==0 && nargin==0
                 this.runMinimalExample;
                 return;
             end
+            useGPU    = [];
+            precision = [];
+            for k=1:2:length(varargin)     % overwrites default parameter
+                eval([varargin{k},'=varargin{',int2str(k+1),'};']);
+            end
+            
             
             this.net    = net;
             this.pRegTheta = pRegTheta;
             this.pLoss  = pLoss;
             this.pRegW  = pRegW;
             this.optClass = optClass;
-            this.Y      = Y;
-            this.C      = C;
+            if not(isempty(useGPU))
+                this.useGPU = useGPU;
+            end
+            if not(isempty(precision))
+                this.precision=precision;
+            end
+            [Y,C] = gpuVar(this.useGPU,this.precision,Y,C);
+            this.Y         = Y;
+            this.C         = C;
             
         end
         
-        function [Jc,para,dJ,H,PC] = eval(this,theta)
+        function [Jc,para,dJ,H,PC] = eval(this,theta,idx)
+            if not(exist('idx','var')) || isempty(idx)
+                Y = this.Y;
+                C = this.C;
+            else
+                Y = this.Y(:,idx);
+                C = this.C(:,idx);
+            end
             compGrad = nargout>2;
             compHess = nargout>3;
             dJ = 0.0; H = []; PC = [];
             
             % project onto W
-            [YN,J] = linearizeTheta(this.net,theta,this.Y); % forward propagation
-            fctn   = classObjFctn(this.pLoss,this.pRegW,YN,this.C);
-            W      = solve(this.optClass,fctn,zeros(size(this.C,1)*(size(YN,1)+1),1));
-            [F,hisLoss,~,~,dYF,d2YF] = getMisfit(this.pLoss,W,YN,this.C);
+            if compGrad || compHess
+                [YN,J] = linearizeTheta(this.net,theta,Y); % forward propagation
+            else
+                YN = applyBatch(this.net,theta,Y,125);
+            end
+            fctn   = classObjFctn(this.pLoss,this.pRegW,YN,C);
+            W      = solve(this.optClass,fctn,zeros(size(C,1)*(size(YN,1)+1),1,'like',theta));
+            [F,hisLoss,~,~,dYF,d2YF] = getMisfit(this.pLoss,W,YN,C);
             if compGrad
                 dJ = J'*dYF;
             end
@@ -79,8 +106,7 @@ classdef dnnVarProObjFctn < objFctn
             para.W = W;
             if nargout>4
                 PC = getPC(this.pRegTheta);
-            end
-            
+            end           
         end
         
         

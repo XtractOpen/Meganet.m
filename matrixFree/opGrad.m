@@ -1,5 +1,5 @@
 classdef opGrad < RegularizationOperator
-    % time derivative computed using conv2 (for fast GPU performance)
+    % gradient operator computed using conv2 (for fast GPU performance)
     
     properties
         nImg      % n=[nx1,nx2,nx3] number of pixels/voxels

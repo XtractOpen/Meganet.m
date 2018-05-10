@@ -45,7 +45,7 @@ labels = [labels1; labels4; labels3; labels4; labels5];
 nex = size(data,1);
 
 if nTrain<nex
-    ptrain = randperm(nTrain);
+    ptrain = randperm(nex,nTrain);
 else
     ptrain = 1:nex;
 end
@@ -59,7 +59,7 @@ if nargout>2
     labelsTest = labels;
     nex = size(dataTest,1);
     if nVal<nex
-        pval = randperm(nVal);
+        pval = randperm(nex,nVal);
     else
         pval = 1:nex;
     end
@@ -69,12 +69,13 @@ if nargout>2
 end
 function runMinimalExample
 [Yt,Ct,Yv,Cv] = feval(mfilename,50,10);
-figure(1);clf;
+figure(2);clf;
 subplot(2,1,1);
-montageArray(reshape(Yt(1:32*32,:),32,32,[]),10);
+montageArray(reshape(Yt(1:32*32,:),32,32,[]),5);
 axis equal tight
 colormap gray
 title('training images');
+
 
 
 subplot(2,1,2);

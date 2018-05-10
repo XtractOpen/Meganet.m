@@ -3,15 +3,19 @@ close all; clear all;
 [Ytrain,Ctrain] = setupPeaks(5000,5);
 [Yv,Cv] = setupPeaks(200,5);
 
-% rng(20); %seed random number generator
+% dynamic = 'antiSym-ResNN';
+dynamic = 'ResNN';
 
+% rng(20); %seed random number generator
 figure(1); clf;
 subplot(1,2,1);
-viewFeatures2D(Ytrain,Ctrain)
+viewFeatures2D(Ytrain,Ctrain);
 title('input features');
+axis equal
+axis tight
 %% setup network
 T  = 5;   % final time
-nt = 16;  % number of time steps
+nt = 8;  % number of time steps
 nc = 8;   % number of channels (width)
 
 
@@ -19,9 +23,26 @@ nc = 8;   % number of channels (width)
 block1 = NN({singleLayer(dense([nc,2]))});
 
 % second block (ResNN, keeps size fixed)
-K      = dense([nc,nc]);
-layer  = singleLayer(K,'Bout',ones(nc,1));
-block2 = ResNN(layer,nt,T/nt);
+switch dynamic
+    case 'ResNN'
+        K      = dense([nc,nc]);
+        layer  = singleLayer(K,'Bout',ones(nc,1));
+        block2 = ResNN(layer,nt,T/nt);
+    case 'antiSym-ResNN'
+        K      = getDenseAntiSym([nc,nc]);
+        layer  = singleLayer(K,'Bout',ones(nc,1));
+        block2 = ResNN(layer,nt,T/nt);
+    case 'leapfrog'
+         K      = dense([nc,nc]);
+       layer  = doubleSymLayer(K,'Bout',ones(nc,1));
+        block2 = LeapFrogNN(layer,nt,T/nt);
+    case 'hamiltonian'
+        K      = dense([nc/2,nc/2]);
+        layer  = doubleSymLayer(K,'Bout',ones(nc/2,1));
+        block2 = DoubleHamiltonianNN(layer,layer,nt,T/nt);
+    otherwise
+        error('Example %s not yet implemented',dynamic);
+end
 h      = block2.h;
 
 % combine both blocks
@@ -63,6 +84,7 @@ WOpt      = reshape(para.W,[],5);
 figure(1);
 subplot(1,2,2);
 viewContour2D([-3 3 -3 3],thetaOpt,WOpt,net,pLoss);
+axis equal
 hold on
 viewFeatures2D(Yv,Cv);
 title('classification result');
