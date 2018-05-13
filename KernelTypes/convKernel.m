@@ -76,7 +76,7 @@ classdef convKernel
                 theta(1,1,:,:) = U*diag(s)*V';
             else        
                 sd= 0.1;
-                theta = sd*randn(this.nTheta());
+                theta = sd*randn(this.nTheta(),1);
                 id1 = find(theta>2*sd);
                 theta(id1(:)) = randn(numel(id1),1);
                 
