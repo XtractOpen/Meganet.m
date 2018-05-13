@@ -109,7 +109,9 @@ classdef convCuDNN2D < convKernel
             dtheta = this.Q'*dtheta;
 %             [~,dtheta] = vl_nnconv(Y,zeros(this.sK,'like',Y), [],Z,'pad',(this.sK(1)-1)/2,'stride',this.stride);
         end
-
+        function n = nTheta(this)
+            n = size(this.Q,2);
+        end
        function dY = ATmv(this,theta,Z)
             nex     = numel(Z)/prod(nImgOut(this));
             Z       = reshape(Z,[nImgOut(this) nex]);

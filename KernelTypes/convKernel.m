@@ -74,9 +74,9 @@ classdef convKernel
                 [U,S,V] = svd(squeeze(theta),'econ');
                 s = min(1,diag(S));
                 theta(1,1,:,:) = U*diag(s)*V';
-            else
+            else        
                 sd= 0.1;
-                theta = sd*randn(this.sK);
+                theta = sd*randn(this.nTheta());
                 id1 = find(theta>2*sd);
                 theta(id1(:)) = randn(numel(id1),1);
                 
