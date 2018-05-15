@@ -93,7 +93,7 @@ classdef sgd < optimizer
                 nex = size(objFctn.Y,2);
                 ids = randperm(nex);
                 lr = learningRate(epoch);
-                for k=1:ceil(nex/this.miniBatch)
+                for k=1:floor(nex/this.miniBatch)
                     idk = ids((k-1)*this.miniBatch+1: min(k*this.miniBatch,nex));
                     if this.nesterov && ~this.ADAM
                         [Jk,~,dJk] = fctn(xc-this.momentum*dJ,idk);
@@ -112,7 +112,7 @@ classdef sgd < optimizer
                     xc = this.P(xc - dJ);
                 end
                 % we sample 2^12 images from the training set for displaying the objective.     
-                [Jc,para] = fctn(xc,ids(1:min(nex,2^12))); 
+                [Jc,para] = fctn(xc,ids(1:min(nex,2^15))); 
                 if doVal
                     [Fval,pVal] = fval(xc,[]);
                     valAcc = obj2His(pVal);

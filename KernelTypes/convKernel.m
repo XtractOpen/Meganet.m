@@ -119,7 +119,7 @@ classdef convKernel
         end
         
         function n = nTheta(this)
-            n = prod(this.sK);
+            n = size(this.Q,2);
         end
         
         function dY = Jthetamv(this,dtheta,~,Y,~)
