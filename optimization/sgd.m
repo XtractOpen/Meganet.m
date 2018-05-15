@@ -68,7 +68,7 @@ classdef sgd < optimizer
             if this.ADAM
                 mJ = 0*xc;
                 vJ = 0*xc;
-%                 this.learningRate = 0.001;
+                this.learningRate = 0.001;
             end
             beta2 = 0.999;
             beta1 = this.momentum;

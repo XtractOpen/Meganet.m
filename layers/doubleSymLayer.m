@@ -118,7 +118,6 @@ classdef doubleSymLayer < abstractMeganetElement
             end
         end
 
-        end
         
         function [A,dA,KY,KZ,tmpNL1,tmpNL2] = getTempsForSens(this,theta,Y,tmp)
             % re-computes temp variables needed for sensitivity computations
