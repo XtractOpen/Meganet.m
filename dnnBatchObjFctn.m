@@ -78,7 +78,7 @@ classdef dnnBatchObjFctn < objFctn
             nb  = nBatches(this,nex);
             
             [theta,W] = split(this,thetaW);
-            this.batchIds  = randperm(size(Y,2));
+            this.batchIds  = randperm(nex);
                         
             % compute loss
             F = 0.0; hisLoss = [];
@@ -196,7 +196,7 @@ classdef dnnBatchObjFctn < objFctn
         
         function ids = getBatchIds(this,k,nex)
             if isempty(this.batchIds) || numel(this.batchIds) ~= nex
-                fprintf('reshuffle\n')
+                fprintf('numel(this.batchIds)=%d, nex=%d, reshuffle\n',numel(this.batchIds),nex)
                 this.batchIds = randperm(nex);
             end
             ids = this.batchIds(1+(k-1)*this.batchSize:min(k*this.batchSize,nex));

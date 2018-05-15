@@ -11,6 +11,7 @@ classdef normLayer < abstractMeganetElement
         eps         % smoothing factor
         useGPU      % flag for GPU computing (derived from trafo)
         precision   % flag for precision (derived from trafo)
+        
     end
     methods
         function this = normLayer(nData,varargin)
@@ -42,20 +43,18 @@ classdef normLayer < abstractMeganetElement
         
         function Y = compMean(this,Y)
             % computes mean along all dimensions in this.doNorm
-            nEl = ones(3,1);
+            nEl = 1; 
             
             for k=1:3
                 if this.doNorm(k)
-                    nEl(k) = size(Y,k);
+                    nEl = nEl/size(Y,k);
                     Y = sum(Y,k);
                 end
             end
-            Y = Y/prod(nEl);
+            Y = nEl*Y;
         end
         
         function [Ydata,Y,dA] = apply(this,~,Y,varargin)
-            %
-            %
             
             % first organize Y with channels
             nf  = this.nData(2);
