@@ -16,7 +16,7 @@ if not(exist('nVal','var')) || isempty(nVal)
 end
 
 if not(exist('option','var')) || isempty(option)
-    option = ceil(nTrain/5);
+    option = 1;
 end
 
 % Reading in the data
