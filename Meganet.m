@@ -135,8 +135,14 @@ classdef Meganet < abstractMeganetElement
         function YN = applyBatch(this,theta,Y0,batchSize)
            nex = numel(Y0)/nFeatIn(this);
            YN = zeros(nDataOut(this),nex,'like',Y0);
-           nb = ceil(nex/batchSize);
-           id = randperm(nex);
+           if not(isempty(batchSize))
+               nb = ceil(nex/batchSize);
+               id = randperm(nex);
+           else
+               nb = 1;
+               batchSize = nex;
+               id = 1:nex;
+           end
            cnt = 1;
            for k=1:nb
                idk = id(cnt:min(nex,cnt+batchSize));
