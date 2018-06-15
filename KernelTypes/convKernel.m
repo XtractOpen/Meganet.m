@@ -34,12 +34,14 @@ classdef convKernel
             nImg = nImg(1:2);
             stride = 1;
             useGPU = 0;
-            Q = opEye(prod(sK));
+            Q =[];;
             precision = 'double';
             for k=1:2:length(varargin)     % overwrites default parameter
                 eval([ varargin{k},'=varargin{',int2str(k+1),'};']);
             end
-            
+            if isempty(Q)
+                 Q = opEye(prod(sK));
+            end
             this.nImg = nImg;
             this.sK   = sK;
             this.stride = stride;
