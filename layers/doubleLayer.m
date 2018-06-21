@@ -182,7 +182,7 @@ classdef doubleLayer < abstractMeganetElement
                 K2Z = apply(this.nLayer2,th7,K2Z);
             end
             if not(isempty(th4))
-                K2Z = K2Z + this.Bin2*th4
+                K2Z = K2Z + this.Bin2*th4;
             end
             Y     = this.activation2(K2Z);
             if not(isempty(th5))
@@ -220,7 +220,7 @@ classdef doubleLayer < abstractMeganetElement
                 K1Yn = K1Y;
             end
             if not(isempty(th3))
-                K1Yn = K1Yn + this.Bin1*th3
+                K1Yn = K1Yn + this.Bin1*th3;
             end
             [A1,dA1] = this.activation1(K1Yn);
             if not(this.storeInterm) || isempty(tmp{2})
