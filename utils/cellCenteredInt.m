@@ -1,9 +1,20 @@
 function[R,P] = cellCenteredInt(n)
-%[R,P] = cellCenteredInt(n)
+% [R,P] = cellCenteredInt(n)
 %
+% Constructing the restriction operator, R, and prolongation operator, P,
+% for 2D images. 
+%
+% Input:
+%
+%   n=[n1,n2] - number of pixels in fine images
+%
+% Outputs:
+%
+%   R         - restriction operator, size(R)=[prod(n)/4, prod(n)]
+%   P         - prolongation operator, size(P)=[prod(n) prod(n)/4]
 
-if nargin < 1
-    [R,P] = runMinExample;
+if nargin == 0
+    [R,P] = runMinimalExample;
     return
 end
 
@@ -38,21 +49,21 @@ P = kron(P2,P1);
 
 end
 
-function[R,P] = runMinExample
+function[R,P] = runMinimalExample
 
 n = [16,16];
 [R,P] = cellCenteredInt(n);
 
 figure(1); clf;
 subplot(2,2,1); spy(P)
-title('P')
+title('P, prolongation')
 subplot(2,2,2); spy(R)
-title('R')
+title('R, restriction')
 % Check sparsity pattern of coarse scale Laplacian
 A  = getConvMat(randn(3,3),[n(1),n(2),1]);
 AH = R*A*P;
 subplot(2,2,3); spy(A)
-title('A')
+title('A, fine mesh convolution')
 subplot(2,2,4); spy(AH)
 title('AH = R*A*P')
 fprintf('nnz per row for A = %3d  nnz per row for AH = %3d\n',nnz(A(34,:)),nnz(AH(19,:)))  
