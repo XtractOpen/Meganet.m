@@ -1,21 +1,65 @@
 classdef newton < optimizer
     % classdef newton < optimizer
     %
-    % Newton scheme for minimizing non-linear objective
+    % Newton-CG method for minimizing non-linear objective function. 
+    % 
+    % To use this code, the objective function must be of type objFctn or a 
+    % function handle that can be called like
+    %
+    % [Jc,para,dJ,H,PC] = fctn(xc);
+    %
+    % where 
+    %   Jc   - function value gradient 
+    %   para - struct containing information about the objective used for
+    %          plotting or printing (see, e.g., method hisVals in objFctn)
+    %   dJ   - gradient about xc
+    %   H    - Hessian approximation
+    %   PC   - preconditioner or empty
+    %   
+    % using these ingredients a search direction is computed using a PCG
+    % solver, specified by the property linSol and a line search is
+    % performed. 
+    %
+    % The property 'out' controls the verbosity of the method. If out==1
+    % each iteration will produce some output in the command window. There
+    % will be a table containing the following columns:
+    %
+    % iter - current iteration
+    % Jc   - objective function value
+    % |x-xOld| - size of step taken in this iteration
+    % |dJ|/|dJ0| - relative norm of gradient
+    % iterCG     - number of PCG iterations
+    % relresCG   - relative residual achieved by PCG
+    % mu         - line search parameter
+    % LS         - number of line search steps
+    %
+    % When the objective function is a subtype of 'objFctn' there will be
+    % additional output specified by the respective class. For example, the
+    % dnnObjFctn will produce the following output
+    %
+    % F          - loss
+    % accuracy   - classification accuracy
+    % R(theta)   - value of regularizer for network paramters
+    % alpha      - regularization parameter for theta 
+    % R(W)       - value of regularizer for classfication weights
     
     properties
-        maxIter
-        atol
-        rtol
-        maxStep
-        out
-        LS
-        linSol
+        maxIter   % maximum number of iterations
+        atol      % absolute tolerance for stopping, stop if norm(dJ)<atol
+        rtol      % relative tolerance for stopping, stop if norm(dJ)/norm(dJ0)<rtol
+        maxStep   % maximum step (similar to trust region methods)
+        out       % flag controlling the verbosity, 
+                  %       out==0 -> no output
+                  %       out==1 -> print status at each iteration
+        LS        % line search object. See, e.g., Armijo.m
+        linSol    % linear solver object. See, e.g., steihaugPCG
     end
     
     methods
         
         function this = newton(varargin)
+            % constructor, no input required to get instance with default
+            % parameters
             this.maxIter = 10;
             this.atol    = 1e-3;
             this.rtol    = 1e-3;
@@ -29,11 +73,13 @@ classdef newton < optimizer
         end
         
         function [str,frmt] = hisNames(this)
+            % define the labels for each column in his table
             str  = {'iter', 'Jc','|x-xOld|', '|dJ|/|dJ0|','iterCG','relresCG','mu','LS'};
             frmt = {'%-12d','%-12.2e','%-12.2e','%-12.2e','%-12d','%-12.2e','%-12.2e','%-12d'};
         end
         
         function [xc,His] = solve(this,fctn,xc,fval)
+            % minimizes fctn starting with xc. (optional) fval is printed
             if not(exist('fval','var')); fval = []; end;
             
             [str,frmt] = hisNames(this);

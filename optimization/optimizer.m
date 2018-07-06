@@ -9,7 +9,8 @@ classdef optimizer
     
     methods
           function [fctn,objFctn,objNames,objFrmt,objHis] = parseObjFctn(this,fctn)
-            
+            % if fctn is of type objFctn, return function handles for
+            % evaluation and printing
             if exist('fctn','var') && not(isempty(fctn)) && isa(fctn,'objFctn')
                 objFctn  = fctn;
                 [objNames,objFrmt] = objFctn.hisNames();
