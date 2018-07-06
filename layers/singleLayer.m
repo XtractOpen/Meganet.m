@@ -3,7 +3,7 @@ classdef singleLayer < abstractMeganetElement
     %
     % Implementation of single layer model
     %
-    % Y(th,Y0) = activation( K(th_1)*Y0)+ Bin*th_2)+Bout*th_3
+    % Y(th,Y0) = activation( K(th_1)*Y0 + Bin*th_2)+Bout*th_3
     %
     properties
         activation  % activation function

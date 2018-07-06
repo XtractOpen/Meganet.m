@@ -22,22 +22,18 @@ precision='single';
 [Y0,C] = gpuVar(useGPU,precision,Y0,C);
 
 %% choose convolution
-if useGPU
-    cudnnSession = convCuDNN2DSession();
-    conv = @(varargin)convCuDNN2D(cudnnSession,varargin{:});
-else
-    conv    = @convMCN;
-end
+convOp = getConvOp(useGPU);
+poolOp = getPoolOp();
 
 % setup network
 act = @reluActivation;
 blocks    = cell(0,1);
-blocks{end+1} = NN({singleLayer(conv(nImg,[5 5 1 32]),'activation', act)});
+blocks{end+1} = NN({singleLayer(convOp(nImg,[5 5 1 32]),'activation', act)});
 
-blocks{end+1} = connector(opPoolMCN([nImg 32],2));
-blocks{end+1} = NN({singleLayer(conv(nImg/2,[5 5 32 64]),'activation', act)});
+blocks{end+1} = connector(poolOp([nImg 32],2));
+blocks{end+1} = NN({singleLayer(convOp(nImg/2,[5 5 32 64]),'activation', act)});
 
-blocks{end+1} = connector(opPoolMCN([nImg/2 64],2));
+blocks{end+1} = connector(poolOp([nImg/2 64],2));
 net    = Meganet(blocks);
 
 % setup loss function for training and validation set

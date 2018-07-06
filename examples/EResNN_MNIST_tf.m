@@ -9,7 +9,7 @@ nImg = [28 28];
 [Y0,C,Ytest,Ctest] = setupMNIST(2^12); % increase number of examples for more accuracy
 
 % choose dynamics in resnet
-dynamic = 'parabolic';
+% dynamic = 'parabolic';
 dynamic = 'singleLayer';
 % dynamic = 'doubleLayer';
 
@@ -19,23 +19,21 @@ resFile = sprintf('%s-%s.mat',mfilename,dynamic);
 doTrain = true;
 
 % set GPU flag and precision
-useGPU = 1;
+useGPU = 0;
 precision='single';
 
 [Y0,C] = gpuVar(useGPU,precision,Y0,C);
 
-
 %% choose convolution
-if useGPU
-    cudnnSession = convCuDNN2DSession();
-    conv = @(varargin)convCuDNN2D(cudnnSession,varargin{:});
-else
-    conv    = @convMCN;
-end
+convOp = getConvOp(useGPU);
 
 % setup network
 miniBatchSize=128;
-act     = @smoothReluActivationArrayfun;
+if useGPU
+    act = @smoothReluActivationArrayfun;
+else
+    act = @smoothReluActivation;
+end
 % act = @tanhActivation;
 nc      = 8;
 nt      = 4;
@@ -43,21 +41,21 @@ h       = .1;
 
 B = gpuVar(useGPU,precision,kron(eye(nc),ones(prod(nImg),1)));
 blocks    = cell(0,1); RegOps = cell(0,1);
-blocks{end+1} = NN({singleLayer(conv(nImg,[1 1 1 nc]),'activation', act,'Bin',B)});
+blocks{end+1} = NN({singleLayer(convOp(nImg,[1 1 1 nc]),'activation', act,'Bin',B)});
 regD = gpuVar(useGPU,precision,[ones(nTheta(blocks{end}.layers{1}.K),1); zeros(size(B,2),1)]);
 RegOps{end+1} = opDiag(regD);
 
 switch dynamic
     case 'singleLayer'
-        K = conv(nImg,[3 3 nc nc]);
+        K = convOp(nImg,[3 3 nc nc]);
         layer = singleLayer(K,'Bin',B,'activation',act);
         blocks{end+1} = ResNN(layer,nt,h);
     case 'doubleLayer'
-        K     = conv(nImg,[3 3 nc nc]);
+        K     = convOp(nImg,[3 3 nc nc]);
         layer = doubleLayer(K,K,'Bin1',B,'activation1', act,'activation2',@identityActivation,'nLayer1',nL);
         blocks{end+1} = ResNN(layer,nt,h);
     case 'parabolic'
-        K     = conv(nImg,[3 3 nc nc]);
+        K     = convOp(nImg,[3 3 nc nc]);
         layer = doubleSymLayer(K,'Bin1',B,'activation1', act,'activation2',@identityActivation,'nLayer1',nL);
         blocks{end+1} = ResNN(layer,nt,h);
 end
