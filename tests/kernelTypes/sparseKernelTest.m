@@ -9,10 +9,10 @@ classdef sparseKernelTest < kernelTest
             tmp   = sprandn(nK(1),nK(2),0.1);
             [ival,jval,~] =  find(tmp);
             Qs = speye(numel(jval));
-            ks{1} =  sparseKernel(nK,'ival',ival,'jval',jval,'Qs',Qs);
+            ks{1} =  sparseKernel(ival,jval,nK);
             
-            Qs = randn(numel(jval),2);
-            ks{2} =  sparseKernel(nK,'ival',ival,'jval',jval,'Qs',Qs);
+             Qs = randn(numel(jval),2);
+             ks{2} =  sparseKernel(ival,jval,nK,'Qs',Qs);
             
             testCase.kernels = ks;
         end

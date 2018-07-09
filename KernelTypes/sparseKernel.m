@@ -3,24 +3,25 @@ classdef sparseKernel
     % 
     % linear transformation given by sparse matrix
     %
-    %   Y(theta,Y0)  = sparse(theta(:,1),theta(:,2),theta(:,3)) * Y0 
+    %   Y(theta,Y0)  = sparse(ival,jval,Qs*theta) * Y0 
     %
+    % The kernel is described by providing the row and column indices of
+    % the non-zero elements in the sparse kernel and the size of the
+    % resulting matrix.
     
     properties
-        nK
-        ival
-        jval
-        Qs
-        useGPU
+        nK           % size of matrix
+        ival         % row-indices of non-zero elements in sparse matrix
+        jval         % column-indices of non-zero elements in sparse matrix
+        Qs           % basis for non-zero elements (default: speye)
+        useGPU 
         precision
     end
     
     methods
-        function this = sparseKernel(nK,varargin)
-           this.nK = nK;
-           this.ival = [];
-           this.jval = [];
-           this.Qs   = []; 
+        function this = sparseKernel(ival,jval,nK,varargin)
+            % constructor, required arguments are ival, jval, nK
+            Qs   = [];
             useGPU = 0;
             precision = 'double';
             for k=1:2:length(varargin)     % overwrites default parameter
@@ -28,8 +29,17 @@ classdef sparseKernel
             end
             this.useGPU = useGPU;
             this.precision = precision;
+            
+            this.nK = nK;
+            if not(numel(jval)==numel(ival))
+                error('number of column indices must equal number of row indices');
+            end
             this.ival = ival;
             this.jval = jval;
+    
+            if (isempty(Qs))
+               Qs = speye(numel(jval)); 
+            end
             this.Qs   = Qs;
             
         end
@@ -76,22 +86,12 @@ classdef sparseKernel
        end
        
        function dtheta = JthetaTmv(this,Z,~,Y,~)
-            % Jacobian T matvec.
-            
-            %n = nTheta(this);
-            %As = getOp(this,ones(n,1));
-            %As = As~=0;
-            %dtheta1 = this.Qs'*nonzeros(((As').*(Y*Z'))');            
-            %t = 0;
-            %for i=1:size(Y,2)
             t = sum(Z(this.ival,:) .* Y(this.jval,:),2);
-            %end
             dtheta = this.Qs'*t;
             
        end
         
        function Z = implicitTimeStep(this,theta,Y,h)
-           
            Kop = getOp(this,theta);
            Z   = (h*(Kop'*Kop) + speye(size(Kop,2)))\Y; 
        end
