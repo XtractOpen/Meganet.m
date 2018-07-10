@@ -187,8 +187,8 @@ classdef doubleSymLayer < abstractMeganetElement
         
         function theta = initTheta(this)
             theta = [vec(initTheta(this.K)); ...
-                     0.1*ones(size(this.Bin,2),1);...
-                     0.1*ones(size(this.Bout,2),1)];
+                     0.0*ones(size(this.Bin,2),1);...
+                     0.0*ones(size(this.Bout,2),1)];
            if not(isempty(this.nLayer1))
                theta = [theta; initTheta(this.nLayer1)];
            end
