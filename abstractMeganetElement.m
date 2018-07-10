@@ -345,6 +345,10 @@ methods
                 dtheta = [dtheta(:); dY(:)];
             end
         end
+        
+        function [theta] = prolongateConvStencils(this,theta)
+            % prolongate convolution stencils. By default do nothing.
+        end
                 
         function J = getJOp(this,theta,Y,tmp)
             % J = abstractMeganetElement.getJOp(this,Z,theta,Y,tmp)
