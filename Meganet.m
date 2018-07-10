@@ -255,6 +255,14 @@ classdef Meganet < abstractMeganetElement
             end
             thFine = vec(thFine);
         end
+        function [thCoarse] = restrictConvStencils(this,theta)
+            % restrict convolution stencils, dividing image resolution by two
+            thCoarse = split(this,theta);
+            for k=1:numel(this.blocks)
+                thCoarse{k} = restrictConvStencils(this.blocks{k},thCoarse{k});
+            end
+            thCoarse = vec(thCoarse);
+        end
         
         % ------- functions for handling GPU computing and precision ----
         function this = set.useGPU(this,value)

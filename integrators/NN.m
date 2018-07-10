@@ -126,7 +126,19 @@ classdef NN < abstractMeganetElement
                 cnt = cnt + ni;
             end
         end
-        
+        function [thetaNorm] = getNormalizedWeights(this,theta,Y,nL,thetaNL)
+            if not(exist('nL','var')); nL = []; end
+            if not(exist('thetaNL','var')); thetaNL = []; end
+            nt = numel(this.layers);
+            cnt = 0;
+            thetaNorm = 0*theta;
+            for i=1:nt
+                ni = nTheta(this.layers{i});
+                thetaNorm(cnt+(1:ni)) = getNormalizedWeights(this.layers{i},theta(cnt+(1:ni)),Y,nL,thetaNL);
+                Y = this.layers{i}.apply(theta(cnt+(1:ni)),Y);
+                cnt = cnt + ni;
+            end
+        end
         % -------- Jacobian matvecs --------
         function [dYdata,dY] = JYmv(this,dY,theta,~,tmp)
             nt = numel(this.layers);
@@ -235,7 +247,14 @@ classdef NN < abstractMeganetElement
             end
             thFine = vec(thFine);
         end
-        
+        function [thCoarse] = restrictConvStencils(this,theta)
+            % restrict convolution stencils, dividing image resolution by two
+            thCoarse = split(this,theta);
+            for k=1:numel(this.layers)
+                thCoarse{k} = prolongateConvStencils(this.layers{k},thCoarse{k});
+            end
+            thCoarse = vec(thCoarse);
+        end
         
         % ------- functions for handling GPU computing and precision ----
         function this = set.useGPU(this,value)

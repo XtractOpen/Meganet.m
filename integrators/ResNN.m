@@ -193,6 +193,24 @@ classdef ResNN < abstractMeganetElement
                 dtheta=[dtheta(:); W(:)];
             end
         end
+        
+        function [thFine] = prolongateConvStencils(this,theta)
+            % prolongate convolution stencils, doubling image resolution
+            thFine = reshape(theta,[],this.nt);
+            for k=1:this.nt
+                thFine(:,k) = vec(prolongateConvStencils(this.layer,thFine(:,k)));
+            end
+            thFine = thFine(:);
+        end
+        function [thCoarse] = restrictConvStencils(this,theta)
+            % restrict convolution stencils, dividing image resolution by two
+            thCoarse = reshape(theta,[],this.nt);
+            for k=1:this.nt
+                thCoarse(:,k) = vec(restrictConvStencils(this.layer,thCoarse(:,k)));
+            end
+            thCoarse = thCoarse(:);
+        end
+        
         % ------- functions for handling GPU computing and precision ---- 
         function this = set.useGPU(this,value)
             if (value~=0) && (value~=1)

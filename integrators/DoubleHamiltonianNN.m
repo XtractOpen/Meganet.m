@@ -243,6 +243,24 @@ classdef DoubleHamiltonianNN < abstractMeganetElement
             end
 
         end
+        function [thFine] = prolongateConvStencils(this,theta)
+            % prolongate convolution stencils, doubling image resolution
+            [th1Fine,th2Fine] = split(this,theta);
+            for k=1:this.nt
+                th1Fine(:,k) = vec(prolongateConvStencils(this.layer1,th1Fine(:,k)));
+                th2Fine(:,k) = vec(prolongateConvStencils(this.layer2,th2Fine(:,k)));
+            end
+            thFine = vec([th1Fine;th2Fine]);
+        end
+        function [thCoarse] = restrictConvStencils(this,theta)
+             % restrict convolution stencils, dividing image resolution by two
+           [th1Coarse,th2Coarse] = split(this,theta);
+            for k=1:this.nt
+                th1Coarse(:,k) = vec(restrictConvStencils(this.layer1,th1Coarse(:,k)));
+                th2Coarse(:,k) = vec(restrictConvStencils(this.layer2,th2Coarse(:,k)));
+            end
+            thCoarse = vec([th1Coarse;th2Coarse]);
+        end
         % ------- functions for handling GPU computing and precision ----
         function this = set.useGPU(this,value)
             if (value~=0) && (value~=1)

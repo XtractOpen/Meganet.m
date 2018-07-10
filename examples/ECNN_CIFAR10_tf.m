@@ -17,7 +17,7 @@ resFile = sprintf('%s.mat',mfilename);
 doTrain = true;
 
 % set GPU flag and precision
-useGPU = 0; 
+useGPU = 1; 
 precision='single';
 
 [Y0,C] = gpuVar(useGPU,precision,Y0,C);

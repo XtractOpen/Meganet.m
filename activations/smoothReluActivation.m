@@ -2,8 +2,7 @@ function [A,dA] = smoothReluActivation(Y,varargin)
 % [A,dA] = smoothReluActivation(Y,varargin)
 %
 % smoothed relu activation function A = smoothReluActivation(Y). The idea
-% is to use a quadratic model close to the origin to ensure
-% differentiability. 
+% is to use a quadratic model on [-eta,eta] to ensure differentiability. 
 %
 % Input:
 %  
@@ -11,6 +10,7 @@ function [A,dA] = smoothReluActivation(Y,varargin)
 %
 % Optional Input:
 %
+%   eta          - controls interval of quadratic, default=0.1
 %   doDerivative - flag for computing derivative, set via varargin
 %                  Ex: smoothReluActivation(Y,'doDerivative',0,'eta',.1);
 %
@@ -35,13 +35,58 @@ c = 0.25*eta;
 
 dA = [];
 
-A              = max(Y,0);
-A(abs(Y)<=eta) = a.*Y(abs(Y)<=eta).^2 + b.*Y(abs(Y)<=eta) + c;
-
-if doDerivative
-    dA              = sign(A);
-    dA(abs(Y)<=eta) = 2*a*Y(abs(Y)<=eta) + b;
+if isa(Y,'gpuArray')
+    % use MATLAB's arrayfun to accelerate GPU computation and save on
+    % memory
+    
+    fun = eval(sprintf('@(x) act(x,%e,%e,%e,%e)',eta,a,b,c)); % eval is clunky but arrayfun 
+                                                              % had problems
+                                                              % with additional inputs
+    A = arrayfun(fun,Y);
+    if doDerivative
+        fun =eval(sprintf('@(x) dact(x,%e,%e,%e,%e)',eta,a,b,c));  
+        dA = arrayfun(fun,Y);
+    end
+    
+else
+    % Y is not on the GPU, use regular MATLAB syntax which is much faster
+    % here
+    A              = max(Y,0);
+    A(abs(Y)<=eta) = a.*Y(abs(Y)<=eta).^2 + b.*Y(abs(Y)<=eta) + c;
+    
+    if doDerivative
+        dA              = sign(A);
+        dA(abs(Y)<=eta) = 2*a*Y(abs(Y)<=eta) + b;
+    end
+    
 end
+
+function ac = act(y,eta,a,b,c)
+% ac = act(y,eta,a,b,c)
+%
+% Called by MATLAB's arrayfun, computes the activation component-wise
+if y<-eta
+    ac = 0*y;
+elseif y>=eta
+    ac = y;
+else
+    ac = a*(y.*y)+b*y+c;
+end
+
+function ac = dact(y,eta,a,b,c)
+% ac = act(y,eta,a,b,c)
+%
+% Called by MATLAB's arrayfun, computes the derivative of the activation component-wise
+if y<-eta
+    ac = 0*y;
+elseif y>=eta
+    ac=0*y+1;
+else
+    ac = 2*a*y+b;
+end
+
+
+
 
 
 
