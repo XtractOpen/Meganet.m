@@ -1,4 +1,4 @@
-function [Y,dA] = reluActivation(Y,varargin)
+function [A,dA] = reluActivation(Y,varargin)
 % [A,dA] = reluActivation(Y,varargin)
 %
 % relu activation function A = relu(Y)
@@ -30,10 +30,11 @@ end
 
 dA = [];
 
-Y = max(Y,0);
+A = max(Y,0);
 
 if doDerivative
-    dA = sign(Y);
+%     dA = sign(Y);
+    dA = Y>=0;
 end
 
 

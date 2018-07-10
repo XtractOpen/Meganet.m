@@ -287,6 +287,11 @@ classdef singleLayer < abstractMeganetElement
             thFine = theta;
             thFine(1:nTheta(this.K)) = prolongateConvStencils(this.K,theta(1:nTheta(this.K)));
         end
+        function [thCoarse] = restrictConvStencils(this,theta)
+            % restrict convolution stencils, dividing image resolution by two
+            thCoarse = theta;
+            thCoarse(1:nTheta(this.K)) = restrictConvStencils(this.K,theta(1:nTheta(this.K)));
+        end
         
         % ------- functions for handling GPU computing and precision ---- 
         function this = set.useGPU(this,value)

@@ -1,9 +1,9 @@
 classdef sparseKernel
     % classdef sparseKernel < handle
-    % 
+    %
     % linear transformation given by sparse matrix
     %
-    %   Y(theta,Y0)  = sparse(ival,jval,Qs*theta) * Y0 
+    %   Y(theta,Y0)  = sparse(ival,jval,Qs*theta) * Y0
     %
     % The kernel is described by providing the row and column indices of
     % the non-zero elements in the sparse kernel and the size of the
@@ -14,7 +14,7 @@ classdef sparseKernel
         ival         % row-indices of non-zero elements in sparse matrix
         jval         % column-indices of non-zero elements in sparse matrix
         Qs           % basis for non-zero elements (default: speye)
-        useGPU 
+        useGPU
         precision
     end
     
@@ -36,9 +36,9 @@ classdef sparseKernel
             end
             this.ival = ival;
             this.jval = jval;
-    
+            
             if (isempty(Qs))
-               Qs = speye(numel(jval)); 
+                Qs = speye(numel(jval));
             end
             this.Qs   = Qs;
             
@@ -75,28 +75,27 @@ classdef sparseKernel
         function theta = initTheta(this)
             theta = rand(nTheta(this),1);
         end
-            
+        
         function A = getOp(this,theta)
             A = sparse(this.ival,this.jval,this.Qs*theta,this.nK(1),this.nK(2));
         end
         
-       
-       function dY = Jthetamv(this,dtheta,~,Y,~)
-           dY = getOp(this,dtheta)*Y;
-       end
-       
-       function dtheta = JthetaTmv(this,Z,~,Y,~)
+        function dY = Jthetamv(this,dtheta,~,Y,~)
+            dY = getOp(this,dtheta)*Y;
+        end
+        
+        function dtheta = JthetaTmv(this,Z,~,Y,~)
             t = sum(Z(this.ival,:) .* Y(this.jval,:),2);
             dtheta = this.Qs'*t;
             
-       end
+        end
         
-       function Z = implicitTimeStep(this,theta,Y,h)
-           Kop = getOp(this,theta);
-           Z   = (h*(Kop'*Kop) + speye(size(Kop,2)))\Y; 
-       end
-
-
+        function Z = implicitTimeStep(this,theta,Y,h)
+            Kop = getOp(this,theta);
+            Z   = (h*(Kop'*Kop) + speye(size(Kop,2)))\Y;
+        end
+        
+        
     end
 end
 

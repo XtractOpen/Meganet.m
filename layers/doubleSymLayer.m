@@ -187,15 +187,15 @@ classdef doubleSymLayer < abstractMeganetElement
         
         function theta = initTheta(this)
             theta = [vec(initTheta(this.K)); ...
-                     0.1*ones(size(this.Bin,2),1);...
-                     0.1*ones(size(this.Bout,2),1)];
-           if not(isempty(this.nLayer1))
-               theta = [theta; initTheta(this.nLayer1)];
-           end
-           if not(isempty(this.nLayer2))
-               theta = [theta; initTheta(this.nLayer2)];
-           end
-          
+                0.0*ones(size(this.Bin,2),1);...
+                0.0*ones(size(this.Bout,2),1)];
+            if not(isempty(this.nLayer1))
+                theta = [theta; initTheta(this.nLayer1)];
+            end
+            if not(isempty(this.nLayer2))
+                theta = [theta; initTheta(this.nLayer2)];
+            end
+            
         end
         
         function dY = Jthetamv(this,dtheta,theta,Y,KY)
@@ -281,16 +281,16 @@ classdef doubleSymLayer < abstractMeganetElement
             
             dth3      = vec(sum(this.Bout'*Z,2));
             if not(isempty(this.nLayer2))
-               [dth5,Z] = JTmv(this.nLayer2,Z,[],th5,KZ,tmpNL2); 
+                [dth5,Z] = JTmv(this.nLayer2,Z,[],th5,KZ,tmpNL2);
             else
-               dth5 = [];
+                dth5 = [];
             end
             dAZ       = dA.*(Kop*Z);
             dth2      = vec(sum(this.Bin'*dAZ,2));
             if not(isempty(this.nLayer1))
-               [dth4,dAZ] = JTmv(this.nLayer1,dAZ,[],th4,KY,tmpNL1); 
+                [dth4,dAZ] = JTmv(this.nLayer1,dAZ,[],th4,KY,tmpNL1);
             else
-               dth4 = [];
+                dth4 = [];
             end
             dth1      = JthetaTmv(this.K,dAZ,[],Y);
             dth1      = dth1 + JthetaTmv(this.K,A,[],Z);
@@ -306,7 +306,7 @@ classdef doubleSymLayer < abstractMeganetElement
             Kop       = getOp(this.K,th1);
             
             if not(isempty(this.nLayer2))
-               Z = JYTmv(this.nLayer2,Z,[],th5,KZ,tmpNL2); 
+                Z = JYTmv(this.nLayer2,Z,[],th5,KZ,tmpNL2);
             end
             dAZ       = dA.*(Kop*Z);
             if not(isempty(this.nLayer1))
@@ -329,17 +329,17 @@ classdef doubleSymLayer < abstractMeganetElement
             
             dth3      = vec(sum(this.Bout'*Z,2));
             if not(isempty(this.nLayer2))
-               [dth5,Z] = JTmv(this.nLayer2,Z,[],th5,KZ,tmpNL2); 
+                [dth5,Z] = JTmv(this.nLayer2,Z,[],th5,KZ,tmpNL2);
             else
-               dth5 = [];
+                dth5 = [];
             end
             
             dAZ       = dA.*(Kop*Z);
             dth2      = vec(sum(this.Bin'*dAZ,2));
             if not(isempty(this.nLayer1))
-               [dth4,dAZ] = JTmv(this.nLayer1,dAZ,[],th4,KY,tmpNL1); 
+                [dth4,dAZ] = JTmv(this.nLayer1,dAZ,[],th4,KY,tmpNL1);
             else
-               dth4 = [];
+                dth4 = [];
             end
             dth1      = JthetaTmv(this.K,dAZ,[],Y);
             
@@ -360,6 +360,12 @@ classdef doubleSymLayer < abstractMeganetElement
             thFine = theta;
             thFine(1:nTheta(this.K)) = prolongateConvStencils(this.K,theta(1:nTheta(this.K)));
         end
+        function [thCoarse] = restrictConvStencils(this,theta)
+            % restrict convolution stencils, dividing image resolution by two
+            thCoarse = theta;
+            thCoarse(1:nTheta(this.K)) = restrictConvStencils(this.K,theta(1:nTheta(this.K)));
+        end
+        
         % ------- functions for handling GPU computing and precision ----
         function this = set.useGPU(this,value)
             if (value~=0) && (value~=1)

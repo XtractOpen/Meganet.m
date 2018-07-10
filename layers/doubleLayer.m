@@ -367,6 +367,21 @@ classdef doubleLayer < abstractMeganetElement
 
         end
         
+        function [thFine] = prolongateConvStencils(this,theta)
+            % prolongate convolution stencils, doubling image resolution
+            [th1,th2,th3,th4,th5,th6,th7] = this.split(theta);
+            th1 = prolongateConvStencils(this.K1,th1);
+            th2 = prolongateConvStencils(this.K2,th2);
+            thFine = [vec(th1); vec(th2); th3; th4; th5; th6; th7];
+        end
+        function [thCoarse] = restrictConvStencils(this,theta)
+            % restrict convolution stencils, dividing image resolution by two
+            [th1,th2,th3,th4,th5,th6,th7] = this.split(theta);
+            th1 = restrictConvStencils(this.K1,th1);
+            th2 = restrictConvStencils(this.K2,th2);
+            thCoarse = [vec(th1); vec(th2); th3; th4; th5; th6; th7];
+        end
+        
         % ------- functions for handling GPU computing and precision ---- 
         function this = set.useGPU(this,value)
             if (value~=0) && (value~=1)

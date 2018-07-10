@@ -69,15 +69,31 @@ classdef convKernel
         
         
         function theta = initTheta(this)
-            %             n = prod(this.sK([1,2,4]));
-            %             sd = sqrt(2/n);
             if all(this.sK(1:2)==1)
                 theta = randn(squeeze(this.sK));
                 [U,S,V] = svd(squeeze(theta),'econ');
                 s = min(1,diag(S));
                 theta(1,1,:,:) = U*diag(s)*V';
+            elseif this.sK(3)==this.sK(4)
+                n = prod(this.sK([1,2]));
+                e = zeros(prod(this.sK(1:2)),1);
+                e(fix((prod(this.sK(1:2))+1)/2)) = 1;
+                sd = sqrt(2/n);
+                % put weights on diagonal only
+                theta = sd*randn(prod(this.sK(1:3)),prod(this.sK(4)));
+                mask  = kron(eye(this.sK(3)),ones(prod(this.sK(1:2)),1)) *0+0* kron(ones(this.sK(3)),e);
+                theta = theta.*mask;
+                id1 = find(theta>2*sd);
+                theta(id1(:)) = randn(numel(id1),1);
+                
+                id2 = find(theta< -2*sd);
+                theta(id2(:)) = randn(numel(id2),1);
+                
+                theta = max(min(2*sd, theta),-2*sd);
+                
             else        
-                sd= 0.1;
+                n = prod(this.sK([1,2,4]));
+                sd = sqrt(2/n);
                 theta = sd*randn(this.nTheta(),1);
                 id1 = find(theta>2*sd);
                 theta(id1(:)) = randn(numel(id1),1);
@@ -98,12 +114,20 @@ classdef convKernel
             % prolongate convolution stencils, doubling image resolution
             thFine = theta;
             if all(this.sK(1:2)==3)
-                
-                Wh = [0;-1;0;0;0;0;0;1;0];
-                [WH,A,Q] = getFineScaleConvAlgCC(Wh);
-                
+                [WH,A,Q] = getFineScaleConvAlgCC([0;-1;0;0;0;0;0;1;0]);
                 thFine = Q*(A\reshape(theta,9,[]));
                 thFine = thFine(:);
+            elseif any(this.sK(1:2)>1) && any(this.sK(1:2)~=3)
+                error('nyi')
+            end
+        end
+        function [thCoarse] = restrictConvStencils(this,theta)
+            % restrict convolution stencils, dividing image resolution by two
+            thCoarse = theta;
+            if all(this.sK(1:2)==3)
+                [WH,A,Q] = getFineScaleConvAlgCC([0;-1;0;0;0;0;0;1;0]);
+                thCoarse = Q*(A*reshape(theta,9,[]));
+                thCoarse = thCoarse(:);
             elseif any(this.sK(1:2)>1) && any(this.sK(1:2)~=3)
                 error('nyi')
             end
