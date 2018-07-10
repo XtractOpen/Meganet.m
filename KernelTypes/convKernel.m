@@ -94,6 +94,21 @@ classdef convKernel
             %            end
         end
         
+        function [thFine] = prolongateConvStencils(this,theta)
+            % prolongate convolution stencils, doubling image resolution
+            thFine = theta;
+            if all(this.sK(1:2)==3)
+                
+                Wh = [0;-1;0;0;0;0;0;1;0];
+                [WH,A,Q] = getFineScaleConvAlgCC(Wh);
+                
+                thFine = Q*(A\reshape(theta,9,[]));
+                thFine = thFine(:);
+            elseif any(this.sK(1:2)>1) && any(this.sK(1:2)~=3)
+                error('nyi')
+            end
+        end
+        
         % ------ handling GPU and precision -------
         function this = set.useGPU(this,value)
             if (value~=0) && (value~=1)

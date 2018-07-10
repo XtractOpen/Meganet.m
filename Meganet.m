@@ -247,6 +247,15 @@ classdef Meganet < abstractMeganetElement
             end
         end
         
+        function [thFine] = prolongateConvStencils(this,theta)
+            % prolongate convolution stencils, doubling image resolution
+            thFine = split(this,theta);
+            for k=1:numel(this.blocks)
+                thFine{k} = prolongateConvStencils(this.blocks{k},thFine{k});
+            end
+            thFine = vec(thFine);
+        end
+        
         % ------- functions for handling GPU computing and precision ----
         function this = set.useGPU(this,value)
             if (value~=0) && (value~=1)

@@ -355,8 +355,12 @@ classdef doubleSymLayer < abstractMeganetElement
             
         end
         
-        
-        % ------- functions for handling GPU computing and precision ---- 
+        function [thFine] = prolongateConvStencils(this,theta)
+            % prolongate convolution stencils, doubling image resolution
+            thFine = theta;
+            thFine(1:nTheta(this.K)) = prolongateConvStencils(this.K,theta(1:nTheta(this.K)));
+        end
+        % ------- functions for handling GPU computing and precision ----
         function this = set.useGPU(this,value)
             if (value~=0) && (value~=1)
                 error('useGPU must be 0 or 1.')
