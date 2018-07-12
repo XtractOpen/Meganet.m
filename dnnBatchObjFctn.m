@@ -5,24 +5,31 @@ classdef dnnBatchObjFctn < objFctn
     %
     %       J(theta,C) = loss(h(W*Y(theta)), C) + Rtheta(theta) + R(W)
     %
-    % Here, we evaluate objective function in batches and accumulate its
-    % value and gradient
+    % Here, we group the terms of the loss function in batches and accumulate its
+    % value and gradient. This helps reduce the memory footprint of the
+    % method but might be slower than working on the full batch implemented
+    % in dnnObjFctn. Splitting the loss into batches should not affect the
+    % result as long as the network does not introduce any coupling (note
+    % that batch normalization does that).
     
     properties
         net         % description of DNN to be trained
         pRegTheta   % regularizer for network parameters
         pLoss       % loss function
         pRegW       % regularizer for classifier 
-        Y           % features
+        Y           % input features
         C           % labels
-        batchSize   % batch size
-        batchIds    % indices of batches
+        batchSize   % batch size, default=10 (choose according to available memory, choice might be different from the batch size of SGD)
+        batchIds    % indices of batches, chosen randomly in each evaulation
         useGPU      % flag for GPU computing
         precision   % flag for precision
     end
     
     methods
         function this = dnnBatchObjFctn(net,pRegTheta,pLoss,pRegW,Y,C,varargin)
+            % constructor, required inputs are a network, regularizers,
+            % loss and examples.
+                       
             
             if nargout==0 && nargin==0
                 this.runMinimalExample;
@@ -54,6 +61,8 @@ classdef dnnBatchObjFctn < objFctn
             this.batchIds  = batchIds;
         end
         function [theta,W] = split(this,thetaW)
+            % split thetaW = [theta;W] into parts associated with network
+            % and classifier.
             nth = nTheta(this.net);
             theta  = thetaW(1:nth);
             W   = thetaW(nth+1:end);
@@ -61,10 +70,31 @@ classdef dnnBatchObjFctn < objFctn
         
         
         function [Jc,para,dJ,H,PC] = eval(this,thetaW,idx)
+            % evaluate the objective function
+            %
+            % Inputs:
+            %
+            %   thetaW - vector of current weights (both network and classifier)
+            %   idx    - indices of examples to use for evaluating loss,
+            %            default=[] -> use all examples
+            %
+            % Output:
+            %
+            %   Jc     - objective function value
+            %   para   - struct containing intermediate results for
+            %            printing (see hisNames and hisVals for info and parsing)
+            %   dJ     - gradient
+            %   H      - approximate Hessian (Gauss Newton like
+            %            approximation for each block, ignore coupling between 
+            %            theta and W)
+            %   PC     - preconditioner
+            
             if not(exist('idx','var')) || isempty(idx)
+                % use only examples specified in idx in the loss
                 Y = this.Y;
                 C = this.C;
             else
+                % use all examples
                 Y = this.Y(:,idx);
                 C = this.C(:,idx);
             end
@@ -74,8 +104,8 @@ classdef dnnBatchObjFctn < objFctn
             dJth = 0.0; dJW = 0.0; Hth = []; HW = []; PC = [];
             
             
-            nex = size(Y,2);
-            nb  = nBatches(this,nex);
+            nex = size(Y,2);          % number of examples to compute loss over 
+            nb  = nBatches(this,nex); % determine number of batches for the computation
             
             [theta,W] = split(this,thetaW);
             this.batchIds  = randperm(nex);
@@ -139,7 +169,7 @@ classdef dnnBatchObjFctn < objFctn
                 para.hisRth = hisRth;
             end
             
-            % evaluare regularizer for classification weights
+            % evaluate regularizer for classification weights
             if not(isempty(this.pRegW))
                 [RW,hisRW,dRW,d2RW]         = regularizer(this.pRegW, W);
                 Jc = Jc + RW;
@@ -159,6 +189,7 @@ classdef dnnBatchObjFctn < objFctn
                 H  = blkdiag(Hth, HW);
             end
             
+            % get a preconditioner
             if nargout>4
                 PCth = getThetaPC(this,d2YF,theta,Yk,tmp);
                 PC = blkdiag(PCth,getPC(this.pRegW));
@@ -167,13 +198,27 @@ classdef dnnBatchObjFctn < objFctn
         end
         
         function [Cp,P] = getLabels(this,thetaW)
+            % compute the predicted labels and class probabilities for
+            % current weights
+            %
+            % Inputs:
+            % 
+            %   thetaW - current weights
+            %
+            % Output:
+            %
+            %   Cp     - nclass x nex matrix of unit vectors that encode
+            %            predicted class for each example
+            %   P      - nclass x nex matrix whose columns are the class
+            %            probabilities predicted by the model
+            
             Cp = 0*this.C;
             P  = 0*this.C;
             nex = size(this.Y,2);
             nb = nBatches(this,nex);
             
             [theta,W] = split(this,thetaW);
-            % compute loss
+            
             for k=nb:-1:1
                 idk = this.getBatchIds(k,nex);
                 if nb>1
@@ -187,6 +232,8 @@ classdef dnnBatchObjFctn < objFctn
         end
         
         function nb = nBatches(this,nex)
+            % determine how many batches we need to split the examples into
+            % to evaluate the loss
             if this.batchSize==Inf
                 nb = 1;
             else
@@ -195,6 +242,7 @@ classdef dnnBatchObjFctn < objFctn
         end
         
         function ids = getBatchIds(this,k,nex)
+            % get the ids for the current term in the sum
             if isempty(this.batchIds) || numel(this.batchIds) ~= nex
                 fprintf('numel(this.batchIds)=%d, nex=%d, reshuffle\n',numel(this.batchIds),nex)
                 this.batchIds = randperm(nex);
@@ -203,6 +251,8 @@ classdef dnnBatchObjFctn < objFctn
         end
         
         function [str,frmt] = hisNames(this)
+            % provides cell arrays for labels of history valies and
+            % formatting.
             [str,frmt] = hisNames(this.pLoss);
             if not(isempty(this.pRegTheta))
                 [s,f] = hisNames(this.pRegTheta);
@@ -219,6 +269,8 @@ classdef dnnBatchObjFctn < objFctn
         end
         
         function his = hisVals(this,para)
+            % take para from output eval and parse it so that intermediate
+            % results can be printed by the optimizer
             his = hisVals(this.pLoss,sum(para.hisLoss,1));
             if not(isempty(this.pRegTheta))
                 his = [his, hisVals(this.pRegTheta,para.hisRth)];
@@ -229,6 +281,7 @@ classdef dnnBatchObjFctn < objFctn
         end
         
         function str = objName(this)
+            % name of this objective function
             str = 'dnnBatchObj';
         end
         % ------- functions for handling GPU computing and precision ----
