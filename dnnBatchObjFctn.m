@@ -9,8 +9,8 @@ classdef dnnBatchObjFctn < objFctn
     % value and gradient. This helps reduce the memory footprint of the
     % method but might be slower than working on the full batch implemented
     % in dnnObjFctn. Splitting the loss into batches should not affect the
-    % result as long as the network does not introduce any coupling (note
-    % that batch normalization does that).
+    % result as long as the network does not introduce any coupling between different
+    % examples (note that batch normalization does that).
     
     properties
         net         % description of DNN to be trained
