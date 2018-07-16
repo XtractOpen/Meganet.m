@@ -53,6 +53,12 @@ end
 [Ytrain,Ctrain] = sortAndScaleData(data(ptrain,:),labels(ptrain),option);
 Ytrain = Ytrain';
 Ctrain = Ctrain';
+% rotate by 90 degrees
+Ytrain = reshape(Ytrain,32,32,3,[]);
+Ytrain = permute(Ytrain,[2 1 3 4]);
+Ytrain = reshape(Ytrain,32*32*3,[]);
+
+
 if nargout>2
     load test_batch.mat
     dataTest   = double(data);
@@ -66,14 +72,23 @@ if nargout>2
     [Yval,Cval] = sortAndScaleData(dataTest(pval,:),labelsTest(pval),option);
     Yval = Yval';
     Cval = Cval';
+% rotate by 90 degrees
+Yval = reshape(Yval,32,32,3,[]);
+Yval = permute(Yval,[2 1 3 4]);
+Yval = reshape(Yval,32*32*3,[]);
 end
+
+
+
+
 function runMinimalExample
-[Yt,Ct,Yv,Cv] = feval(mfilename,50,10);
+[Yt,Ct,Yv,Cv] = feval(mfilename,50,10,4);
 figure(2);clf;
 subplot(2,1,1);
 montageArray(reshape(Yt(1:32*32,:),32,32,[]),5);
 axis equal tight
 colormap gray
+colorbar
 title('training images');
 
 
@@ -82,5 +97,6 @@ subplot(2,1,2);
 montageArray(reshape(Yv(1:32*32,:),32,32,[]),10);
 axis equal tight
 colormap gray
+colorbar
 title('validation images');
 
