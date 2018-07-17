@@ -123,11 +123,12 @@ classdef softmaxLoss
                 S = W;
                 nex = size(S,2);
             else
-                [nf,nex] = size(Y);
-                W      = reshape(W,[],nf+1);
+                nex = size(Y,2);
                 if this.addBias==1
                     Y     = [Y; ones(1,nex)];
                 end
+                nf = size(Y,1);
+                W      = reshape(W,[],nf);
                 WY     = W*Y;
                 WY     = WY - max(WY,[],1);
                 S      = exp(WY);
