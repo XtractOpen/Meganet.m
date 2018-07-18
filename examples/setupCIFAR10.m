@@ -41,7 +41,7 @@ data5   = double(data);
 labels5 = labels;
 
 data   = [data1; data2; data3; data4; data5];
-labels = [labels1; labels4; labels3; labels4; labels5];
+labels = [labels1; labels2; labels3; labels4; labels5];
 nex = size(data,1);
 
 if nTrain<nex
