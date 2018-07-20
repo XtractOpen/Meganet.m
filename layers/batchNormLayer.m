@@ -31,14 +31,14 @@ classdef batchNormLayer < abstractMeganetElement
             this.eps = eps;
         end
         function [s2,b2] = split(this,theta)
-            s2 = reshape(theta(1:this.nData(2)),1,this.nData(2),1);
+            s2 = reshape(theta(1:this.nData(3)),1,this.nData(3),1);
             cnt = numel(s2);
-            b2 = reshape(theta(cnt+(1:this.nData(2))),1,this.nData(2),1);
+            b2 = reshape(theta(cnt+(1:this.nData(3))),1,this.nData(3),1);
         end
         
         function [Ydata,Y,dA] = apply(this,theta,Y,varargin)
            
-           Y   = reshape(Y,this.nData(1), this.nData(2),[]); dA = [];
+           Y   = reshape(Y,this.nData(1)*this.nData(2), this.nData(3),[]); dA = [];
            nex = size(Y,3);
            % normalization
            
@@ -56,15 +56,15 @@ classdef batchNormLayer < abstractMeganetElement
         
         
         function n = nTheta(this)
-            n = 2*this.nData(2);
+            n = 2*this.nData(3);
         end
         
         function n = nFeatIn(this)
-            n = prod(this.nData(1:2));
+            n = prod(this.nData(1:3));
         end
         
         function n = nFeatOut(this)
-            n = prod(this.nData(1:2));
+            n = prod(this.nData(1:3));
         end
        
         function n = nDataOut(this)
@@ -79,7 +79,7 @@ classdef batchNormLayer < abstractMeganetElement
         
         
         function [dYdata,dY] = Jthetamv(this,dtheta,theta,Y,~)
-           Y   = reshape(Y,this.nData(1), this.nData(2),[]);
+           Y   = reshape(Y,this.nData(1)*this.nData(2), this.nData(3),[]);
            nex = size(Y,3);
            [ds2,db2] = split(this,dtheta);
            
@@ -96,8 +96,8 @@ classdef batchNormLayer < abstractMeganetElement
         end
         
         function dtheta = JthetaTmv(this,Z,~,theta,Y,~)
-            Y   = reshape(Y,this.nData(1), this.nData(2),[]);
-            Z   = reshape(Z,this.nData(1), this.nData(2),[]);
+            Y   = reshape(Y,this.nData(1)*this.nData(2), this.nData(3),[]);
+            Z   = reshape(Z,this.nData(1)*this.nData(2), this.nData(3),[]);
             % normalization
            Y  = Y-mean(Y,3);
            Y  = Y./sqrt(mean(Y.^2,3)+this.eps);
@@ -109,7 +109,7 @@ classdef batchNormLayer < abstractMeganetElement
        
         
         function [dYdata,dY] = JYmv(this,dY,theta,Y,~)
-            dY   = reshape(dY,this.nData(1), this.nData(2),[]);
+            dY   = reshape(dY,this.nData(1)*this.nData(2), this.nData(3),[]);
             nex = size(dY,3);
             s2 = split(this,theta);
             
@@ -129,8 +129,8 @@ classdef batchNormLayer < abstractMeganetElement
         end
         
         function FdY = JYTmv(this,FdY,~,theta,Y,~)
-           FdY   = reshape(FdY,this.nData(1), this.nData(2),[]); 
-           Y   = reshape(Y,this.nData(1), this.nData(2),[]); 
+           FdY   = reshape(FdY,this.nData(1)*this.nData(2), this.nData(3),[]); 
+           Y   = reshape(Y,this.nData(1)*this.nData(2), this.nData(3),[]); 
            nex = size(FdY,3);
            % scaling
            s2 = split(this,theta);

@@ -6,7 +6,7 @@ classdef tvNormLayer < abstractMeganetElement
     % Neural Network. However, this would entail unnecessary temp
     % variables.
     properties
-        nData       % describe size of data, at least first two dim must be correct.
+        nData       % describe size of data, at least first threes dim must be correct.
         isWeight     % transformation type
         useGPU      % flag for GPU computing 
         precision   % flag for precision 
@@ -31,7 +31,7 @@ classdef tvNormLayer < abstractMeganetElement
             this.eps = eps;
         end
         function [s2,b2] = split(this,theta)
-            s2 = reshape(theta(1:this.nData(2)),1,this.nData(2),1);
+            s2 = reshape(theta(1:this.nData(3)),1,this.nData(3),1);
             cnt = numel(s2);
             b2 = reshape(theta(cnt+(1:this.nData(2))),1,this.nData(2),1);
         end
@@ -53,15 +53,15 @@ classdef tvNormLayer < abstractMeganetElement
         
         
         function n = nTheta(this)
-            n = 2*this.nData(2);
+            n = 2*this.nData(3);
         end
         
         function n = nFeatIn(this)
-            n = prod(this.nData(1:2));
+            n = prod(this.nData(1:3));
         end
         
         function n = nFeatOut(this)
-            n = prod(this.nData(1:2));
+            n = prod(this.nData(1:3));
         end
        
         function n = nDataOut(this)
@@ -76,7 +76,7 @@ classdef tvNormLayer < abstractMeganetElement
         
         
         function [dYdata,dY] = Jthetamv(this,dtheta,theta,Y,~)
-           Y   = reshape(Y,this.nData(1), this.nData(2),[]);
+           Y   = reshape(Y,this.nData(1)*this.nData(2), this.nData(3),[]);
            nex = size(Y,3);
            [ds2,db2] = split(this,dtheta);
            
@@ -93,8 +93,8 @@ classdef tvNormLayer < abstractMeganetElement
         end
         
         function dtheta = JthetaTmv(this,Z,~,theta,Y,~)
-            Y   = reshape(Y,this.nData(1), this.nData(2),[]);
-            Z   = reshape(Z,this.nData(1), this.nData(2),[]);
+            Y   = reshape(Y,this.nData(1)*this.nData(2), this.nData(3),[]);
+            Z   = reshape(Z,this.nData(1)*this.nData(2), this.nData(3),[]);
             % normalization
            Y  = Y-mean(Y,2);
            Y  = Y./sqrt(mean(Y.^2,2)+this.eps);
@@ -106,7 +106,7 @@ classdef tvNormLayer < abstractMeganetElement
        
         
         function [dYdata,dY] = JYmv(this,dY,theta,Y,~)
-            dY   = reshape(dY,this.nData(1), this.nData(2),[]);
+            dY   = reshape(dY,this.nData(1)*this.nData(2), this.nData(3),[]);
             nex = size(dY,3);
             s2 = split(this,theta);
             
@@ -126,8 +126,8 @@ classdef tvNormLayer < abstractMeganetElement
         end
         
         function dY = JYTmv(this,dY,~,theta,Y,~)
-           dY   = reshape(dY,this.nData(1), this.nData(2),[]); 
-           Y   = reshape(Y,this.nData(1), this.nData(2),[]); 
+           dY   = reshape(dY,this.nData(1)*this.nData(2), this.nData(3),[]); 
+           Y   = reshape(Y,this.nData(1)*this.nData(2), this.nData(3),[]); 
            nex = size(dY,3);
            % scaling
            s2 = split(this,theta);
