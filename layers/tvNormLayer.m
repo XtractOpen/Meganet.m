@@ -37,7 +37,7 @@ classdef tvNormLayer < abstractMeganetElement
         end
         
         function [Ydata,Y,dA] = apply(this,theta,Y,varargin)
-            Y   = reshape(Y,this.nData(1), this.nData(2),[]); dA = [];
+           Y   = reshape(Y,this.nData(1)*this.nData(2), this.nData(3),[]); dA = [];
            nex = size(Y,3);
            % normalization
            Y  = Y-mean(Y,2);
