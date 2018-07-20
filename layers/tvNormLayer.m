@@ -33,7 +33,7 @@ classdef tvNormLayer < abstractMeganetElement
         function [s2,b2] = split(this,theta)
             s2 = reshape(theta(1:this.nData(3)),1,this.nData(3),1);
             cnt = numel(s2);
-            b2 = reshape(theta(cnt+(1:this.nData(2))),1,this.nData(2),1);
+            b2 = reshape(theta(cnt+(1:this.nData(3))),1,this.nData(3),1);
         end
         
         function [Ydata,Y,dA] = apply(this,theta,Y,varargin)
