@@ -230,21 +230,51 @@ theta = repmat(vec(initTheta(this.layer)),this.nt,1);
             end
         end
         
-        function [thFine] = prolongateConvStencils(this,theta)
+        function [thFine] = prolongateConvStencils(this,theta,getRP)
             % prolongate convolution stencils, doubling image resolution
+            %
+            % Inputs:
+            %
+            %   theta - weights
+            %   getRP - function for computing restriction operator, R, and
+            %           prolongation operator, P. Default @avgRestrictionGalerkin
+            %
+            % Output
+            %  
+            %   thFine - prolongated stencils
+            
+            if not(exist('getRP','var')) || isempty(getRP)
+                getRP = @avgRestrictionGalerkin;
+            end
+            
             thFine = reshape(theta,[],this.nt);
             for k=1:this.nt
-                thFine(:,k) = vec(prolongateConvStencils(this.layer,thFine(:,k)));
+                thFine(:,k) = vec(prolongateConvStencils(this.layer,thFine(:,k)),getRP);
             end
-            thFine = thFine(:);
+            thFine = vec(thFine);
         end
-        function [thCoarse] = restrictConvStencils(this,theta)
+        function [thCoarse] = restrictConvStencils(this,theta,getRP)
             % restrict convolution stencils, dividing image resolution by two
+            %
+            % Inputs:
+            %
+            %   theta - weights
+            %   getRP - function for computing restriction operator, R, and
+            %           prolongation operator, P. Default @avgRestrictionGalerkin
+            %
+            % Output
+            %  
+            %   thCoarse - restricted stencils
+            
+            if not(exist('getRP','var')) || isempty(getRP)
+                getRP = @avgRestrictionGalerkin;
+            end
+            
             thCoarse = reshape(theta,[],this.nt);
             for k=1:this.nt
-                thCoarse(:,k) = vec(restrictConvStencils(this.layer,thCoarse(:,k)));
+                thCoarse(:,k) = vec(restrictConvStencils(this.layer,thCoarse(:,k)),getRP);
             end
-            thCoarse = thCoarse(:);
+            thCoarse = vec(thCoarse);
         end
         
         % ------- functions for handling GPU computing and precision ----

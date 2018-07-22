@@ -110,22 +110,51 @@ classdef convKernel
             %            end
         end
         
-        function [thFine] = prolongateConvStencils(this,theta)
+        function [thFine] = prolongateConvStencils(this,theta,getRP)
             % prolongate convolution stencils, doubling image resolution
+            %
+            % Inputs:
+            %
+            %   theta - weights
+            %   getRP - function for computing restriction operator, R, and
+            %           prolongation operator, P. Default @avgRestrictionGalerkin
+            %
+            % Output
+            %  
+            %   thFine - prolongated stencils
+            
+            if not(exist('getRP','var')) || isempty(getRP)
+                getRP = @avgRestrictionGalerkin;
+            end
             thFine = theta;
             if all(this.sK(1:2)==3)
-                [WH,A,Q] = getFineScaleConvAlgCC([0;-1;0;0;0;0;0;1;0]);
+                [WH,A,Q] = getFineScaleConvAlgCC([0;-1;0;0;0;0;0;1;0],'getRP',getRP);
                 thFine = Q*(A\reshape(theta,9,[]));
                 thFine = thFine(:);
             elseif any(this.sK(1:2)>1) && any(this.sK(1:2)~=3)
                 error('nyi')
             end
         end
-        function [thCoarse] = restrictConvStencils(this,theta)
+        function [thCoarse] = restrictConvStencils(this,theta,getRP)
             % restrict convolution stencils, dividing image resolution by two
+            %
+            % Inputs:
+            %
+            %   theta - weights
+            %   getRP - function for computing restriction operator, R, and
+            %           prolongation operator, P. Default @avgRestrictionGalerkin
+            %
+            % Output
+            %  
+            %   thCoarse - restricted stencils
+            
+            if not(exist('getRP','var')) || isempty(getRP)
+                getRP = @avgRestrictionGalerkin;
+            end
+            
             thCoarse = theta;
             if all(this.sK(1:2)==3)
-                [WH,A,Q] = getFineScaleConvAlgCC([0;-1;0;0;0;0;0;1;0]);
+                [WH,A,Q] = getFineScaleConvAlgCC([0;-1;0;0;0;0;0;1;0],'getRP',getRP);
                 thCoarse = Q*(A*reshape(theta,9,[]));
                 thCoarse = thCoarse(:);
             elseif any(this.sK(1:2)>1) && any(this.sK(1:2)~=3)

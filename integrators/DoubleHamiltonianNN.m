@@ -243,21 +243,52 @@ classdef DoubleHamiltonianNN < abstractMeganetElement
             end
 
         end
-        function [thFine] = prolongateConvStencils(this,theta)
+        function [thFine] = prolongateConvStencils(this,theta,getRP)
             % prolongate convolution stencils, doubling image resolution
+            %
+            % Inputs:
+            %
+            %   theta - weights
+            %   getRP - function for computing restriction operator, R, and
+            %           prolongation operator, P. Default @avgRestrictionGalerkin
+            %
+            % Output
+            %  
+            %   thFine - prolongated stencils
+            
+            if not(exist('getRP','var')) || isempty(getRP)
+                getRP = @avgRestrictionGalerkin;
+            end
+            
             [th1Fine,th2Fine] = split(this,theta);
             for k=1:this.nt
-                th1Fine(:,k) = vec(prolongateConvStencils(this.layer1,th1Fine(:,k)));
-                th2Fine(:,k) = vec(prolongateConvStencils(this.layer2,th2Fine(:,k)));
+                th1Fine(:,k) = vec(prolongateConvStencils(this.layer1,th1Fine(:,k)),getRP);
+                th2Fine(:,k) = vec(prolongateConvStencils(this.layer2,th2Fine(:,k)),getRP);
             end
             thFine = vec([th1Fine;th2Fine]);
         end
-        function [thCoarse] = restrictConvStencils(this,theta)
-             % restrict convolution stencils, dividing image resolution by two
+        function [thCoarse] = restrictConvStencils(this,theta,getRP)
+            % restrict convolution stencils, dividing image resolution by two
+            %
+            % Inputs:
+            %
+            %   theta - weights
+            %   getRP - function for computing restriction operator, R, and
+            %           prolongation operator, P. Default @avgRestrictionGalerkin
+            %
+            % Output
+            %  
+            %   thCoarse - restricted stencils
+            
+            if not(exist('getRP','var')) || isempty(getRP)
+                getRP = @avgRestrictionGalerkin;
+            end
+            
+            
            [th1Coarse,th2Coarse] = split(this,theta);
             for k=1:this.nt
-                th1Coarse(:,k) = vec(restrictConvStencils(this.layer1,th1Coarse(:,k)));
-                th2Coarse(:,k) = vec(restrictConvStencils(this.layer2,th2Coarse(:,k)));
+                th1Coarse(:,k) = vec(restrictConvStencils(this.layer1,th1Coarse(:,k)),getRP);
+                th2Coarse(:,k) = vec(restrictConvStencils(this.layer2,th2Coarse(:,k)),getRP);
             end
             thCoarse = vec([th1Coarse;th2Coarse]);
         end

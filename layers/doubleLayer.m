@@ -367,18 +367,48 @@ classdef doubleLayer < abstractMeganetElement
 
         end
         
-        function [thFine] = prolongateConvStencils(this,theta)
+        function [thFine] = prolongateConvStencils(this,theta,getRP)
             % prolongate convolution stencils, doubling image resolution
+            %
+            % Inputs:
+            %
+            %   theta - weights
+            %   getRP - function for computing restriction operator, R, and
+            %           prolongation operator, P. Default @avgRestrictionGalerkin
+            %
+            % Output
+            %  
+            %   thFine - prolongated stencils
+            
+            if not(exist('getRP','var')) || isempty(getRP)
+                getRP = @avgRestrictionGalerkin;
+            end
+            
             [th1,th2,th3,th4,th5,th6,th7] = this.split(theta);
-            th1 = prolongateConvStencils(this.K1,th1);
-            th2 = prolongateConvStencils(this.K2,th2);
+            th1 = prolongateConvStencils(this.K1,th1,getRP);
+            th2 = prolongateConvStencils(this.K2,th2,getRP);
             thFine = [vec(th1); vec(th2); th3; th4; th5; th6; th7];
         end
-        function [thCoarse] = restrictConvStencils(this,theta)
+        function [thCoarse] = restrictConvStencils(this,theta,getRP)
             % restrict convolution stencils, dividing image resolution by two
+            %
+            % Inputs:
+            %
+            %   theta - weights
+            %   getRP - function for computing restriction operator, R, and
+            %           prolongation operator, P. Default @avgRestrictionGalerkin
+            %
+            % Output
+            %  
+            %   thCoarse - restricted stencils
+            
+            if not(exist('getRP','var')) || isempty(getRP)
+                getRP = @avgRestrictionGalerkin;
+            end
+            
             [th1,th2,th3,th4,th5,th6,th7] = this.split(theta);
-            th1 = restrictConvStencils(this.K1,th1);
-            th2 = restrictConvStencils(this.K2,th2);
+            th1 = restrictConvStencils(this.K1,th1,getRP);
+            th2 = restrictConvStencils(this.K2,th2,getRP);
             thCoarse = [vec(th1); vec(th2); th3; th4; th5; th6; th7];
         end
         

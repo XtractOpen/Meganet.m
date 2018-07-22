@@ -1,8 +1,8 @@
-function[R,P] = cellCenteredInt(n)
-% [R,P] = cellCenteredInt(n)
+function[R,P] = avgRestrictionGalerkin(n)
+% [R,P] = avgRestrictionGalerkin(n)
 %
 % Constructing the restriction operator, R, and prolongation operator, P,
-% for 2D images. 
+% for 2D images. Here, P is chosen as 4*R' as done in Galerkin projection
 %
 % Input:
 %
@@ -28,26 +28,7 @@ R2 = R2(1:2:end,:);
 
 R = kron(R2,R1);
 
-% Prolongation, cell-centered interpolation 
-P1 = zeros(n1,n1/2);
-for i=2:n1/2-1
-    P1(2*i-2:2*i+1,i) = [1;3;3;1];
-end
-P1(1:3,1) = [4;3;1];
-P1(end-2:end,end) = [1;3;4];
-P1 = 1/4*sparse(P1);
-
-P2 = zeros(n2,n2/2);
-for i=2:n2/2-1
-    P2(2*i-2:2*i+1,i) = [1;3;3;1];
-end
-P2(1:3,1) = [4;3;1];
-P2(end-2:end,end) = [1;3;4];
-P2 = 1/4*sparse(P2);
-
-P = kron(P2,P1);
-
-end
+P = 4*R';
 
 function[R,P] = runMinimalExample
 
@@ -68,5 +49,4 @@ subplot(2,2,4); spy(AH)
 title('AH = R*A*P')
 fprintf('nnz per row for A = %3d  nnz per row for AH = %3d\n',nnz(A(34,:)),nnz(AH(19,:)))  
 
-end
 

@@ -239,19 +239,48 @@ classdef NN < abstractMeganetElement
 
         end
         
-        function [thFine] = prolongateConvStencils(this,theta)
+        function [thFine] = prolongateConvStencils(this,theta,getRP)
             % prolongate convolution stencils, doubling image resolution
+            %
+            % Inputs:
+            %
+            %   theta - weights
+            %   getRP - function for computing restriction operator, R, and
+            %           prolongation operator, P. Default @avgRestrictionGalerkin
+            %
+            % Output
+            %  
+            %   thCoarse - restricted stencils
+            
+            if not(exist('getRP','var')) || isempty(getRP)
+                getRP = @avgRestrictionGalerkin;
+            end
             thFine = split(this,theta);
             for k=1:numel(this.layers)
-                thFine{k} = prolongateConvStencils(this.layers{k},thFine{k});
+                thFine{k} = prolongateConvStencils(this.layers{k},thFine{k},getRP);
             end
             thFine = vec(thFine);
         end
-        function [thCoarse] = restrictConvStencils(this,theta)
+        function [thCoarse] = restrictConvStencils(this,theta,getRP)
             % restrict convolution stencils, dividing image resolution by two
+            %
+            % Inputs:
+            %
+            %   theta - weights
+            %   getRP - function for computing restriction operator, R, and
+            %           prolongation operator, P. Default @avgRestrictionGalerkin
+            %
+            % Output
+            %  
+            %   thCoarse - restricted stencils
+            
+            if not(exist('getRP','var')) || isempty(getRP)
+                getRP = @avgRestrictionGalerkin;
+            end
+            
             thCoarse = split(this,theta);
             for k=1:numel(this.layers)
-                thCoarse{k} = prolongateConvStencils(this.layers{k},thCoarse{k});
+                thCoarse{k} = prolongateConvStencils(this.layers{k},thCoarse{k},getRP);
             end
             thCoarse = vec(thCoarse);
         end

@@ -99,9 +99,6 @@ classdef connector < abstractMeganetElement
                 dtheta=[dtheta(:); W(:)];
             end
         end
-        function theta = prolongateConvStencils(this,theta)
-            % prolongate convolution stencils, do nothing
-        end
         function runMinimalExample(~)
             nex = 10;
             

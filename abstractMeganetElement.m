@@ -346,10 +346,10 @@ methods
             end
         end
         
-        function [theta] = prolongateConvStencils(this,theta)
+        function [theta] = prolongateConvStencils(this,theta,getRP)
             % prolongate convolution stencils. By default do nothing.
         end
-        function [theta] = restrictConvStencils(this,theta)
+        function [theta] = restrictConvStencils(this,theta,getRP)
             % restrict convolution stencils. By default do nothing.
         end
                 

@@ -247,19 +247,48 @@ classdef Meganet < abstractMeganetElement
             end
         end
         
-        function [thFine] = prolongateConvStencils(this,theta)
+        function [thFine] = prolongateConvStencils(this,theta,getRP)
             % prolongate convolution stencils, doubling image resolution
+            %
+            % Inputs:
+            %
+            %   theta - weights
+            %   getRP - function for computing restriction operator, R, and
+            %           prolongation operator, P. Default @avgRestrictionGalerkin
+            %
+            % Output
+            %  
+            %   thFine - prolongated stencils
+            
+            if not(exist('getRP','var')) || isempty(getRP)
+                getRP = @avgRestrictionGalerkin;
+            end
+            
             thFine = split(this,theta);
             for k=1:numel(this.blocks)
-                thFine{k} = prolongateConvStencils(this.blocks{k},thFine{k});
+                 thFine{k} = prolongateConvStencils(this.blocks{k},thFine{k},getRP);
             end
             thFine = vec(thFine);
         end
-        function [thCoarse] = restrictConvStencils(this,theta)
+        function [thCoarse] = restrictConvStencils(this,theta,getRP)
             % restrict convolution stencils, dividing image resolution by two
+            %
+            % Inputs:
+            %
+            %   theta - weights
+            %   getRP - function for computing restriction operator, R, and
+            %           prolongation operator, P. Default @avgRestrictionGalerkin
+            %
+            % Output
+            %  
+            %   thCoarse - restricted stencils
+            
+            if not(exist('getRP','var')) || isempty(getRP)
+                getRP = @avgRestrictionGalerkin;
+            end
             thCoarse = split(this,theta);
             for k=1:numel(this.blocks)
-                thCoarse{k} = restrictConvStencils(this.blocks{k},thCoarse{k});
+                thCoarse{k} = restrictConvStencils(this.blocks{k},thCoarse{k},getRP);
             end
             thCoarse = vec(thCoarse);
         end
