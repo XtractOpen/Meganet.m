@@ -262,8 +262,8 @@ classdef DoubleHamiltonianNN < abstractMeganetElement
             
             [th1Fine,th2Fine] = split(this,theta);
             for k=1:this.nt
-                th1Fine(:,k) = vec(prolongateConvStencils(this.layer1,th1Fine(:,k)),getRP);
-                th2Fine(:,k) = vec(prolongateConvStencils(this.layer2,th2Fine(:,k)),getRP);
+                th1Fine(:,k) = vec(prolongateConvStencils(this.layer1,th1Fine(:,k),getRP));
+                th2Fine(:,k) = vec(prolongateConvStencils(this.layer2,th2Fine(:,k),getRP));
             end
             thFine = vec([th1Fine;th2Fine]);
         end
@@ -287,8 +287,8 @@ classdef DoubleHamiltonianNN < abstractMeganetElement
             
            [th1Coarse,th2Coarse] = split(this,theta);
             for k=1:this.nt
-                th1Coarse(:,k) = vec(restrictConvStencils(this.layer1,th1Coarse(:,k)),getRP);
-                th2Coarse(:,k) = vec(restrictConvStencils(this.layer2,th2Coarse(:,k)),getRP);
+                th1Coarse(:,k) = vec(restrictConvStencils(this.layer1,th1Coarse(:,k),getRP));
+                th2Coarse(:,k) = vec(restrictConvStencils(this.layer2,th2Coarse(:,k),getRP));
             end
             thCoarse = vec([th1Coarse;th2Coarse]);
         end

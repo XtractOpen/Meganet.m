@@ -127,12 +127,14 @@ classdef convKernel
                 getRP = @avgRestrictionGalerkin;
             end
             thFine = theta;
-            if all(this.sK(1:2)==3)
-                [WH,A,Q] = getFineScaleConvAlgCC([0;-1;0;0;0;0;0;1;0],'getRP',getRP);
-                thFine = Q*(A\reshape(theta,9,[]));
-                thFine = thFine(:);
-            elseif any(this.sK(1:2)>1) && any(this.sK(1:2)~=3)
-                error('nyi')
+            if isa(this.Q,'opEye')
+                if all(this.sK(1:2)==3)
+                    [WH,A,Q] = getFineScaleConvAlgCC([0;-1;0;0;0;0;0;1;0],'getRP',getRP);
+                    thFine = Q*(A\reshape(theta,9,[]));
+                    thFine = thFine(:);
+                elseif any(this.sK(1:2)>1) && any(this.sK(1:2)~=3)
+                    error('nyi')
+                end
             end
         end
         function [thCoarse] = restrictConvStencils(this,theta,getRP)
@@ -151,14 +153,16 @@ classdef convKernel
             if not(exist('getRP','var')) || isempty(getRP)
                 getRP = @avgRestrictionGalerkin;
             end
-            
             thCoarse = theta;
-            if all(this.sK(1:2)==3)
-                [WH,A,Q] = getFineScaleConvAlgCC([0;-1;0;0;0;0;0;1;0],'getRP',getRP);
-                thCoarse = Q*(A*reshape(theta,9,[]));
-                thCoarse = thCoarse(:);
-            elseif any(this.sK(1:2)>1) && any(this.sK(1:2)~=3)
-                error('nyi')
+                
+            if isa(this.Q,'opEye')
+                if all(this.sK(1:2)==3)
+                    [WH,A,Q] = getFineScaleConvAlgCC([0;-1;0;0;0;0;0;1;0],'getRP',getRP);
+                    thCoarse = Q*(A*reshape(theta,9,[]));
+                    thCoarse = thCoarse(:);
+                elseif any(this.sK(1:2)>1) && any(this.sK(1:2)~=3)
+                    error('nyi')
+                end
             end
         end
         
