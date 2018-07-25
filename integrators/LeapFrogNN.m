@@ -249,7 +249,7 @@ theta = repmat(vec(initTheta(this.layer)),this.nt,1);
             
             thFine = reshape(theta,[],this.nt);
             for k=1:this.nt
-                thFine(:,k) = vec(prolongateConvStencils(this.layer,thFine(:,k)),getRP);
+                thFine(:,k) = vec(prolongateConvStencils(this.layer,thFine(:,k),getRP));
             end
             thFine = vec(thFine);
         end
@@ -272,7 +272,7 @@ theta = repmat(vec(initTheta(this.layer)),this.nt,1);
             
             thCoarse = reshape(theta,[],this.nt);
             for k=1:this.nt
-                thCoarse(:,k) = vec(restrictConvStencils(this.layer,thCoarse(:,k)),getRP);
+                thCoarse(:,k) = vec(restrictConvStencils(this.layer,thCoarse(:,k),getRP));
             end
             thCoarse = vec(thCoarse);
         end
