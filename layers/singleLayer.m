@@ -315,8 +315,8 @@ classdef singleLayer < abstractMeganetElement
             %  
             %   thCoarse - restricted stencils
             
-            if not(exist('getRP','var')) || isempty(getRP)
-                getRP = @avgRestrictionGalerkin;
+            if not(exist('getRP','var'))
+                getRP = [];
             end
             thCoarse = theta;
             thCoarse(1:nTheta(this.K)) = restrictConvStencils(this.K,theta(1:nTheta(this.K)),getRP);

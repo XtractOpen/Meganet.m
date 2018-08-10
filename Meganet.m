@@ -283,8 +283,8 @@ classdef Meganet < abstractMeganetElement
             %  
             %   thCoarse - restricted stencils
             
-            if not(exist('getRP','var')) || isempty(getRP)
-                getRP = @avgRestrictionGalerkin;
+            if not(exist('getRP','var')) 
+                getRP = [];
             end
             thCoarse = split(this,theta);
             for k=1:numel(this.blocks)

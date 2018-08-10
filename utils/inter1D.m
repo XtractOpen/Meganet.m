@@ -1,4 +1,32 @@
 function [thi,wi,idi]=  inter1D(theta,ttheta,ti)
+% [thi,wi,idi]=  inter1D(theta,ttheta,ti)
+% 
+% Piecewise linear 1D interpolation of vector-valued data. 
+%
+% Given theta(:,i), which is the data measured at time point ttheta(i),
+% compute values at all time points ti(j) using pievewise linear
+% interpolation.
+%
+% Example: 
+%   fctn   = @(x) [sin(x);cos(x);x.^2]
+%   ttheta = linspace(0,1,11).^2; % points do not need to be equidistantly spaced
+%   theta  = fctn(ttheta);
+%   ti     = linspace(0,1,101);
+%   thi    = inter1D(theta,ttheta,ti);
+%   figure; plot(ttheta,theta,'o',ti,thi,'-')
+%
+% Inputs:
+%
+%  theta  - data matrix
+%  ttheta - discretizatation points of data
+%  ti     - interpolation points
+%
+% Outputs:
+%
+%  thi    - interpolated points at ti.
+%  wi     - interpolation weights at each ti, used for derivative computation
+%  idi    - indices of left and right data point for each ti, used for dervatives
+
 if nargin==0
    runMinimalExample;
    return
