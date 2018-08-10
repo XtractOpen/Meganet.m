@@ -69,29 +69,15 @@ classdef convKernel
         
         
         function theta = initTheta(this)
-            if all(this.sK(1:2)==1)
-                theta = randn(squeeze(this.sK));
-                [U,S,V] = svd(squeeze(theta),'econ');
-                s = min(1,diag(S));
-                theta(1,1,:,:) = U*diag(s)*V';
-            elseif this.sK(3)==this.sK(4)
-                n = prod(this.sK([1,2]));
-                e = zeros(prod(this.sK(1:2)),1);
-                e(fix((prod(this.sK(1:2))+1)/2)) = 1;
-                sd = sqrt(2/n);
-                % put weights on diagonal only
-                theta = sd*randn(prod(this.sK(1:3)),prod(this.sK(4)));
-                mask  = kron(eye(this.sK(3)),ones(prod(this.sK(1:2)),1)) *0+0* kron(ones(this.sK(3)),e);
-                theta = theta.*mask;
+            if isa(this.Q,'opEye')
+                sd= 0.1;
+                theta = sd*randn(this.sK);
                 id1 = find(theta>2*sd);
                 theta(id1(:)) = randn(numel(id1),1);
-                
                 id2 = find(theta< -2*sd);
                 theta(id2(:)) = randn(numel(id2),1);
-                
                 theta = max(min(2*sd, theta),-2*sd);
-                
-            else        
+            else
                 n = prod(this.sK([1,2,4]));
                 sd = sqrt(2/n);
                 theta = sd*randn(this.nTheta(),1);
@@ -103,11 +89,6 @@ classdef convKernel
                 
                 theta = max(min(2*sd, theta),-2*sd);
             end
-            theta = gpuVar(this.useGPU,this.precision,theta);
-            %            theta = randn(this.sK);
-            %            if this.sK(3)==this.sK(4) && this.sK(4)>1
-            %             theta = theta/sum(theta(:));
-            %            end
         end
         
         function [thFine] = prolongateConvStencils(this,theta,getRP)
