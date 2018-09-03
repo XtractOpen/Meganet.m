@@ -69,12 +69,12 @@ classdef convKernel
         
         
         function theta = initTheta(this)
-            if all(this.sK(1:2)==1)
+            if all(this.sK(1:2)==1) && isa(this.Q,'opEye')
                 theta = randn(squeeze(this.sK));
                 [U,S,V] = svd(squeeze(theta),'econ');
                 s = min(1,diag(S));
                 theta(1,1,:,:) = U*diag(s)*V';
-            elseif this.sK(3)==this.sK(4)
+            elseif this.sK(3)==this.sK(4) && isa(this.Q,'opEye')
                 n = prod(this.sK([1,2]));
                 e = zeros(prod(this.sK(1:2)),1);
                 e(fix((prod(this.sK(1:2))+1)/2)) = 1;
@@ -129,8 +129,8 @@ classdef convKernel
             thFine = theta;
             if isa(this.Q,'opEye')
                 if all(this.sK(1:2)==3)
-                    [WH,A,Q] = getFineScaleConvAlgCC([0;-1;0;0;0;0;0;1;0],'getRP',getRP);
-                    thFine = Q*(A\reshape(theta,9,[]));
+                    [WH,A,Qp] = getFineScaleConvAlgCC([0;-1;0;0;0;0;0;1;0],'getRP',getRP);
+                    thFine = A\(Qp\reshape(theta,9,[]));
                     thFine = thFine(:);
                 elseif any(this.sK(1:2)>1) && any(this.sK(1:2)~=3)
                     error('nyi')
@@ -153,16 +153,20 @@ classdef convKernel
             if not(exist('getRP','var')) || isempty(getRP)
                 getRP = @avgRestrictionGalerkin;
             end
-            thCoarse = theta;
+            
                 
             if isa(this.Q,'opEye')
                 if all(this.sK(1:2)==3)
-                    [WH,A,Q] = getFineScaleConvAlgCC([0;-1;0;0;0;0;0;1;0],'getRP',getRP);
-                    thCoarse = Q*(A*reshape(theta,9,[]));
+                    [WH,A,Qp] = getFineScaleConvAlgCC([0;-1;0;0;0;0;0;1;0],'getRP',getRP);
+                    thCoarse = Qp*(A*reshape(theta,9,[]));
                     thCoarse = thCoarse(:);
                 elseif any(this.sK(1:2)>1) && any(this.sK(1:2)~=3)
                     error('nyi')
+                else
+                    thCoarse = theta;
                 end
+            else
+                thCoarse = theta;
             end
         end
         

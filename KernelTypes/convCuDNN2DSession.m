@@ -16,11 +16,11 @@ classdef convCuDNN2DSession < handle
     
     methods
         function this = convCuDNN2DSession()
-            disp('Session create');
+%             disp('Session create');
             this.sessionArray = convCuDNN2DSessionCreate_mex();
         end   
         function delete(this)
-            disp('Session destroy');
+%             disp('Session destroy');
             convCuDNN2DSessionDestroy_mex(this.sessionArray);
         end
     end
