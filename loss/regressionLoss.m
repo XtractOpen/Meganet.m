@@ -25,6 +25,7 @@ classdef regressionLoss
             end
             dWF = []; d2WF = []; dYF =[]; d2YF = [];
             szW  = [size(C,1),size(Y,1)+this.addBias];
+            szY  = size(Y);
             W    = reshape(W,szW);
             
             nex = size(Y,2);
@@ -39,19 +40,23 @@ classdef regressionLoss
             para = [nex*F,nex,err];
             
             if (doDW) && (nargout>=3)
-               dWF  = vec(res*(Y'/nex));
+               dWF  = vec(res*Y')/nex;
             end
             if (doDW) && (nargout>=4)
-                d2WF = kron(speye(size(C,1)),(Y*Y')/nex);
+                matW  = @(W) reshape(W,szW);
+                d2WFmv  = @(U) vec(((matW(U/nex)*Y)*Y'));
+                d2WF = LinearOperator(prod(szW),prod(szW),d2WFmv,d2WFmv);
             end
             if doDY && (nargout>=5)
                 if this.addBias==1
                     W = W(:,1:end-1);
                 end
-                dYF  = vec(res'*(W/nex));
+                dYF  = vec(W'*res)/nex;
             end
             if doDY && nargout>=6
-                d2YF = W'*W/nex;
+                matY   = @(Y) reshape(Y,szY);
+                d2YFmv = @(U) vec(W'*(W*matY(U/nex)));
+                d2YF = LinearOperator(prod(szY),prod(szY),d2YFmv,d2YFmv);                
             end
         end
         
