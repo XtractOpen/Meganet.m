@@ -137,7 +137,11 @@ classdef dnnBatchObjFctn < objFctn
                     dJth  = dJth + numel(idk)*dthFk;
                     dJW   = dJW  + numel(idk)*dWFk;
                     if compHess
-                        HW   = HW   + d2WFk*numel(idk);
+                        if isempty(HW)
+                            HW = d2WFk*numel(idk);
+                        else
+                            HW   = HW   + d2WFk*numel(idk);
+                        end
                     end
                 end
             end
@@ -191,8 +195,7 @@ classdef dnnBatchObjFctn < objFctn
             
             % get a preconditioner
             if nargout>4
-                PCth = getThetaPC(this,d2YF,theta,Yk,tmp);
-                PC = blkdiag(PCth,getPC(this.pRegW));
+                PC = blkdiag(opEye(numel(theta)),opEye(numel(W)));
             end
             
         end
