@@ -122,7 +122,8 @@ classdef dnnObjFctn < objFctn
                 H  = blkdiag(Hth, HW);
             end
             if nargout>4
-                PC = blkdiag(getPC(this.pRegTheta),getPC(this.pRegW));
+%                 PC = blkdiag(getPC(this.pRegTheta),getPC(this.pRegW));
+                PC = blkdiag(opEye(numel(theta)),opEye(numel(W)));
             end
         end
         
