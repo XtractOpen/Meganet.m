@@ -86,7 +86,7 @@ classdef convMCN < convKernel
 
             crop = this.pad;
             if this.stride==2 && this.sK(1)==3
-                crop=this.pad*[1,0,1,0];
+                crop=this.pad.*[1,0,1,0];
             elseif this.stride==2 && this.sK(1)==2
                 crop=0*crop;
             end

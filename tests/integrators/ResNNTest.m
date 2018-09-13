@@ -1,5 +1,5 @@
 classdef ResNNTest < IntegratorTest
-    % classdef ResNNTest < blockTest
+    % classdef ResNNTest < IntegratorTest
     %
     % tests some Residual Nets. Extend to cover more cases.
     

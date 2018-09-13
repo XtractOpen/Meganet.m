@@ -120,7 +120,7 @@ classdef newton < optimizer
                 if (norm(dJ(:))/nrm0 < this.rtol) || (norm(dJ(:))< this.atol), break; end
                 
                 % solve the linear system
-                [s,~,relresCG,iterCG,~] = solve(this.linSol,d2J,-dJ(:),[],PC);
+                [s,~,relresCG,iterCG,resvec] = solve(this.linSol,d2J,-dJ(:),[],PC);
                 if norm(s) == 0, s = -dJ(:)/norm(dJ(:)); end
                 clear d2J
 				clear PC

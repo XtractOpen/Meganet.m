@@ -281,7 +281,7 @@ classdef doubleLayer < abstractMeganetElement
             K2Op  = getOp(this.K2,th2);
             
             dK1dY = dK1Op*Y; 
-            if not(isempty(dY)) || (numel(dY>1) && dY~=0)
+            if not(isempty(dY)) && numel(dY)>1 && any(vec(dY)~=0)
                 dY  = reshape(dY,[],nex);
                 dK1dY = dK1dY + getOp(this.K1,th1)* dY;
             end
