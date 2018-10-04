@@ -1,2 +1,4 @@
 *.mexa64
 *.mexmaci64
+*.idx1-ubyte
+*.idx3-ubyte
