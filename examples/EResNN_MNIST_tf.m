@@ -157,7 +157,7 @@ colormap(flipud(colormap('gray')))
 
 
 %%
-doPrint = 1;
+doPrint = 0;
 %%
 if doPrint
     figDir = '/Users/lruthot/Dropbox/TeX-Base/images/DeepLearning/architectures';

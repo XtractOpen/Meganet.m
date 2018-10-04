@@ -1,4 +1,4 @@
-close all; clear all;
+% close all; clear all;
 
 [Ytrain,Ctrain] = setupPeaks(5000,5);
 [Yv,Cv] = setupPeaks(200,5);
