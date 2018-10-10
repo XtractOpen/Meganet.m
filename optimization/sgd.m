@@ -90,7 +90,7 @@ classdef sgd < optimizer
             his = zeros(1,numel(str));
             
             while epoch <= this.maxEpochs
-                nex = size(objFctn.Y,2);
+                nex = size(objFctn.Y, ndims( objFctn.Y ) );
                 ids = randperm(nex);
                 lr = learningRate(epoch);
                 for k=1:floor(nex/this.miniBatch)
@@ -114,7 +114,7 @@ classdef sgd < optimizer
                 % we sample 2^12 images from the training set for displaying the objective.     
                 [Jc,para] = fctn(xc,ids(1:min(nex,2^15))); 
                 if doVal
-                    [Fval,pVal] = fval(xc,[]);
+                    [Fval,pVal] = fval(xc,[]); % ??????????
                     valAcc = obj2His(pVal);
                     if (nargout>2) && (valAcc(2)>optVal)
                         xOpt = xc;

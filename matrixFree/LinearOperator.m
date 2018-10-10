@@ -2,8 +2,8 @@ classdef LinearOperator
     % basic class for linear operators (i.e. overloading *, \, ...)
     
     properties
-        m
-        n
+        m % output tensor size....NEEDS TO BE DONE
+        n % input tensor size ... NEEDS TO BE DONE
         Amv
         ATmv        
     end

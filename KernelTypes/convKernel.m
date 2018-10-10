@@ -34,7 +34,7 @@ classdef convKernel
             nImg = nImg(1:2);
             stride = 1;
             useGPU = 0;
-            Q =[];;
+            Q =[];
             precision = 'double';
             for k=1:2:length(varargin)     % overwrites default parameter
                 eval([ varargin{k},'=varargin{',int2str(k+1),'};']);

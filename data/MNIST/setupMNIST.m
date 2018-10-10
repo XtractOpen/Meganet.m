@@ -1,4 +1,10 @@
 function [Ytrain,Ctrain,Yval,Cval] = setupMNIST(nTrain,nVal)
+% Output:
+%     Ytrain - nTrain 28x28 training images in tensor (28,28,nTrain)
+%     Yval   - nVal 28x28 training images in tensor (28,28,nVal)
+%     Ctrain - corresponding training classes (10, nTrain)
+%     Cval   - corresponding validation classes (10, nVal)
+%
 
 if nargin==0
     runMinimalExample;
@@ -12,7 +18,7 @@ if not(exist('nVal','var')) || isempty(nVal)
     nVal = round(nTrain/5);
 end
 
-I      = loadMNISTImages('train-images.idx3-ubyte');
+images = reshape ( loadMNISTImages('train-images.idx3-ubyte') , 28,28,[] );
 labels = loadMNISTLabels('train-labels.idx1-ubyte');
 
 % get class probability matrix
@@ -26,19 +32,19 @@ idTrain = idx(1:nTrain);
 idVal   = idx(nTrain+(1:nVal));
 
 % Scale images between [-0.5 0.5]
-Ytrain = I(:,idTrain);
+Ytrain = images(:,:,idTrain);
 Ctrain = C(:,idTrain);
 Ytrain = Ytrain/max(abs(Ytrain(:))) - 0.5;
 [~,k] = sort((1:10)*Ctrain);
-Ytrain = Ytrain(:,k);
+Ytrain = Ytrain(:,:,k);
 Ctrain = Ctrain(:,k);
 
 if nargout>2
-    Yval = I(:,idVal);
+    Yval = images(:,:,idVal);
     Cval = C(:,idVal);
     Yval = Yval/max(abs(Yval(:))) - 0.5;
     [~,k] = sort((1:10)*Cval);
-    Yval = Yval(:,k);
+    Yval = Yval(:,:,k);
     Cval = Cval(:,k);
 end
 
@@ -46,14 +52,14 @@ function runMinimalExample
 [Yt,Ct,Yv,Cv] = feval(mfilename,50,10);
 figure(1);clf;
 subplot(2,1,1);
-montageArray(reshape(Yt,28,28,[]),10);
+montageArray(Yt,10);
 axis equal tight
 colormap(flipud(colormap('gray')))
 title('training images');
 
 
 subplot(2,1,2);
-montageArray(reshape(Yv,28,28,[]),10);
+montageArray(Yv,10);
 axis equal tight
 colormap(flipud(colormap('gray')))
 title('validation images');

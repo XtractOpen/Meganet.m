@@ -36,7 +36,7 @@ classdef dnnBatchObjFctn < objFctn
                 return;
             end
             batchSize = 10;
-            batchIds  = randperm(size(Y,2));
+            batchIds  = randperm(size( Y, ndims(Y) ));
             useGPU    = [];
             precision = [];
             for k=1:2:length(varargin)     % overwrites default parameter
@@ -95,7 +95,8 @@ classdef dnnBatchObjFctn < objFctn
                 C = this.C;
             else
                 % use all examples
-                Y = this.Y(:,idx);
+                colons = repmat( {':'} , 1 , ndims(this.Y)-1 );
+                Y = this.Y( colons{:} ,idx);
                 C = this.C(:,idx);
             end
                 
@@ -103,8 +104,7 @@ classdef dnnBatchObjFctn < objFctn
             compHess = nargout>3;
             dJth = 0.0; dJW = 0.0; Hth = []; HW = []; PC = [];
             
-            
-            nex = size(Y,2);          % number of examples to compute loss over 
+            nex = size(Y,ndims(Y));   % number of examples to compute loss over 
             nb  = nBatches(this,nex); % determine number of batches for the computation
             
             [theta,W] = split(this,thetaW);
@@ -115,7 +115,8 @@ classdef dnnBatchObjFctn < objFctn
             for k=nb:-1:1
                 idk = this.getBatchIds(k,nex);
                 if nb>1
-                    Yk  = Y(:,idk);
+                    colons = repmat( {':'} , 1 , ndims(Y)-1 );
+                    Yk  = Y( colons{:} , idk);
                     Ck  = C(:,idk);
                 else
                     Yk = Y;
@@ -217,7 +218,7 @@ classdef dnnBatchObjFctn < objFctn
             
             Cp = 0*this.C;
             P  = 0*this.C;
-            nex = size(this.Y,2);
+            nex = size(this.Y, 2 );
             nb = nBatches(this,nex);
             
             [theta,W] = split(this,thetaW);

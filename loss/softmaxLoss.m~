@@ -29,7 +29,7 @@ classdef softmaxLoss
             dWF = []; d2WF = []; dYF =[]; d2YF = [];
             
             % colons = repmat( {':'} , 1 , ndims(Y) - 1 );
-            % Y = reshape(Y,[],size(Y,ndims(Y))); % reshape to be a matrix (nFeat,nEx)
+            Y = reshape(Y,[],size(Y,ndims(Y))); % reshape to be a matrix (nFeat,nEx)
             
             szY  = size(Y);
             nex  = szY(2);
