@@ -1,5 +1,7 @@
 classdef LinearOperator 
     % basic class for linear operators (i.e. overloading *, \, ...)
+    %
+    % LinearOperator(A) only supported for 2D matrix A 
     
     properties
         m % output tensor size....NEEDS TO BE DONE
@@ -32,11 +34,11 @@ classdef LinearOperator
         
         function szA = size(this,dim)
             if nargin==1
-                szA = [this.m, this.n];
+                szA = [prod(this.m), prod(this.n)];
             elseif nargin==2 && dim==1
-                szA = this.m;
+                szA = prod(this.m);
             elseif nargin==2 && dim==2
-                szA = this.n;
+                szA = prod(this.n);
             end    
         end
         
@@ -50,7 +52,7 @@ classdef LinearOperator
             elseif isscalar(this)
                 Ax = LinearOperator(B.m,B.n,@(x) this*B.Amv(x), @(x) this*B.ATmv(x));
             elseif isa(B,'LinearOperator')
-                if size(this,2)==size(B,1) || isinf(size(B,1))
+                if size(this,2)==size(B,1) || isinf(size(B,1)) % ?????Tensor form?????
                    if isinf(size(B,2))
                        n = size(this,2);
                    else
@@ -134,7 +136,7 @@ classdef LinearOperator
         end
         
         function  runMinimalExample(~)
-            A = randn(4,6);
+            A = randn(4,6,8,9);
             Aop = LinearOperator(A);
         end
     end

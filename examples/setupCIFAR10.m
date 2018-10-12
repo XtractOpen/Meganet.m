@@ -1,6 +1,15 @@
 function[Ytrain,Ctrain,Yval,Cval] = setupCIFAR10(nTrain,nVal,option)
 % [Ytrain,Ctrain,Yval,Cval] = setupCIFAR10(nTrain,nVal,option)
 %
+% Ytrain - tensor (nRows,nCols,nChannels,nTrain)      
+% Ctrain - corresponding matrix (10 classes, nTrain)
+% Yval   - tensor (nRows,nCols,nChannels,nVal)
+% Cval   - corresponding matrix (10 classes, nVal)
+%
+% images are 32x32 RGB, so nRows=32 , nCols=32 , nChannels=3
+%
+
+addpath('data/cifar-10-batches-mat');
 
 if nargin==0
     runMinimalExample;
@@ -53,10 +62,13 @@ end
 [Ytrain,Ctrain] = sortAndScaleData(data(ptrain,:),labels(ptrain),option);
 Ytrain = Ytrain';
 Ctrain = Ctrain';
+
+% make into tensor, (nRows,nCols,nChannels,nEx) 
+Ytrain = reshape(Ytrain,32,32,3,[]); 
 % rotate by 90 degrees
-Ytrain = reshape(Ytrain,32,32,3,[]);
 Ytrain = permute(Ytrain,[2 1 3 4]);
-Ytrain = reshape(Ytrain,32*32*3,[]);
+
+% Ytrain = reshape(Ytrain,32*32*3,[]);
 
 
 if nargout>2
@@ -72,10 +84,10 @@ if nargout>2
     [Yval,Cval] = sortAndScaleData(dataTest(pval,:),labelsTest(pval),option);
     Yval = Yval';
     Cval = Cval';
-% rotate by 90 degrees
-Yval = reshape(Yval,32,32,3,[]);
-Yval = permute(Yval,[2 1 3 4]);
-Yval = reshape(Yval,32*32*3,[]);
+    
+    % rotate by 90 degrees
+    Yval = reshape(Yval,32,32,3,[]);
+    Yval = permute(Yval,[2 1 3 4]);
 end
 
 
@@ -85,7 +97,7 @@ function runMinimalExample
 [Yt,Ct,Yv,Cv] = feval(mfilename,50,10,4);
 figure(2);clf;
 subplot(2,1,1);
-montageArray(reshape(Yt(1:32*32,:),32,32,[]),5);
+montageArray(Yt(:,:,1,:),10);
 axis equal tight
 colormap gray
 colorbar
@@ -94,7 +106,7 @@ title('training images');
 
 
 subplot(2,1,2);
-montageArray(reshape(Yv(1:32*32,:),32,32,[]),10);
+montageArray(Yv(:,:,1,:),10);
 axis equal tight
 colormap gray
 colorbar

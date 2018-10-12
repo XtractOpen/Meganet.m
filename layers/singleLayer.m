@@ -38,7 +38,7 @@ classdef singleLayer < abstractMeganetElement
                 K.precision=precision;
             end
             if isempty(Bin)
-                Bin = zeros(nFeatOut(K),0);
+                Bin = zeros( [nFeatOut(K),0] );
             end
             this.Bin = gpuVar(K.useGPU, K.precision, Bin);
                 
@@ -70,6 +70,7 @@ classdef singleLayer < abstractMeganetElement
             
             nex = numel(Y)/nFeatIn(this);
             Y   = reshape(Y,[],nex);
+%             nex = size(Y, ndims(Y));
             [th1,th2,th3,th4] = split(this,theta);
             
             Y      =  getOp(this.K,th1)*Y;
@@ -129,7 +130,8 @@ classdef singleLayer < abstractMeganetElement
             %   KY    - K(theta)*Y
             %   tmpNL - temp results of norm Layer
             
-            nex = numel(Y)/nFeatIn(this);
+            % nex = numel(Y)/nFeatIn(this);
+            nex = size(Y, ndims(Y));
             tmpNL =[];
             [th1, th2,~,th4]  = split(this,theta);
             

@@ -21,14 +21,15 @@ clear all; clc;
 
 
 [Y0,C,Ytest,Ctest] = setupMNIST(2^10,2^10);
-nImg = [28 28];
+% nImg = [28 28];
+nImg = [size(Y0,1) size(Y0,2)];
 
 % choose file for results and specify whether or not to retrain
 resFile = sprintf('%s.mat',mfilename);
 doTrain = true;
 
 % set GPU flag and precision
-useGPU = 1;
+useGPU = 0;
 precision='single';
 
 [Y0,C] = gpuVar(useGPU,precision,Y0,C);

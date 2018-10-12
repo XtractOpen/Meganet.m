@@ -3,3 +3,10 @@
 *.idx1-ubyte
 *.idx3-ubyte
 *.mat
+MeganetBinariesTitan
+*.tar.gz
+drivers
+matconvnet-1.0-beta25/
+data/cifar-10-batches-mat/
+*.m~
+pax_global_header

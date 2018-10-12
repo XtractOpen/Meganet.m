@@ -51,10 +51,10 @@ classdef convKernel
         end
         
         function n = nFeatIn(this)
-            n = prod(nImgIn(this));
+            n = nImgIn(this);
         end
         function n = nFeatOut(this)
-            n = prod(nImgOut(this));
+            n = nImgOut(this);
         end
         
         function n = nImgIn(this)
