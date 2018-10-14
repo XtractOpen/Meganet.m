@@ -45,11 +45,11 @@ classdef scalingKernel < handle
         end
         
         function n = nFeatIn(this)
-            n = prod(this.nData(1:2));
+            n = this.nData(1:2);
         end
         
         function n = nFeatOut(this)
-            n = prod(this.nData(1:2));
+            n = this.nData(1:2);
         end
        
         function A = getOp(this,theta)

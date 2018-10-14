@@ -10,11 +10,11 @@ theta = initTheta(layer);
 Y      = randn(32,32,19,100);
 h     = 0.1; 
 
-%% test the apply function and its derivatives
-[Z,Yt] = apply(layer,theta,Y);
+%% test the forwardProp function and its derivatives
+[Z,Yt] = forwardProp(layer,theta,Y);
 
 dtheta = randn(size(theta))*1e-3;
-[Z1] = apply(layer,theta+dtheta,Y);
+[Z1] = forwardProp(layer,theta+dtheta,Y);
 dZ = Jthetamv(layer,dtheta,theta,Y,Yt);
 
 disp('Derivative check')

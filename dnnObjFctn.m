@@ -82,7 +82,7 @@ classdef dnnObjFctn < objFctn
                     HW    = d2WF;
                 end
             else
-                [YN]                   = apply(this.net,theta,Y);
+                [YN]                   = forwardProp(this.net,theta,Y);
                 [F,hisLoss] = getMisfit(this.pLoss,W,YN,C);
                 Jc = F;
             end

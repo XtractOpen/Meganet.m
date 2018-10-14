@@ -29,7 +29,7 @@ classdef dnnVarProBatchObjFctn < objFctn
                 return;
             end
             batchSize = 10;
-            batchIds  = randperm(size(Y,2));
+            batchIds  = randperm(sizeLastDim(Y));
             useGPU    = [];
             precision = [];
             for k=1:2:length(varargin)     % overwrites default parameter
@@ -68,18 +68,19 @@ classdef dnnVarProBatchObjFctn < objFctn
             compHess = nargout>3;
             dJ = 0.0; H = []; PC = [];
             
-            nex = size(Y,2);
+            nex = sizeLastDim(Y);
             nb  = nBatches(this,nex);
             % forward prop
             YN = zeros(nDataOut(this.net),nex,'like',this.Y);
             for k=1:nb
                 if nb>1
                     idk = this.getBatchIds(k,nex);
-                    Yk  = Y(:,idk);
+                    colons = repmat( {':'} , 1 , ndims(Y)-1 );
+                    Yk  = Y( colons{:} , idk);
                 else
                     Yk = Y;
                 end
-                YNk = apply(this.net,theta,Yk);
+                YNk = forwardProp(this.net,theta,Yk);
                 if nb>1
                     YN(:,idk) = YNk;
                 else
@@ -89,14 +90,15 @@ classdef dnnVarProBatchObjFctn < objFctn
             %classify
 %             [YN,J] = linearizeTheta(this.net,theta,this.Y); % forward propagation
             fctn   = classObjFctn(this.pLoss,this.pRegW,YN,C);
-            W      = solve(this.optClass,fctn,zeros(size(C,1)*(size(YN,1)+1),1,'like',theta));
+            W      = solve(this.optClass,fctn,zeros(size(C,1)*(size(YN,1)+1),1,'like',theta)); % TODO size(YN,1)
             
             %compute loss
             F = 0.0; hisLoss = []; dJth = 0.0;
             for k=nb:-1:1
                 idk = this.getBatchIds(k,nex);
                 if nb>1
-                    Yk  = Y(:,idk);
+                    colons = repmat( {':'} , 1 , ndims(Y)-1 );
+                    Yk  = Y( colons{:} , idk);
                     Ck  = C(:,idk);
                 else
                     Yk = Y;
@@ -107,7 +109,7 @@ classdef dnnVarProBatchObjFctn < objFctn
                     [YNk,J]                  = linearizeTheta(this.net,theta,Yk); % forward propagation
                     [Fk,hisLk,~,~,dYF,d2YF] = getMisfit(this.pLoss,W,YNk,Ck);
                 else
-                    [YNk]        = apply(this.net,theta,Yk); % forward propagation
+                    [YNk]        = forwardProp(this.net,theta,Yk); % forward propagation
                     [Fk,hisLk]   = getMisfit(this.pLoss,W,YNk,Ck);
                 end
                 F    = F    + numel(idk)*Fk;

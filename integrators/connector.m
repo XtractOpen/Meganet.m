@@ -38,10 +38,10 @@ classdef connector < abstractMeganetElement
             np = 0;
         end
         function n = nFeatIn(this)
-            n = size(this.K,2);
+            n = this.K.n; % size(this.K,2);
         end
         function n = nFeatOut(this)
-            n = size(this.K,1);
+            n = this.K.m; % size(this.K,1);
         end
         function n = nDataOut(this)
             if numel(this.Q)==1
@@ -55,9 +55,11 @@ classdef connector < abstractMeganetElement
             theta = [];
         end
         
-        % -------- apply forward problem -------
-        function [Ydata,Y,tmp] = apply(this,~,Y0)
-            nex = numel(Y0)/nFeatIn(this);
+        % -------- forwardProp forward problem -------
+        function [Ydata,Y,tmp] = forwardProp(this,~,Y0)
+%             nex = numel(Y0)/nFeatIn(this);
+%             Y0  = reshape(Y0,[],nex);
+            nex = sizeLastDim(Y0);
             Y0  = reshape(Y0,[],nex);
             Y = this.K*Y0 + this.b;
             if this.outTimes==1
@@ -71,7 +73,7 @@ classdef connector < abstractMeganetElement
         
         function [dYdata,dY] = Jmv(this,~,dY,~,~,~)
             if (isempty(dY)); dY = 0.0; return; end
-            nex = numel(dY)/nFeatIn(this);
+            nex = numel(dY)/prod(nFeatIn(this));
             dY  = reshape(dY,[],nex);
             dY = this.K*dY;
             if this.outTimes==1
@@ -82,7 +84,7 @@ classdef connector < abstractMeganetElement
         end
             
         function [dtheta,W] = JTmv(this,Wdata,W,~,Y,~,doDerivative)
-            nex = numel(Y)/nFeatIn(this);
+            nex = numel(Y)/prod(nFeatIn(this));
             if isempty(W)
                 W = 0;
             elseif not(isscalar(W))
@@ -106,7 +108,7 @@ classdef connector < abstractMeganetElement
             theta  = randn(nTheta(net),1);
             
             Y0  = randn(2,nex); 
-            [Ydata,~,tmp]   = net.apply(theta,Y0);
+            [Ydata,~,tmp]   = net.forwardProp(theta,Y0);
             dmb = randn(size(theta));
             dY0 = randn(size(Y0));
             
@@ -114,7 +116,7 @@ classdef connector < abstractMeganetElement
             for k=1:14
                 hh = 2^(-k);
                 
-                Yt = net.apply(theta+hh*dmb(:),Y0+hh*dY0);
+                Yt = net.forwardProp(theta+hh*dmb(:),Y0+hh*dY0);
                 
                 E0 = norm(Yt(:)-Ydata(:));
                 E1 = norm(Yt(:)-Ydata(:)-hh*dY(:));

@@ -69,7 +69,7 @@ classdef tikhonovReg
         end
         
         function nt = nTheta(this)
-            nt = size(this.B,2);
+            nt = sizeLastDim(this.B);
         end
         
         % ------- functions for handling GPU computing and precision ----

@@ -45,10 +45,10 @@ classdef layerTest < matlab.unittest.TestCase
                 th = randn(nTheta(ks),1);
                 Y  = randn(nFeatIn(ks),10);
                 [Y,th] = gpuVar(ks.useGPU,ks.precision,Y,th);
-                Z  = ks.apply(th,Y);
+                Z  = ks.forwardProp(th,Y);
                 
-                Z1 = ks.apply(th,vec(Y));
-                Z2 = ks.apply(th,reshape(Y,[nFeatIn(ks), 10]));
+                Z1 = ks.forwardProp(th,vec(Y));
+                Z2 = ks.forwardProp(th,reshape(Y,[nFeatIn(ks), 10]));
                 
                 testCase.verifyTrue(all(size(Z)==size(Z1)));
                 testCase.verifyTrue(all(size(Z)==size(Z2)));
@@ -65,7 +65,7 @@ classdef layerTest < matlab.unittest.TestCase
                 th0 = randn(nTheta(ks),1);
                 Y  = randn(nFeatIn(ks),10);
                 [Y,th0] = gpuVar(ks.useGPU,ks.precision,Y,th0);
-                [~,~,dA] = apply(ks,th0,Y);
+                [~,~,dA] = forwardProp(ks,th0,Y);
                 
                 J  = getJthetaOp(ks,th0,Y,dA);
                 [chkA,errA] = checkAdjoint(J);
@@ -79,7 +79,7 @@ classdef layerTest < matlab.unittest.TestCase
                 th0 = randn(nTheta(ks),1);
                 Y  = randn(nFeatIn(ks),10);
                 [Y,th0] = gpuVar(ks.useGPU,ks.precision,Y,th0);
-                [~,~,dA] = apply(ks,th0,Y);
+                [~,~,dA] = forwardProp(ks,th0,Y);
                 
                 J  = getJYOp(ks,th0,Y,dA);
                 [chkA,errA] = checkAdjoint(J,ks.useGPU,ks.precision);
@@ -94,7 +94,7 @@ classdef layerTest < matlab.unittest.TestCase
                 th0 = randn(nTheta(ks),1);
                 Y  = randn(nFeatIn(ks),10);
                 [Y,th0] = gpuVar(ks.useGPU,ks.precision,Y,th0);
-                [~,~,dA] = apply(ks,th0,Y);
+                [~,~,dA] = forwardProp(ks,th0,Y);
                 
                 J  = getJOp(ks,th0,Y,dA);
                 [chkA,errA] = checkAdjoint(J,ks.useGPU,ks.precision);

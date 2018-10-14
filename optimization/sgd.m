@@ -90,7 +90,7 @@ classdef sgd < optimizer
             his = zeros(1,numel(str));
             
             while epoch <= this.maxEpochs
-                nex = size(objFctn.Y, ndims( objFctn.Y ) );
+                nex = sizeLastDim(objFctn.Y);
                 ids = randperm(nex);
                 lr = learningRate(epoch);
                 for k=1:floor(nex/this.miniBatch)

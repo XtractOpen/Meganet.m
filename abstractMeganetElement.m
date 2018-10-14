@@ -7,10 +7,10 @@ classdef abstractMeganetElement < handle
 %
 % Abstractly, a MeganetElement does the following
 %
-%  Y_k+1 = apply(theta,Y_k)
+%  Y_k+1 = forwardProp(theta,Y_k)
 %
 %
-% where 'apply' can be everything from a single affine transformation to a
+% where 'forwardProp' can be everything from a single affine transformation to a
 % ResNet block. All these operations have a similar structure, e.g.,
 % provide derivatives w.r.t. theta and Y_k, ... 
 %
@@ -20,17 +20,17 @@ classdef abstractMeganetElement < handle
 % T2  = dense([24,12])
 % net = NN({T1, T2});
 %
-% Calling apply(net,theta,Y) results in a nested evaluation
+% Calling forwardProp(net,theta,Y) results in a nested evaluation
 %
-% apply(net,theta,Y) = apply(T2, theta2, apply(T1, theta1, Y)); 
+% forwardProp(net,theta,Y) = forwardProp(T2, theta2, forwardProp(T1, theta1, Y)); 
 %
 % This example shows that each element of the network needs the following
 % functions
 %
 %  split - partition the input parameters into parameters of elements
 %          describing this object (in our case theta -> theta1, theta2 
-%  apply - evaluate the action (e.g., forward propagation, filtering, ..)
-%          in many cases this involves calling 'apply' for other objects
+%  forwardProp - evaluate the action (e.g., forward propagation, filtering, ..)
+%          in many cases this involves calling 'forwardProp' for other objects
 %          (e.g., for different layers, kernels,...)
 %  Jthetamv  - compute the action of the Jacobian w.r.t theta on a vector
 %  JthetaTmv - compute the action of the transpose(Jacobian) w.r.t theta on a vector
@@ -148,7 +148,7 @@ methods
             %
             %   Z     - current output features
             %   J     - Jacobian, LinearOperator
-            [Z,~,tmp]  = apply(this,theta,Y);
+            [Z,~,tmp]  = forwardProp(this,theta,Y);
             J        = getJYOp(this,theta,Y,tmp);
         end
         
@@ -171,7 +171,7 @@ methods
             %   dY     - directional derivative, numel(dY)==numel(Y)
             
             if nargin<4; tmp=[]; end
-            nex    = numel(Y)/nFeatIn(this);
+            nex    = numel(Y)/prod(nFeatIn(this));
             m      = nex*nDataOut(this);
             n      = numel(Y);
             Amv    = @(x) JYmv(this,x,theta,Y,tmp);
@@ -240,7 +240,7 @@ methods
             %
             %   J     - Jacobian, LinearOperator
             if nargin<4; tmp=[]; end
-            nex    = numel(Y)/nFeatIn(this);
+            nex    = numel(Y)/prod(nFeatIn(this));
             m      = nex*nDataOut(this);
             n      = numel(theta);
             Amv    = @(x) Jthetamv(this,x,theta,Y,tmp);
@@ -264,7 +264,7 @@ methods
             %
             %   Z     - output features
             %   J     - Jacobian, LinearOperator
-            [Z,~,tmp] = apply(this,theta,Y);
+            [Z,~,tmp] = forwardProp(this,theta,Y);
             J       = getJthetaOp(this,theta,Y,tmp);
         end
         
@@ -374,7 +374,7 @@ methods
             
             if nargin<4; tmp=[]; end
 
-            nex    = numel(Y)/nFeatIn(this);
+            nex    = numel(Y)/prod(nFeatIn(this));
             m      = nex*nDataOut(this);
             nth    = numel(theta);
             nY     = numel(Y);

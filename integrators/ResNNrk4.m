@@ -90,9 +90,9 @@ classdef ResNNrk4 < abstractMeganetElement
             theta = repmat(vec(initTheta(this.layer)),numel(this.ttheta),1);
         end
         
-        % ------- apply forward propagation -----------
-        function [Ydata,Y,tmp] = apply(this,theta,Y0)
-            nex = numel(Y0)/nFeatIn(this);
+        % ------- forwardProp forward propagation -----------
+        function [Ydata,Y,tmp] = forwardProp(this,theta,Y0)
+            nex = numel(Y0)/prod(nFeatIn(this));
             Y   = reshape(Y0,[],nex);
             nt = numel(this.tY);
             if nargout>1;    tmp = cell(nt,9); tmp{1,1} = Y0; end
@@ -105,25 +105,25 @@ classdef ResNNrk4 < abstractMeganetElement
                 
                 % 1)   Z1 = L(Y_k, theta(t_k))
                 thetai = inter1D(theta,this.ttheta,ti);
-                [A1,~,tmp{i,6}] = apply(this.layer,thetai,Y);
+                [A1,~,tmp{i,6}] = forwardProp(this.layer,thetai,Y);
                 Z = Y + (hi/2)*A1;
                 if nargout>1, tmp{i,2} = Z; end
     
                 % 2)  Z2 = L(Y_k+h/2*Z1, theta(t_k+h/2))
                 thetai = inter1D(theta,this.ttheta,ti+hi/2);
-                [A2,~,tmp{i,7}] = apply(this.layer,thetai,Z);
+                [A2,~,tmp{i,7}] = forwardProp(this.layer,thetai,Z);
                 Z = Y + (hi/2)*A2;
                 if nargout>1, tmp{i,3} = Z; end
     
                 % 3)  Z3 = L(Y_k+h/2*Z2, theta(t_k+h/2))
-                [A3,~,tmp{i,8}] = apply(this.layer,thetai,Z);
+                [A3,~,tmp{i,8}] = forwardProp(this.layer,thetai,Z);
                 Z = Y + hi*A3;
                 if nargout>1, tmp{i,4} = Z; end
     
                 
                 % 4)  Z4 = L(Y_k+h*Z3, theta(t_k+h))
                 thetai = inter1D(theta,this.ttheta,ti+hi);
-                [A4,~,tmp{i,9}] = apply(this.layer,thetai,Z);
+                [A4,~,tmp{i,9}] = forwardProp(this.layer,thetai,Z);
                 
                 % Y_k+1 = Y_k-1 + h/6*Z1 + h/3*Z2 + h/3*Z3 + h/6*Z4
                 Y =  Y + hi*((1/6)*A1 + (1/3)*A2 + (1/3)*A3 + (1/6)*A4);
@@ -139,7 +139,7 @@ classdef ResNNrk4 < abstractMeganetElement
             if isempty(dY)
                 dY = 0.0;
             elseif numel(dY)>1
-                nex = numel(dY)/nFeatIn(this);
+                nex = numel(dY)/prod(nFeatIn(this));
                 dY   = reshape(dY,[],nex);
             end
             theta  = reshape(theta,[],numel(this.ttheta));
@@ -179,7 +179,7 @@ classdef ResNNrk4 < abstractMeganetElement
             if isempty(dY)
                 dY = 0.0;
             elseif numel(dY)>1
-                nex = numel(dY)/nFeatIn(this);
+                nex = numel(dY)/prod(nFeatIn(this));
                 dY   = reshape(dY,[],nex);
             end
             theta  = reshape(theta,[],numel(this.ttheta));
@@ -219,7 +219,7 @@ classdef ResNNrk4 < abstractMeganetElement
         % -------- Jacobian' matvecs ----------------
         
         function W = JYTmv(this,Wdata,W,theta,Y,tmp)
-            nex = numel(Y)/nFeatIn(this);
+            nex = numel(Y)/prod(nFeatIn(this));
             if ~isempty(Wdata)
                 Wdata = reshape(Wdata,[],nnz(this.outTimes),nex);
             end
@@ -265,7 +265,7 @@ classdef ResNNrk4 < abstractMeganetElement
             if not(exist('doDerivative','var')) || isempty(doDerivative)
                doDerivative =[1;0]; 
             end
-            nex = numel(Y)/nFeatIn(this);
+            nex = numel(Y)/prod(nFeatIn(this));
             if ~isempty(Wdata)
                 Wdata = reshape(Wdata,[],nnz(this.outTimes),nex);
             end
@@ -361,7 +361,7 @@ classdef ResNNrk4 < abstractMeganetElement
             mb  = randn(nTheta(net),1);
             
             Y0  = randn(nK(2),nex);
-            [Ydata,~,tmp]   = net.apply(mb,Y0);
+            [Ydata,~,tmp]   = net.forwardProp(mb,Y0);
             dmb = reshape(randn(size(mb)),[],numel(net.ttheta));
             dY0  = 10*randn(size(Y0));
             
@@ -369,7 +369,7 @@ classdef ResNNrk4 < abstractMeganetElement
             for k=1:10
                 hh = 10^(-k);
                 
-                Yt = net.apply(mb+hh*dmb(:),Y0+hh*dY0);
+                Yt = net.forwardProp(mb+hh*dmb(:),Y0+hh*dY0);
                 
                 E0 = norm(Yt(:)-Ydata(:));
                 E1 = norm(Yt(:)-Ydata(:)-hh*dY(:));

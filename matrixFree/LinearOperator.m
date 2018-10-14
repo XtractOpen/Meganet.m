@@ -4,8 +4,8 @@ classdef LinearOperator
     % LinearOperator(A) only supported for 2D matrix A 
     
     properties
-        m % output tensor size....NEEDS TO BE DONE
-        n % input tensor size ... NEEDS TO BE DONE
+        m % output tensor size
+        n % input tensor size
         Amv
         ATmv        
     end
@@ -22,6 +22,12 @@ classdef LinearOperator
                [this.m,this.n] = size(A);
                this.Amv = @(x) A*x;
                this.ATmv = @(x) A'*x;
+           elseif nargin==3
+               A = varargin{1};
+               this.m = varargin{2};
+               this.n = varargin{3};
+               this.Amv = @(x) reshape(A,prod(this.m),prod(this.n))  * x;
+               this.ATmv= @(x) reshape(A,prod(this.m),prod(this.n))' * x;
            elseif nargin>=4
                this.m = varargin{1};
                this.n = varargin{2};
@@ -32,6 +38,7 @@ classdef LinearOperator
            end
         end
         
+        % views A as a matrix with dimesnions prod(m) and prod(n)
         function szA = size(this,dim)
             if nargin==1
                 szA = [prod(this.m), prod(this.n)];
@@ -52,11 +59,11 @@ classdef LinearOperator
             elseif isscalar(this)
                 Ax = LinearOperator(B.m,B.n,@(x) this*B.Amv(x), @(x) this*B.ATmv(x));
             elseif isa(B,'LinearOperator')
-                if size(this,2)==size(B,1) || isinf(size(B,1)) % ?????Tensor form?????
-                   if isinf(size(B,2))
-                       n = size(this,2);
+                if all(this.n==B.m) || all(isinf(B.m))  % all() combines the logical values 
+                   if all(isinf(B.m))
+                       n = this.n;
                    else
-                       n = size(B,2);
+                       n = B.n;
                    end
                    Ax = LinearOperator(this.m,n, @(x) this*(B*x), @(x) B'*(this'*x));
                 else
@@ -80,24 +87,30 @@ classdef LinearOperator
             end
             
             if any(isinf(size(this)))
-                szAB = size(B);
+                % szAB = size(B);
+                ABm  = B.m;
+                ABn  = B.n;
             elseif any(isinf(size(B)))
-                szAB = size(this);
-            elseif  any(size(this)~=size(B))
+                % szAB = size(this);
+                ABm  = this.m;
+                ABn  = this.n;
+            elseif  any( [this.m this.n] ~= [B.m B.n] )
                 error('A and B must have same size');
             else
-                szAB = size(B);
+                % szAB = size(B);
+                ABm  = B.m;
+                ABn  = B.n;
             end
             ABf  = @(x) this.Amv(x) + B.Amv(x);
             ABTf = @(x) this.ATmv(x) + B.ATmv(x);
-            AB = LinearOperator(szAB(1),szAB(2), ABf, ABTf);
+            AB = LinearOperator(ABm,ABn, ABf, ABTf);
         end
         
         function AB = minus(this,B)
             if isnumeric(B)
                 B = LinearOperator(B);
             end
-            if any(size(this)~=size(B))
+            if any( [this.m this.n] ~= [B.m B.n] )
                 error('A and B must have same size');
             end
             ABf  = @(x) this.Amv(x) - B.Amv(x);
@@ -115,15 +128,19 @@ classdef LinearOperator
             if isnumeric(B)
                 B = LinearOperator(B);
             end
-            if this.m ~=B.m
-                error('hcat - first dimension must agree');
+            if any( this.m ~= B.m )
+                error('hcat - first dimension/argument m must agree');
             end
          
-            mAB = this.m;
-            nAB = this.n + B.n;
-            ABf  = @(x) this.Amv(x(1:this.n,:)) + B.Amv(x(this.n+1:end,:));
-            ABTf = @(x) [vec(this.ATmv(x)); vec(B.ATmv(x))];
-            AB = LinearOperator(mAB,nAB,ABf,ABTf);
+            if isscalar(this.n) && isscalar(B.n)
+                mAB = this.m;
+                nAB = this.n + B.n;
+                ABf  = @(x) this.Amv(x(1:prod(this.n),:)) + B.Amv(x(prod(this.n)+1:end,:));
+                ABTf = @(x) [vec(this.ATmv(x)); vec(B.ATmv(x))];
+                AB = LinearOperator(mAB,nAB,ABf,ABTf);
+            else
+                error('hcat - second dimension/argument n must be 1 dimension');
+            end
         end
 
         
@@ -136,8 +153,22 @@ classdef LinearOperator
         end
         
         function  runMinimalExample(~)
-            A = randn(4,6,8,9);
-            Aop = LinearOperator(A);
+            A = randn(4,6,9);
+            B = randn(4,6,9);
+            
+            Amv  = @(x) reshape(A,4*6,9)*x;
+            ATmv = @(x) reshape(A,4*6,9)'*x;
+            Bmv  = @(x) reshape(B,8*9,9)*x;
+            BTmv = @(x) reshape(B,8*9,9)'*x;
+            Aop = LinearOperator([4 6],9,Amv, ATmv);
+            Bop = LinearOperator([4 6],9,Bmv, BTmv);
+            % X = mtimes(Aop,Bop);
+            X = hcat(Aop,Bop);
+            Y = Aop + Bop;
+            
+            
+%             A=randn(4,6);
+%             Aop = LinearOperator(A);
         end
     end
 end

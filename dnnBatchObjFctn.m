@@ -36,7 +36,7 @@ classdef dnnBatchObjFctn < objFctn
                 return;
             end
             batchSize = 10;
-            batchIds  = randperm(size( Y, ndims(Y) ));
+            batchIds  = randperm(sizeLastDim(Y));
             useGPU    = [];
             precision = [];
             for k=1:2:length(varargin)     % overwrites default parameter
@@ -104,7 +104,7 @@ classdef dnnBatchObjFctn < objFctn
             compHess = nargout>3;
             dJth = 0.0; dJW = 0.0; Hth = []; HW = []; PC = [];
             
-            nex = size(Y,ndims(Y));   % number of examples to compute loss over 
+            nex = sizeLastDim(Y);   % number of examples to compute loss over 
             nb  = nBatches(this,nex); % determine number of batches for the computation
             
             [theta,W] = split(this,thetaW);
@@ -124,11 +124,11 @@ classdef dnnBatchObjFctn < objFctn
                 end
                 
                 if compGrad
-                    [YNk,~,tmp]                  = apply(this.net,theta,Yk); % forward propagation
+                    [YNk,~,tmp]                  = forwardProp(this.net,theta,Yk); % forward propagation
                     J = getJthetaOp(this.net,theta,Yk,tmp);
                     [Fk,hisLk,dWFk,d2WFk,dYF,d2YF] = getMisfit(this.pLoss,W,YNk,Ck);
                 else
-                    [YNk]        = apply(this.net,theta,Yk); % forward propagation
+                    [YNk]        = forwardProp(this.net,theta,Yk); % forward propagation
                     [Fk,hisLk]  = getMisfit(this.pLoss,W,YNk,Ck);
                 end
                 F    = F    + numel(idk)*Fk;
@@ -218,7 +218,7 @@ classdef dnnBatchObjFctn < objFctn
             
             Cp = 0*this.C;
             P  = 0*this.C;
-            nex = size(this.Y, 2 );
+            nex = sizeLastDim(this.Y);
             nb = nBatches(this,nex);
             
             [theta,W] = split(this,thetaW);
@@ -230,7 +230,7 @@ classdef dnnBatchObjFctn < objFctn
                 else
                     Yk = this.Y;
                 end
-                [YNk]     = apply(this.net,theta,Yk); % forward propagation
+                [YNk]     = forwardProp(this.net,theta,Yk); % forward propagation
                 [Cp(:,idk),P(:,idk)] = getLabels(this.pLoss,W,YNk);
             end      
         end

@@ -118,22 +118,24 @@ classdef Meganet < abstractMeganetElement
         end
         
         % ---------- apply forward problem ------------
-        function [Ydata,Y,tmp] = apply(this,theta,Y0)
-            nex = numel(Y0)/nFeatIn(this);
-            Y0  = reshape(Y0,[],nex);
+        function [Ydata,Y,tmp] = forwardProp(this,theta,Y0)
+%             nex = numel(Y0)/nFeatIn(this);
+%             Y0  = reshape(Y0,[],nex);
+            nex = sizeLastDim( Y0 );
             nBlocks = numel(this.blocks);
             Y  = Y0;
             tmp = cell(nBlocks,1);
             thetas = split(this,theta);
             Ydata = [];
             for k=1:nBlocks
-                [Yd,Y,tmp{k}] = apply(this.blocks{k},thetas{k},Y);
+                [Yd,Y,tmp{k}] = forwardProp(this.blocks{k},thetas{k},Y);
                 Ydata = [Ydata;Yd];
             end
         end
         
         function YN = applyBatch(this,theta,Y0,batchSize)
-           nex = numel(Y0)/nFeatIn(this);
+           % nex = numel(Y0)/nFeatIn(this);
+           nex = sizeLastDim( Y0 );
            YN = zeros(nDataOut(this),nex,'like',Y0);
            if not(isempty(batchSize))
                nBlocks = ceil(nex/batchSize);
@@ -149,14 +151,14 @@ classdef Meganet < abstractMeganetElement
                if numel(idk)==0
                    break;
                end
-                YN(:,idk) = apply(this,theta,Y0(:,idk));
+                YN(:,idk) = forwardProp(this,theta,Y0(:,idk));
                 cnt = cnt + numel(idk);
             end
         end
         
         % ----------- Jacobian matvecs -------------
         function [dYdata,dY] = JYmv(this,dY,theta,~,tmp)
-            nex = numel(dY)/nFeatIn(this);
+            nex = numel(dY)/prod(nFeatIn(this));
             dY  = reshape(dY,[],nex);
             dYdata = [];
             nBlocks = numel(this.blocks);
@@ -170,7 +172,7 @@ classdef Meganet < abstractMeganetElement
         end
         
         function [dYdata,dY] = Jmv(this,dtheta,dY,theta,~,tmp)
-            nex = numel(dY)/nFeatIn(this);
+            nex = numel(dY)/prod(nFeatIn(this));
             dY  = reshape(dY,[],nex);
             dYdata = [];
             nBlocks = numel(this.blocks);
@@ -187,7 +189,7 @@ classdef Meganet < abstractMeganetElement
         
         % ----------- Jacobian' matvecs -----------
         function W = JYTmv(this,Wdata,~,theta,Y,tmp)
-            nex = numel(Y)/nFeatIn(this);
+            nex = numel(Y)/prod(nFeatIn(this));
             Wdata  = reshape(Wdata,[],nex);
             nBlocks  = numel(this.blocks);
             
@@ -213,7 +215,7 @@ classdef Meganet < abstractMeganetElement
                doDerivative =[1;0]; 
             end
             
-            nex = numel(Y)/nFeatIn(this);
+            nex = numel(Y)/prod(nFeatIn(this));
             if isempty(W)
                 W=0;
             else
@@ -233,7 +235,7 @@ classdef Meganet < abstractMeganetElement
                 %                 W  = Wdata(end-cntW-no+1:end-cntW,:);
                 if any(this.blocks{k}.outTimes)
                     ndk = nDataOut(this.blocks{k});
-                    Wd  = Wdata(end-cntWd-ndk+1:end-cntWd,:);
+                    Wd  = Wdata(end-cntWd-prod(ndk)+1:end-cntWd,:);
                 else
                     Wd = [];
                 end
@@ -352,7 +354,7 @@ classdef Meganet < abstractMeganetElement
             
             Y0 = randn(2,nex);
             
-            [Ydata,~,tmp] = net.apply(mb,Y0);
+            [Ydata,~,tmp] = net.forwardProp(mb,Y0);
             
             dmb = randn(np,1);
             dY0 = randn(size(Y0));
@@ -361,7 +363,7 @@ classdef Meganet < abstractMeganetElement
             for k=1:14
                 hh = 2^(-k);
                 
-                Yt = net.apply(mb+hh*dmb(:),Y0+hh*dY0);
+                Yt = net.forwardProp(mb+hh*dmb(:),Y0+hh*dY0);
                 
                 E0 = norm(Yt(:)-Ydata(:));
                 E1 = norm(Yt(:)-Ydata(:)-hh*dY(:));

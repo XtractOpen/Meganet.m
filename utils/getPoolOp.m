@@ -11,12 +11,14 @@ function poolOp = getPoolOp()
 %             required binaries are available
 
 
-binExist = @(fname) exist([fname '.' mexext],'file');
+% binExist = @(fname) exist([fname '.' mexext],'file');
+% 
+% if  binExist('vl_nnpool')
+%     % use binaries from MatConvNet
+%     poolOp = @opPoolMCN;
+% else
+%     % use plain MATLAB implementation
+%     poolOp    = @opPool;
+% end
 
-if  binExist('vl_nnpool')
-    % use binaries from MatConvNet
-    poolOp = @opPoolMCN;
-else
-    % use plain MATLAB implementation
-    poolOp    = @opPool;
-end
+poolOp = @opPool;

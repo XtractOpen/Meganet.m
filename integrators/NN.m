@@ -109,7 +109,7 @@ classdef NN < abstractMeganetElement
         end
         
         % --------- forward problem ----------
-        function [Ydata,Y,tmp] = apply(this,theta,Y0)
+        function [Ydata,Y,tmp] = forwardProp(this,theta,Y0)
             Y = Y0;
             nt = numel(this.layers);
             
@@ -119,7 +119,7 @@ classdef NN < abstractMeganetElement
             for i=1:nt
                 ni = nTheta(this.layers{i});
                 if (nargout>1), tmp{i,1} = Y; end
-                [Y,~,tmp{i,2}] = this.layers{i}.apply(theta(cnt+(1:ni)),Y);
+                [Y,~,tmp{i,2}] = this.layers{i}.forwardProp(theta(cnt+(1:ni)),Y);
                 if this.outTimes(i)==1 
                     Ydata = [Ydata; this.Q*Y];
                 end
@@ -135,7 +135,7 @@ classdef NN < abstractMeganetElement
             for i=1:nt
                 ni = nTheta(this.layers{i});
                 thetaNorm(cnt+(1:ni)) = getNormalizedWeights(this.layers{i},theta(cnt+(1:ni)),Y,nL,thetaNL);
-                Y = this.layers{i}.apply(theta(cnt+(1:ni)),Y);
+                Y = this.layers{i}.forwardProp(theta(cnt+(1:ni)),Y);
                 cnt = cnt + ni;
             end
         end
@@ -174,7 +174,7 @@ classdef NN < abstractMeganetElement
         
         % -------- Jacobian' matvecs --------
         function W = JYTmv(this,Wdata,W,theta,Y,tmp)
-            nex = numel(Y)/nFeatIn(this);
+            nex = numel(Y)/prod(nFeatIn(this));
             if ~isempty(Wdata)
                 Wdata = reshape(Wdata,[],nex);
             end
@@ -205,7 +205,7 @@ classdef NN < abstractMeganetElement
                doDerivative =[1;0]; 
             end
             
-            nex = numel(Y)/nFeatIn(this);
+            nex = numel(Y)/prod(nFeatIn(this));
             if ~isempty(Wdata)
                 Wdata = reshape(Wdata,[],nex);
             end
@@ -340,7 +340,7 @@ classdef NN < abstractMeganetElement
             mb  = randn(nTheta(net),1);
             
             Y0  = randn(2,nex);
-            [Ydata,~,tmp]   = net.apply(mb,Y0);
+            [Ydata,~,tmp]   = net.forwardProp(mb,Y0);
             dmb = randn(size(mb));
             dY0 = randn(size(Y0));
             
@@ -348,7 +348,7 @@ classdef NN < abstractMeganetElement
             for k=1:14
                 hh = 2^(-k);
                 
-                Yt = net.apply(mb+hh*dmb(:),Y0+hh*dY0);
+                Yt = net.forwardProp(mb+hh*dmb(:),Y0+hh*dY0);
                 
                 E0 = norm(Yt(:)-Ydata(:));
                 E1 = norm(Yt(:)-Ydata(:)-hh*dY(:));

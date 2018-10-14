@@ -54,11 +54,11 @@ classdef normLayer < abstractMeganetElement
             Y = nEl*Y;
         end
         
-        function [Ydata,Y,dA] = apply(this,~,Y,varargin)
+        function [Ydata,Y,dA] = forwardProp(this,~,Y,varargin)
             
             % first organize Y with channels
             nf  = this.nData(2);
-            nex = numel(Y)/nFeatIn(this);
+            nex = numel(Y)/prod(nFeatIn(this));
             Y = reshape(Y,[],nf,nex);
             
             dA = [];
@@ -80,11 +80,11 @@ classdef normLayer < abstractMeganetElement
         end
         
         function n = nFeatIn(this)
-            n = prod(this.nData(1:2));
+            n = this.nData(1:2);
         end
         
         function n = nFeatOut(this)
-            n = prod(this.nData(1:2));
+            n = this.nData(1:2);
         end
         
         function n = nDataOut(this)
@@ -116,7 +116,7 @@ classdef normLayer < abstractMeganetElement
             %
             % A = A*diag(Fy)*Fy --> A' = A*diag(Fy)
             
-            nex = numel(dY)/nFeatIn(this);
+            nex = numel(dY)/prod(nFeatIn(this));
             nf  = this.nData(2);
             dY   = reshape(dY,[],nf,nex);
             Y    = reshape(Y,[],nf,nex);
@@ -157,7 +157,7 @@ classdef normLayer < abstractMeganetElement
         
         function dY = JYTmv(this,Z,~,theta,Y,dA)
                         
-            nex = numel(Y)/nFeatIn(this);
+            nex = numel(Y)/prod(nFeatIn(this));
             nf  = this.nData(2);
             
             Z   = reshape(Z,[],nf,nex);
@@ -183,14 +183,14 @@ classdef normLayer < abstractMeganetElement
             L = batchNormLayer(nfilt,nFeat);
             
             
-            [Ydata,~,dA]   = L.apply([],Y0);
+            [Ydata,~,dA]   = L.forwardProp([],Y0);
             dY0  = randn(size(Y0));
             
             dY = L.Jmv([],dY0,[],Y0,dA);
             for k=1:14
                 hh = 2^(-k);
                 
-                Yt = L.apply([],Y0+hh*dY0);
+                Yt = L.forwardProp([],Y0+hh*dY0);
                 
                 E0 = norm(Yt(:)-Ydata(:));
                 E1 = norm(Yt(:)-Ydata(:)-hh*dY(:));

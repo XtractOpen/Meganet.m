@@ -57,7 +57,7 @@ classdef affineScalingLayer < abstractMeganetElement
            end
         end
         
-        function [Ydata,Y,dA] = apply(this,theta,Y,varargin)
+        function [Ydata,Y,dA] = forwardProp(this,theta,Y,varargin)
             Y   = reshape(Y,this.nData(1), this.nData(2),[]); dA = [];
            nex = size(Y,3);
            if this.isWeight(3) && nex ~= this.nData(3)
@@ -103,11 +103,11 @@ classdef affineScalingLayer < abstractMeganetElement
         end
         
         function n = nFeatIn(this)
-            n = prod(this.nData(1:2));
+            n = this.nData(1:2);
         end
         
         function n = nFeatOut(this)
-            n = prod(this.nData(1:2));
+            n = this.nData(1:2);
         end
        
         function n = nDataOut(this)

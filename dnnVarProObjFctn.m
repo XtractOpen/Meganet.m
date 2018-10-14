@@ -67,7 +67,7 @@ classdef dnnVarProObjFctn < objFctn
             if compGrad || compHess
                 [YN,J] = linearizeTheta(this.net,theta,Y); % forward propagation
             else
-                YN = apply(this.net,theta,Y);
+                YN = forwardProp(this.net,theta,Y);
             end
             fctn   = classObjFctn(this.pLoss,this.pRegW,YN,C);
             W      = solve(this.optClass,fctn,zeros(size(C,1)*(size(YN,1)+1),1,'like',theta));

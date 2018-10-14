@@ -80,7 +80,7 @@ thetaOpt  = solve(opt,fctn,th0,fval);
 WOpt      = reshape(para.W,[],5);
 
 %% plot results
-[Ydata,Yn,tmp] = apply(net,thetaOpt,Yv);
+[Ydata,Yn,tmp] = forwardProp(net,thetaOpt,Yv);
 figure(1);
 subplot(1,2,2);
 viewContour2D([-3 3 -3 3],thetaOpt,WOpt,net,pLoss);

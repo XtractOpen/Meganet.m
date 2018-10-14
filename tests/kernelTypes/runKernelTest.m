@@ -39,10 +39,10 @@ classdef trafoTest < matlab.unittest.TestCase
               
               th = randn(nTheta(ks),1);
               Y  = randn(nFeatIn(ks),10);
-              Z  = ks.apply(th,Y);
+              Z  = ks.forwardProp(th,Y);
               
-              Z1 = ks.apply(th,vec(Y));
-              Z2 = ks.apply(th,reshape(Y,[nFeatIn(ks), 10]));
+              Z1 = ks.forwardProp(th,vec(Y));
+              Z2 = ks.forwardProp(th,reshape(Y,[nFeatIn(ks), 10]));
               
               testCase.verifyTrue(all(size(Z)==size(Z1)));
               testCase.verifyTrue(all(size(Z)==size(Z2)));

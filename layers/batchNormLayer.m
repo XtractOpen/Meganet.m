@@ -7,7 +7,7 @@ classdef batchNormLayer < abstractMeganetElement
     % variables.
     properties
         nData       % describe size of data, at least first two dim must be correct.
-        isWeight     % transformation type
+        isWeight    % transformation type
         useGPU      % flag for GPU computing 
         precision   % flag for precision 
         eps
@@ -36,7 +36,7 @@ classdef batchNormLayer < abstractMeganetElement
             b2 = reshape(theta(cnt+(1:this.nData(3))),1,this.nData(3),1);
         end
         
-        function [Ydata,Y,dA] = apply(this,theta,Y,varargin)
+        function [Ydata,Y,dA] = forwardProp(this,theta,Y,varargin)
            
            Y   = reshape(Y,this.nData(1)*this.nData(2), this.nData(3),[]); dA = [];
            nex = size(Y,3);
@@ -60,11 +60,11 @@ classdef batchNormLayer < abstractMeganetElement
         end
         
         function n = nFeatIn(this)
-            n = prod(this.nData(1:3));
+            n = this.nData(1:3);
         end
         
         function n = nFeatOut(this)
-            n = prod(this.nData(1:3));
+            n = this.nData(1:3);
         end
        
         function n = nDataOut(this)

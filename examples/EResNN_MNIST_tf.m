@@ -114,7 +114,7 @@ return
 xOpt = gpuVar(useGPU,precision,[thOpt;WOpt]);
 id = randperm(size(Y0,2)); id = id(1:miniBatchSize); % pick two random images
 
-[Y,~,Yall] = apply(net,xOpt,Y0(:,id));
+[Y,~,Yall] = forwardProp(net,xOpt,Y0(:,id));
 th = split(net,gpuVar(useGPU,precision,thOpt));
 %%
 fig = figure(1); clf;
@@ -122,7 +122,7 @@ fig.Name = 'input';
 montageArray(reshape(gather(Y0(:,id(1:2))),28,28,[]),1);
 axis equal tight
 %%
-[~,Yin] = apply(net.blocks{1},th{1},Y0(:,id));
+[~,Yin] = forwardProp(net.blocks{1},th{1},Y0(:,id));
 fig = figure(2); clf;
 fig.Name = 'inputResNN';
 montageArray(reshape(gather(Yin(:,1:2)),28,28,[]),nc);
@@ -131,7 +131,7 @@ colormap(flipud(colormap('gray')))
 
 
 %%
-[~,Yres] = apply(net.blocks{2},th{2},Yin);
+[~,Yres] = forwardProp(net.blocks{2},th{2},Yin);
 fig = figure(3); clf;
 fig.Name = 'outputResNN';
 montageArray(reshape(gather(Yres(:,1:2)),28,28,[]),nc);
@@ -140,7 +140,7 @@ colormap(flipud(colormap('gray')))
 
 
 %%
-[~,Ycoup] = apply(net.blocks{3},th{3},Yres);
+[~,Ycoup] = forwardProp(net.blocks{3},th{3},Yres);
 fig = figure(3); clf;
 fig.Name = 'outputCoup';
 montageArray(reshape(gather(Ycoup(:,1:2)),28,28,[]),nc);
@@ -148,7 +148,7 @@ axis equal tight
 colormap(flipud(colormap('gray')))
 
 %%
-[~,Yout] = apply(net.blocks{4},th{4},Ycoup);
+[~,Yout] = forwardProp(net.blocks{4},th{4},Ycoup);
 fig = figure(4); clf;
 fig.Name = 'outputResNN';
 montageArray(reshape(gather(Yout(:,1:2))',1,1,[]),nc);

@@ -103,15 +103,15 @@ classdef doubleLayer < abstractMeganetElement
                 th2 = x(cnt:cnt+nk2-1);
                 cnt = cnt + nk2;
                 
-                nk3 = size(this.Bin1,2);
+                nk3 = sizeLastDim(this.Bin1);
                 th3 = x(cnt:cnt+nk3-1);
                 cnt = cnt+nk3;
                 
-                nk4 = size(this.Bin2,2);
+                nk4 = sizeLastDim(this.Bin2);
                 th4 = x(cnt:cnt+nk4-1);
                 cnt = cnt+nk4;
                 
-                nk5 = size(this.Bout,2);
+                nk5 = sizeLastDim(this.Bout);
                 th5 = x(cnt:cnt+nk5-1);
                 cnt = cnt+nk5;
                 if not(isempty(this.nLayer1))
@@ -128,7 +128,8 @@ classdef doubleLayer < abstractMeganetElement
         end
         function n = nTheta(this)
             n = nTheta(this.K1) + nTheta(this.K2)...
-                 + size(this.Bin1,2) + size(this.Bin2,2) + size(this.Bout,2);
+                 + sizeLastDim(this.Bin1) + sizeLastDim(this.Bin2) ...
+                 + sizeLastDim(this.Bout);
             if not(isempty(this.nLayer1))
                 n = n+nTheta(this.nLayer1);
             end
@@ -149,7 +150,9 @@ classdef doubleLayer < abstractMeganetElement
         
         function theta = initTheta(this)
             theta = [vec(initTheta(this.K1)); vec(initTheta(this.K2)); ...
-                     0.1*ones(size(this.Bin1,2),1); 0.1*ones(size(this.Bin2,2),1); 0.1*ones(size(this.Bout,2),1)];
+                     0.1*ones(sizeLastDim(this.Bin1),1); ...
+                     0.1*ones(sizeLastDim(this.Bin2),1); ...
+                     0.1*ones(sizeLastDim(this.Bout),1)];
                  
             if not(isempty(this.nLayer1))
                 theta = [theta; initTheta(this.nLayer1)];
@@ -160,9 +163,9 @@ classdef doubleLayer < abstractMeganetElement
         end
         
         % ------- apply forward model ----------
-        function [Ydata,Y,tmp] = apply(this,theta,Y,varargin)
+        function [Ydata,Y,tmp] = forwardProp(this,theta,Y,varargin)
             
-            nex = numel(Y)/nFeatIn(this);
+            nex = numel(Y)/prod(nFeatIn(this));
             Y   = reshape(Y,[],nex);
             
             tmp        = cell(1,2);
@@ -170,7 +173,7 @@ classdef doubleLayer < abstractMeganetElement
             K1Y         = getOp(this.K1,th1)* Y;
             tmp{1} = K1Y;
             if not(isempty(this.nLayer1))
-                K1Y = apply(this.nLayer1,th6,K1Y);
+                K1Y = forwardProp(this.nLayer1,th6,K1Y);
             end
             if not(isempty(th3))
                 K1Y          =  K1Y + this.Bin1*th3;
@@ -179,7 +182,7 @@ classdef doubleLayer < abstractMeganetElement
             K2Z        = getOp(this.K2, th2)* Z1;
             tmp{2} = K2Z;
             if not(isempty(this.nLayer2))
-                K2Z = apply(this.nLayer2,th7,K2Z);
+                K2Z = forwardProp(this.nLayer2,th7,K2Z);
             end
             if not(isempty(th4))
                 K2Z = K2Z + this.Bin2*th4;
@@ -197,14 +200,15 @@ classdef doubleLayer < abstractMeganetElement
             % Input:
             %   theta - current weights
             %   Y     - input features
-            %   KY    - either K*Y stored during apply or empty
+            %   KY    - either K*Y stored during forwardProp or empty
             %
             % Output:
             %   dA    - derivative of activation
             %   KY    - K(theta)*Y
             %   tmpNL - temp results of norm Layer
             
-            nex   = numel(Y)/nFeatIn(this);
+           
+            nex = sizeLastDim(Y);
             tmpNL1 =[]; tmpNL2 =[];
             [th1,th2,th3,th4,~,th6,th7] = this.split(theta);
             
@@ -215,7 +219,7 @@ classdef doubleLayer < abstractMeganetElement
                 K1Y = tmp{1};
             end
             if not(isempty(this.nLayer1))
-                [K1Yn,~,tmpNL1] = apply(this.nLayer1,th6,K1Y);
+                [K1Yn,~,tmpNL1] = forwardProp(this.nLayer1,th6,K1Y);
             else
                 K1Yn = K1Y;
             end
@@ -230,7 +234,7 @@ classdef doubleLayer < abstractMeganetElement
             end
             
             if not(isempty(this.nLayer2))
-                [K2Zn,~,tmpNL2] = apply(this.nLayer2,th7,K2Z);
+                [K2Zn,~,tmpNL2] = forwardProp(this.nLayer2,th7,K2Z);
             else
                 K2Zn= K2Z;
             end
@@ -246,7 +250,7 @@ classdef doubleLayer < abstractMeganetElement
         end
         
         function [dZ] = JYmv(this,dY,theta,Y,dA)
-            nex = numel(dY)/nFeatIn(this);
+            nex = numel(dY)/prod(nFeatIn(this));
             if not(isempty(dY)) && (not(isscalar(dY) && dY==0))
                 % load temps and recompute activations
                 dY  = reshape(dY,[],nex);
@@ -266,7 +270,7 @@ classdef doubleLayer < abstractMeganetElement
         end
         
         function [dZ] = Jmv(this,dtheta,dY,theta,Y,dA)
-            nex = numel(Y)/nFeatIn(this);
+            nex = numel(Y)/prod(nFeatIn(this));
             Y  = reshape(Y,[],nex);
             
             [dth1,dth2,dth3,dth4,dth5,dth6,dth7] = this.split(dtheta);
@@ -300,7 +304,7 @@ classdef doubleLayer < abstractMeganetElement
         % ----------- Jacobian' matvecs ----------
         
         function [dth,dAZ1] = JthetaTmv(this,W,~,theta,Y,dA)
-            nex        = numel(W)/nFeatOut(this);
+            nex        = numel(W)/prod(nFeatOut(this));
             W          = reshape(W,[],nex);
             dth6 = []; dth7=[];
             dth5 = vec(sum(this.Bout'*W,2));
@@ -328,7 +332,7 @@ classdef doubleLayer < abstractMeganetElement
         
         function dY = JYTmv(this,Z,~,theta,Y,dA)
             [th1, th2,th3,th4,~,th6,th7] = this.split(theta);
-            nex = numel(Z)/nFeatOut(this);
+            nex = numel(Z)/prod(nFeatOut(this));
             Z   = reshape(Z,[],nex);
             
             [A1,dA1,A2,dA2,K1Y,K2Z,tmpNL1,tmpNL2] = getTempsForSens(this,theta,Y,dA);
@@ -351,7 +355,7 @@ classdef doubleLayer < abstractMeganetElement
             if not(exist('doDerivative','var')) || isempty(doDerivative)
                doDerivative =[1;0]; 
             end
-            nex       = numel(Y)/nFeatIn(this);
+            nex       = numel(Y)/prod(nFeatIn(this));
             Z         = reshape(Z,[],nex);
             
             dY = [];

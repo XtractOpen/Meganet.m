@@ -57,7 +57,7 @@ thetaOpt = solve(opt,fctn,th0,fval);
 [Jc,para] = eval(fctn,thetaOpt);
 WOpt = para.W;
 %%
-[Ydata,Yn,tmp] = apply(net,thetaOpt,Yv);
+[Ydata,Yn,tmp] = forwardProp(net,thetaOpt,Yv);
 figure(1);
 subplot(1,3,2);
 viewFeatures3D(Yn,Cv);

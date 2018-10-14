@@ -23,7 +23,7 @@ classdef l1Reg
             end
            useGPU = [];
            precision = [];
-           B2 = opEye(size(B1,2));
+           B2 = opEye(sizeLastDim(B1));
            eps = 1e-3;
            for k=1:2:length(varargin)     % overwrites default parameter
                 eval([varargin{k},'=varargin{',int2str(k+1),'};']);
@@ -54,7 +54,7 @@ classdef l1Reg
         end
         
         function nth = nTheta(this)
-            nth = size(this.B1,2);
+            nth = sizeLastDim(this.B1);
         end
         
         function [Sc,para,dS,d2S] = regularizer(this,x)

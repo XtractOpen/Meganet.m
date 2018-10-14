@@ -52,7 +52,7 @@ classdef l2Reg
         end
         
         function nth = nTheta(this)
-            nth = size(this.B1,2);
+            nth = sizeLastDim(this.B1);
         end
         
         function [Sc,para,dS,d2S] = regularizer(this,x)

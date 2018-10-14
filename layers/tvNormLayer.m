@@ -36,7 +36,7 @@ classdef tvNormLayer < abstractMeganetElement
             b2 = reshape(theta(cnt+(1:this.nData(3))),1,this.nData(3),1);
         end
         
-        function [Ydata,Y,dA] = apply(this,theta,Y,varargin)
+        function [Ydata,Y,dA] = forwardProp(this,theta,Y,varargin)
            Y   = reshape(Y,this.nData(1)*this.nData(2), this.nData(3),[]); dA = [];
            nex = size(Y,3);
            % normalization

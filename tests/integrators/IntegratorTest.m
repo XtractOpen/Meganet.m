@@ -45,10 +45,10 @@ classdef IntegratorTest < matlab.unittest.TestCase
               th0 = randn(nTheta(ks),1);
               Y  = randn(nFeatIn(ks),10);
               [Y,th0] = gpuVar(ks.useGPU,ks.precision,Y,th0);
-              [~,Z]  = ks.apply(th0,Y);
+              [~,Z]  = ks.forwardProp(th0,Y);
               
-              [~,Z1] = ks.apply(th0,vec(Y));
-              [~,Z2] = ks.apply(th0,reshape(Y,[nFeatIn(ks), 10]));
+              [~,Z1] = ks.forwardProp(th0,vec(Y));
+              [~,Z2] = ks.forwardProp(th0,reshape(Y,[nFeatIn(ks), 10]));
               
               testCase.verifyTrue(all(size(Z)==size(Z1)));
               testCase.verifyTrue(all(size(Z)==size(Z2)));
@@ -68,7 +68,7 @@ classdef IntegratorTest < matlab.unittest.TestCase
                 th0 = randn(nTheta(ks),1);
                 Y  = randn(nFeatIn(ks),10);
                 [Y,th0] = gpuVar(ks.useGPU,ks.precision,Y,th0);
-                [~,~,dA] = apply(ks,th0,Y);
+                [~,~,dA] = forwardProp(ks,th0,Y);
                 if nTheta(ks)>0
                 J  = getJthetaOp(ks,th0,Y,dA);
                 chkA = checkAdjoint(J,ks.useGPU,ks.precision);
@@ -83,7 +83,7 @@ classdef IntegratorTest < matlab.unittest.TestCase
                 th0 = randn(nTheta(ks),1);
                 Y  = randn(nFeatIn(ks),10);
                 [Y,th0] = gpuVar(ks.useGPU,ks.precision,Y,th0);
-                [~,~,dA] = apply(ks,th0,Y);
+                [~,~,dA] = forwardProp(ks,th0,Y);
                 
                 J  = getJYOp(ks,th0,Y,dA);
                 chkA = checkAdjoint(J,ks.useGPU,ks.precision);
@@ -98,7 +98,7 @@ classdef IntegratorTest < matlab.unittest.TestCase
                 th0 = randn(nTheta(ks),1);
                 Y  = randn(nFeatIn(ks),10);
                 [Y,th0] = gpuVar(ks.useGPU,ks.precision,Y,th0);
-                [~,~,dA] = apply(ks,th0,Y);
+                [~,~,dA] = forwardProp(ks,th0,Y);
                 
                 J  = getJOp(ks,th0,Y,dA);
                 chkA = checkAdjoint(J,ks.useGPU,ks.precision);
