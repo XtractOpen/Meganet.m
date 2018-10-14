@@ -16,8 +16,10 @@ function EParabolic_STL10(nex,nf0,nt)
 
 [Y0,C,Ytest,Ctest] = setupSTL(nex,8000);
 %%
-nImg = [96 96];
-cin = 3;
+nImg = [size(Y0,1) size(Y0,2)];
+cin = size(Y0,3);
+% nImg = [96 96];
+% cin = 3;
 
 %%
 % choose file for results and specify whether or not to retrain
@@ -27,7 +29,7 @@ resFile = sprintf('%s-nex-%d-nf0-%d-nt-%d',mfilename,nex,nf0,nt);
 useGPU = 1;
 precision='single';
 
-[Y0,C,Ytest,Ctest] = gpuVar(useGPU,precision,Y0',C,Ytest,Ctest);
+[Y0,C,Ytest,Ctest] = gpuVar(useGPU,precision,Y0,C,Ytest,Ctest);
 
 %% choose convolution
 if useGPU
@@ -91,7 +93,7 @@ net   = Meganet(blocks);
 pLoss = softmaxLoss();
 
 theta  = initTheta(net);
-W      = 0.1*vec(randn(10,nFeatOut(net)+1));
+W      = 0.1*vec(randn(10,prod(nFeatOut(net))+1));
 W = min(W,.2);
 W = max(W,-.2);
 

@@ -51,7 +51,8 @@ classdef convMCN < convKernel
         
         function [Y,tmp] = Amv(this,theta,Y)
             tmp   = []; % no need to store any intermediates
-            nex   = numel(Y)/prod(nImgIn(this));
+            % nex   = numel(Y)/prod(nImgIn(this));
+            nex = sizeLastDim(Y);
             
             % compute convolution
             Y   = reshape(Y,[nImgIn(this) nex]);  % unnecessary in the tensor scenario
