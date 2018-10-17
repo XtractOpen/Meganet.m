@@ -2,7 +2,7 @@ classdef connector < abstractMeganetElement
     % connector block that applies Y = K*Y0 + b, where K and b are fixed
     
     properties
-        K
+        K   % numeric K is unsupported, use LinearOperator(K)
         b
         outTimes 
         Q
@@ -27,6 +27,9 @@ classdef connector < abstractMeganetElement
                 b = 0.0;
             end
             
+            if isnumeric(K) && ndims(K)==2
+               K = LinearOperator(K); 
+            end
             this.K = K;
             this.b = b;
             this.outTimes = outTimes;
@@ -37,15 +40,15 @@ classdef connector < abstractMeganetElement
         function np = nTheta(this)
             np = 0;
         end
-        function n = nFeatIn(this)
-            n = this.K.n; % size(this.K,2);
+        function n = vFeatIn(this)
+                n = this.K.n;
         end
-        function n = nFeatOut(this)
-            n = this.K.m; % size(this.K,1);
+        function n = vFeatOut(this)
+                n = this.K.m;
         end
         function n = nDataOut(this)
             if numel(this.Q)==1
-                n = nnz(this.outTimes)*nFeatOut(this);
+                n = nnz(this.outTimes)*prod(vFeatOut(this));
             else
                 n = nnz(this.outTimes)*size(this.Q,1);
             end
@@ -57,7 +60,7 @@ classdef connector < abstractMeganetElement
         
         % -------- forwardProp forward problem -------
         function [Ydata,Y,tmp] = forwardProp(this,~,Y0)
-%             nex = numel(Y0)/nFeatIn(this);
+%             nex = numel(Y0)/vFeatIn(this);
 %             Y0  = reshape(Y0,[],nex);
             nex = sizeLastDim(Y0);
             Y0  = reshape(Y0,[],nex);
@@ -73,7 +76,7 @@ classdef connector < abstractMeganetElement
         
         function [dYdata,dY] = Jmv(this,~,dY,~,~,~)
             if (isempty(dY)); dY = 0.0; return; end
-            nex = numel(dY)/prod(nFeatIn(this));
+            nex = numel(dY)/prod(vFeatIn(this));
             dY  = reshape(dY,[],nex);
             dY = this.K*dY;
             if this.outTimes==1
@@ -84,7 +87,7 @@ classdef connector < abstractMeganetElement
         end
             
         function [dtheta,W] = JTmv(this,Wdata,W,~,Y,~,doDerivative)
-            nex = numel(Y)/prod(nFeatIn(this));
+            nex = numel(Y)/prod(vFeatIn(this));
             if isempty(W)
                 W = 0;
             elseif not(isscalar(W))
@@ -104,7 +107,7 @@ classdef connector < abstractMeganetElement
         function runMinimalExample(~)
             nex = 10;
             
-            net = connector(randn(4,2),.3,'outTimes',1);
+            net = connector(LinearOperator(randn(4,2)),.3,'outTimes',1);
             theta  = randn(nTheta(net),1);
             
             Y0  = randn(2,nex); 

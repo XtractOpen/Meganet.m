@@ -20,14 +20,14 @@ classdef LinearOperator
            if nargin==1 && isnumeric(varargin{1})
                A = varargin{1};
                [this.m,this.n] = size(A);
-               this.Amv = @(x) A*x;
-               this.ATmv = @(x) A'*x;
+               this.Amv = @(x)  A  * reshape(x,size(A,2),[]);
+               this.ATmv = @(x) A' * reshape(x,size(A,1),[]);
            elseif nargin==3
                A = varargin{1};
                this.m = varargin{2};
                this.n = varargin{3};
-               this.Amv = @(x) reshape(A,prod(this.m),prod(this.n))  * x;
-               this.ATmv= @(x) reshape(A,prod(this.m),prod(this.n))' * x;
+               this.Amv = @(x) reshape(A,prod(this.m),prod(this.n))  * reshape(x,prod(this.n),[]);
+               this.ATmv= @(x) reshape(A,prod(this.m),prod(this.n))' * reshape(x,prod(this.m),[]);
            elseif nargin>=4
                this.m = varargin{1};
                this.n = varargin{2};

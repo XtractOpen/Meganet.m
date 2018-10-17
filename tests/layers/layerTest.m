@@ -12,7 +12,7 @@ classdef layerTest < matlab.unittest.TestCase
             for k=1:numel(testCase.layers)
                 ks = testCase.layers{k};
                 if nTheta(ks)>0
-                    Y  = randn(nFeatIn(ks),10);
+                    Y  = randn([vFeatIn(ks),10]);
                     th0 = randn(nTheta(ks),1);
                     [Y,th0] = gpuVar(ks.useGPU,ks.precision,Y,th0);
                     f = @(th) linearizeTheta(ks,th,Y);
@@ -28,7 +28,7 @@ classdef layerTest < matlab.unittest.TestCase
             for k=1:numel(testCase.layers)
                 ks = testCase.layers{k};
                 th0 = initTheta(ks);
-                Y  = randn(nFeatIn(ks),10);
+                Y  = randn([vFeatIn(ks),10]);
                 [Y,th0] = gpuVar(ks.useGPU,ks.precision,Y,th0);
                 f = @(Y) linearizeY(ks,th0,Y);
                 isOK = checkJacobian(f,vec(Y),'out',0,'useGPU',ks.useGPU,'precision',ks.precision);
@@ -43,12 +43,12 @@ classdef layerTest < matlab.unittest.TestCase
                 ks = testCase.layers{k};
                 
                 th = randn(nTheta(ks),1);
-                Y  = randn(nFeatIn(ks),10);
+                Y  = randn([vFeatIn(ks),10]);
                 [Y,th] = gpuVar(ks.useGPU,ks.precision,Y,th);
                 Z  = ks.forwardProp(th,Y);
                 
                 Z1 = ks.forwardProp(th,vec(Y));
-                Z2 = ks.forwardProp(th,reshape(Y,[nFeatIn(ks), 10]));
+                Z2 = ks.forwardProp(th,reshape(Y,[vFeatIn(ks), 10]));
                 
                 testCase.verifyTrue(all(size(Z)==size(Z1)));
                 testCase.verifyTrue(all(size(Z)==size(Z2)));
@@ -63,7 +63,7 @@ classdef layerTest < matlab.unittest.TestCase
                 ks = testCase.layers{k};
                 
                 th0 = randn(nTheta(ks),1);
-                Y  = randn(nFeatIn(ks),10);
+                Y  = randn([vFeatIn(ks),10]);
                 [Y,th0] = gpuVar(ks.useGPU,ks.precision,Y,th0);
                 [~,~,dA] = forwardProp(ks,th0,Y);
                 
@@ -77,7 +77,7 @@ classdef layerTest < matlab.unittest.TestCase
                 ks = testCase.layers{k};
                 
                 th0 = randn(nTheta(ks),1);
-                Y  = randn(nFeatIn(ks),10);
+                Y  = randn([vFeatIn(ks),10]);
                 [Y,th0] = gpuVar(ks.useGPU,ks.precision,Y,th0);
                 [~,~,dA] = forwardProp(ks,th0,Y);
                 
@@ -92,7 +92,7 @@ classdef layerTest < matlab.unittest.TestCase
                 ks = testCase.layers{k};
                 
                 th0 = randn(nTheta(ks),1);
-                Y  = randn(nFeatIn(ks),10);
+                Y  = randn([vFeatIn(ks),10]);
                 [Y,th0] = gpuVar(ks.useGPU,ks.precision,Y,th0);
                 [~,~,dA] = forwardProp(ks,th0,Y);
                 

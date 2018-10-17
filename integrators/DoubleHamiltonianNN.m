@@ -45,7 +45,7 @@ classdef DoubleHamiltonianNN < abstractMeganetElement
                 layer1.precision = precision;
                 layer2.precision = precision;
             end
-            if nFeatOut(layer1)~=nFeatIn(layer2) && nFeatIn(layer1)~=nFeatOut(layer2)
+            if any(vFeatOut(layer1)~=vFeatIn(layer2)) || any(vFeatIn(layer1)~=vFeatOut(layer2))
                 error('number of input and output features must agree');
             end
             this.layer1 = layer1;
@@ -59,16 +59,16 @@ classdef DoubleHamiltonianNN < abstractMeganetElement
         function n = nTheta(this)
             n = this.nt*(nTheta(this.layer1)+ nTheta(this.layer2));
         end
-        function n = nFeatIn(this)
-            n = nFeatIn(this.layer1)+nFeatIn(this.layer2);
+        function n = vFeatIn(this)
+            n = vFeatIn(this.layer1)+vFeatIn(this.layer2);
         end
-        function n = nFeatOut(this)
-            n = nFeatIn(this);
+        function n = vFeatOut(this)
+            n = vFeatIn(this);
         end
 
         function n = nDataOut(this)
            if numel(this.Q)==1
-               n = nnz(this.outTimes)*nFeatOut(this);
+               n = nnz(this.outTimes)*prod(vFeatOut(this));
            else
                n = nnz(this.outTimes)*size(this.Q,1);
            end
@@ -97,10 +97,10 @@ classdef DoubleHamiltonianNN < abstractMeganetElement
            th2 = x(nTheta(this.layer1)+1:end,:);
         end
         function [Y,Z] = splitData(this,X)
-           nex = numel(X)/prod(nFeatIn(this));
+           nex = numel(X)/prod(vFeatIn(this));
            X   = reshape(X,[],nex);
-           Y   = X(1:nFeatIn(this.layer1),:);
-           Z   = X(nFeatIn(this.layer1)+1:end,:);
+           Y   = X(1:prod(vFeatIn(this.layer1)),:);
+           Z   = X(prod(vFeatIn(this.layer1))+1:end,:);
         end
         % ------- forwardProp forward problems -----------
         function [Xdata,X,tmp] = forwardProp(this,theta,X0)
@@ -128,10 +128,10 @@ classdef DoubleHamiltonianNN < abstractMeganetElement
         
         % -------- Jacobian matvecs ---------------
         function [dXdata,dX] = JYmv(this,dX,theta,Y,tmp)
-            nex = numel(Y)/prod(nFeatIn(this));
+            nex = numel(Y)/prod(vFeatIn(this));
             if isempty(dX) || (numel(dX)==0 && dX==0.0)
-                dX     = zeros(nFeatOut(this),nex,'like',Y);
-                dXdata = zeros(nDataOut(this),nex,'like',Y);
+                dX     = zeros([vFeatOut(this),nex],'like',Y);
+                dXdata = zeros([nDataOut(this),nex],'like',Y);
                 return
             end
             
@@ -172,11 +172,11 @@ classdef DoubleHamiltonianNN < abstractMeganetElement
         
         % -------- Jacobian' matvecs ----------------
         function W = JYTmv(this,Wdata,W,theta,Y,tmp)
-            nex = numel(Y)/prod(nFeatOut(this));
+            nex = numel(Y)/prod(vFeatOut(this));
             if ~isempty(Wdata)
                Wdata  = reshape(Wdata,[],nnz(this.outTimes),nex);
-               WdataY = Wdata(1:nFeatIn(this.layer1),:,:);
-               WdataZ = Wdata(nFeatIn(this.layer1)+1:end,:,:);
+               WdataY = Wdata(1:vFeatIn(this.layer1),:,:);
+               WdataZ = Wdata(vFeatIn(this.layer1)+1:end,:,:);
             end
             if isempty(W)
                 WY = 0;
@@ -206,11 +206,11 @@ classdef DoubleHamiltonianNN < abstractMeganetElement
                doDerivative =[1;0]; 
             end
             
-            nex = numel(Y)/prod(nFeatOut(this));
+            nex = numel(Y)/prod(vFeatOut(this));
             if ~isempty(Wdata)
                Wdata  = reshape(Wdata,[],nnz(this.outTimes),nex);
-               WdataY = Wdata(1:nFeatIn(this.layer1),:,:);
-               WdataZ = Wdata(nFeatIn(this.layer1)+1:end,:,:);
+               WdataY = Wdata(1:vFeatIn(this.layer1),:,:);
+               WdataZ = Wdata(vFeatIn(this.layer1)+1:end,:,:);
             end
             if isempty(W) || numel(W)==1
                 WY = 0;

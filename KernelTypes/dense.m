@@ -52,11 +52,11 @@ classdef dense
             end
         end
         
-        function n = nFeatIn(this)
-            n = this.nK(2);
+        function n = vFeatIn(this)
+            n = this.nK(2); %%%% TODO...how does one split this?
         end
         
-        function n = nFeatOut(this)
+        function n = vFeatOut(this)
             n = this.nK(1);
         end
         
@@ -69,20 +69,20 @@ classdef dense
         end
         
         function dY = Jthetamv(this,dtheta,~,Y,~)
-            nex    =  numel(Y)/prod(nFeatIn(this));
+            nex    =  numel(Y)/prod(vFeatIn(this));
             Y      = reshape(Y,[],nex);
             dY = getOp(this,dtheta)*Y;
         end
         
         function J = getJthetamat(this,~,Y,~)
-            nex    =  numel(Y)/prod(nFeatIn(this));
+            nex    =  numel(Y)/prod(vFeatIn(this));
             Y      = reshape(Y,[],nex);
             J      = kron(Y',speye(this.nK(1)));
         end
         
        function dtheta = JthetaTmv(this,Z,~,Y,~)
             % Jacobian transpose matvec.
-            nex    =  numel(Y)/prod(nFeatIn(this));
+            nex    =  numel(Y)/prod(vFeatIn(this));
             Y      = reshape(Y,[],nex);
             Z      = reshape(Z,[],nex);
             dtheta   = this.Q'*vec(Z*Y');

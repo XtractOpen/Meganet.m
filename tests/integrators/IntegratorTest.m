@@ -11,7 +11,7 @@ classdef IntegratorTest < matlab.unittest.TestCase
         function testLinearizeTheta(testCase)
            for k=1:numel(testCase.integrators)
               ks = testCase.integrators{k};
-              Y  = randn(nFeatIn(ks),10);
+              Y  = randn([vFeatIn(ks),10]);
               if nTheta(ks)>0
               th0 = randn(nTheta(ks),1);
               [Y,th0] = gpuVar(ks.useGPU,ks.precision,Y,th0);
@@ -28,7 +28,7 @@ classdef IntegratorTest < matlab.unittest.TestCase
            for k=1:numel(testCase.integrators)
               ks = testCase.integrators{k};
               th0 = initTheta(ks);
-              Y0  = randn(nFeatIn(ks),10);
+              Y0  = randn([vFeatIn(ks),10]);
               [Y0,th0] = gpuVar(ks.useGPU,ks.precision,Y0,th0);
               f = @(Y) linearizeY(ks,th0,Y);
               isOK = checkJacobian(f,vec(Y0),'out',0,...
@@ -43,12 +43,12 @@ classdef IntegratorTest < matlab.unittest.TestCase
               ks = testCase.integrators{k};
               
               th0 = randn(nTheta(ks),1);
-              Y  = randn(nFeatIn(ks),10);
+              Y  = randn([vFeatIn(ks),10]);
               [Y,th0] = gpuVar(ks.useGPU,ks.precision,Y,th0);
               [~,Z]  = ks.forwardProp(th0,Y);
               
               [~,Z1] = ks.forwardProp(th0,vec(Y));
-              [~,Z2] = ks.forwardProp(th0,reshape(Y,[nFeatIn(ks), 10]));
+              [~,Z2] = ks.forwardProp(th0,reshape(Y,[vFeatIn(ks), 10]));
               
               testCase.verifyTrue(all(size(Z)==size(Z1)));
               testCase.verifyTrue(all(size(Z)==size(Z2)));
@@ -66,7 +66,7 @@ classdef IntegratorTest < matlab.unittest.TestCase
                 ks = testCase.integrators{k};
                 
                 th0 = randn(nTheta(ks),1);
-                Y  = randn(nFeatIn(ks),10);
+                Y  = randn([vFeatIn(ks),10]);
                 [Y,th0] = gpuVar(ks.useGPU,ks.precision,Y,th0);
                 [~,~,dA] = forwardProp(ks,th0,Y);
                 if nTheta(ks)>0
@@ -81,7 +81,7 @@ classdef IntegratorTest < matlab.unittest.TestCase
                 ks = testCase.integrators{k};
                 
                 th0 = randn(nTheta(ks),1);
-                Y  = randn(nFeatIn(ks),10);
+                Y  = randn([vFeatIn(ks),10]);
                 [Y,th0] = gpuVar(ks.useGPU,ks.precision,Y,th0);
                 [~,~,dA] = forwardProp(ks,th0,Y);
                 
@@ -96,7 +96,7 @@ classdef IntegratorTest < matlab.unittest.TestCase
                 ks = testCase.integrators{k};
                 
                 th0 = randn(nTheta(ks),1);
-                Y  = randn(nFeatIn(ks),10);
+                Y  = randn([vFeatIn(ks),10]);
                 [Y,th0] = gpuVar(ks.useGPU,ks.precision,Y,th0);
                 [~,~,dA] = forwardProp(ks,th0,Y);
                 

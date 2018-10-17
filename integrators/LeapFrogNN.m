@@ -45,7 +45,7 @@ classdef LeapFrogNN < abstractMeganetElement
                 layer.precision = precision;
             end
             this.layer = layer;
-            if nFeatOut(layer)~=nFeatIn(layer)
+            if any(vFeatOut(layer)~=vFeatIn(layer))
                 error('%s - dim. of input and output features must agree for ResNet layers',mfilename);
             end
             this.nt    = nt;
@@ -57,16 +57,16 @@ classdef LeapFrogNN < abstractMeganetElement
         function n = nTheta(this)
             n = this.nt*nTheta(this.layer);
         end
-        function n = nFeatIn(this)
-            n = nFeatIn(this.layer);
+        function n = vFeatIn(this)
+            n = vFeatIn(this.layer);
         end
-        function n = nFeatOut(this)
-            n = nFeatOut(this.layer);
+        function n = vFeatOut(this)
+            n = vFeatOut(this.layer);
         end
         
         function n = nDataOut(this)
             if numel(this.Q)==1
-                n = nnz(this.outTimes)*nFeatOut(this.layer);
+                n = nnz(this.outTimes)*prod(vFeatOut(this.layer));
             else
                 n = nnz(this.outTimes)*size(this.Q,1);
             end
@@ -94,7 +94,7 @@ theta = repmat(vec(initTheta(this.layer)),this.nt,1);
         
         % ------- forwardProp forward problems -----------
         function [Ydata,Y,tmp] = forwardProp(this,theta,Y0)
-            nex = numel(Y0)/prod(nFeatOut(this));
+            nex = numel(Y0)/prod(vFeatOut(this));
             Y   = reshape(Y0,[],nex);
             if nargout>1;    tmp = cell(this.nt,2);  end
             
@@ -120,7 +120,7 @@ theta = repmat(vec(initTheta(this.layer)),this.nt,1);
             if isempty(dY)
                 dY = 0.0;
             elseif numel(dY)>1
-                nex = numel(dY)/prod(nFeatOut(this));
+                nex = numel(dY)/prod(vFeatOut(this));
                 dY   = reshape(dY,[],nex);
             end
             
@@ -143,7 +143,7 @@ theta = repmat(vec(initTheta(this.layer)),this.nt,1);
             if isempty(dY)
                 dY = 0.0;
             elseif numel(dY)>1
-                nex = numel(dY)/prod(nFeatOut(this));
+                nex = numel(dY)/prod(vFeatOut(this));
                 dY   = reshape(dY,[],nex);
             end
             
@@ -166,7 +166,7 @@ theta = repmat(vec(initTheta(this.layer)),this.nt,1);
         function W = JYTmv(this,Wdata,W,theta,Y,tmp)
             % call JYTmv (saving computations of the derivatives w.r.t.
             % theta)
-            nex = numel(Y)/prod(nFeatIn(this));
+            nex = numel(Y)/prod(vFeatIn(this));
             if ~isempty(Wdata)
                 Wdata = reshape(Wdata,[],nnz(this.outTimes),nex);
             end
@@ -197,7 +197,7 @@ theta = repmat(vec(initTheta(this.layer)),this.nt,1);
             if not(exist('doDerivative','var')) || isempty(doDerivative)
                doDerivative =[1;0]; 
             end
-            nex = numel(Y)/prod(nFeatIn(this));
+            nex = numel(Y)/prod(vFeatIn(this));
             
             if ~isempty(Wdata)
                 Wdata = reshape(Wdata,[],nnz(this.outTimes),nex);

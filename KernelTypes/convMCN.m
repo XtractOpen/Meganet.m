@@ -55,15 +55,15 @@ classdef convMCN < convKernel
             nex = sizeLastDim(Y);
             
             % compute convolution
-            Y   = reshape(Y,[nImgIn(this) nex]);  % unnecessary in the tensor scenario
+            % Y   = reshape(Y,[nImgIn(this) nex]);  % unnecessary in the tensor scenario
             K   = reshape(this.Q*theta(:),this.sK);
             Y   = vl_nnconv(Y,K,[],'pad',this.pad,'stride',this.stride);
-            Y   = reshape(Y,[],nex);
+            % Y   = reshape(Y,[],nex);
         end
 
         
         function dY = Jthetamv(this,dtheta,~,Y,~)
-            nex    =  numel(Y)/prod(nFeatIn(this));
+            nex    =  numel(Y)/prod(vFeatIn(this));
             Y      = reshape(Y,[],nex);
             dY = getOp(this,this.Q*dtheta(:))*Y;
         end

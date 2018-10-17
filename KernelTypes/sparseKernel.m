@@ -64,11 +64,11 @@ classdef sparseKernel
             n = size(this.Qs,2);
         end
         
-        function n = nFeatIn(this)
+        function n = vFeatIn(this)
             n = this.nK(2);
         end
         
-        function n = nFeatOut(this)
+        function n = vFeatOut(this)
             n = this.nK(1);
         end
         

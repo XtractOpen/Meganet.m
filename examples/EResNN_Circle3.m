@@ -33,7 +33,7 @@ pLoss = logRegressionLoss();
 regOp1 = opEye(nTheta(block1));
 regOp2 = opTimeDer(nTheta(block2),nt,h);
 pRegK = tikhonovReg(blkdiag(regOp1,regOp2),1e-2,[]);
-regOpW = opEye((nFeatOut(net)+1)*size(Ctrain,1));
+regOpW = opEye((vFeatOut(net)+1)*size(Ctrain,1));
 pRegW = tikhonovReg(regOpW,1e-2);
 
 classSolver = newton();

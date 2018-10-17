@@ -102,16 +102,16 @@ classdef affineScalingLayer < abstractMeganetElement
             
         end
         
-        function n = nFeatIn(this)
+        function n = vFeatIn(this)
             n = this.nData(1:2);
         end
         
-        function n = nFeatOut(this)
+        function n = vFeatOut(this)
             n = this.nData(1:2);
         end
        
         function n = nDataOut(this)
-            n = nFeatOut(this);
+            n = vFeatOut(this);
         end
         
         function theta = initTheta(this)

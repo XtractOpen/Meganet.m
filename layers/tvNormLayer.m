@@ -56,16 +56,16 @@ classdef tvNormLayer < abstractMeganetElement
             n = 2*this.nData(3);
         end
         
-        function n = nFeatIn(this)
+        function n = vFeatIn(this)
             n = prod(this.nData(1:3));
         end
         
-        function n = nFeatOut(this)
+        function n = vFeatOut(this)
             n = prod(this.nData(1:3));
         end
        
         function n = nDataOut(this)
-            n = nFeatOut(this);
+            n = vFeatOut(this);
         end
         
         function theta = initTheta(this)

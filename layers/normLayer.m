@@ -58,7 +58,7 @@ classdef normLayer < abstractMeganetElement
             
             % first organize Y with channels
             nf  = this.nData(2);
-            nex = numel(Y)/prod(nFeatIn(this));
+            nex = numel(Y)/prod(vFeatIn(this));
             Y = reshape(Y,[],nf,nex);
             
             dA = [];
@@ -79,16 +79,16 @@ classdef normLayer < abstractMeganetElement
             n = 0;
         end
         
-        function n = nFeatIn(this)
+        function n = vFeatIn(this)
             n = this.nData(1:2);
         end
         
-        function n = nFeatOut(this)
+        function n = vFeatOut(this)
             n = this.nData(1:2);
         end
         
         function n = nDataOut(this)
-            n = nFeatOut(this);
+            n = vFeatOut(this);
         end
         
         function theta = initTheta(this)
@@ -116,7 +116,7 @@ classdef normLayer < abstractMeganetElement
             %
             % A = A*diag(Fy)*Fy --> A' = A*diag(Fy)
             
-            nex = numel(dY)/prod(nFeatIn(this));
+            nex = numel(dY)/prod(vFeatIn(this));
             nf  = this.nData(2);
             dY   = reshape(dY,[],nf,nex);
             Y    = reshape(Y,[],nf,nex);
@@ -157,7 +157,7 @@ classdef normLayer < abstractMeganetElement
         
         function dY = JYTmv(this,Z,~,theta,Y,dA)
                         
-            nex = numel(Y)/prod(nFeatIn(this));
+            nex = numel(Y)/prod(vFeatIn(this));
             nf  = this.nData(2);
             
             Z   = reshape(Z,[],nf,nex);

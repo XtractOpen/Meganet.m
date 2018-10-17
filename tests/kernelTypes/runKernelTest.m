@@ -11,7 +11,7 @@ classdef trafoTest < matlab.unittest.TestCase
         function testLinearizeTheta(testCase)
            for k=1:numel(testCase.trafos)
               ks = testCase.trafos{k};
-              Y  = randn(nFeatIn(ks),10);
+              Y  = randn([vFeatIn(ks),10]);
               f = @(th) linearizeTheta(ks,th,Y);
               th0 = randn(nTheta(ks),1);
               isOK = checkJacobian(f,th0);
@@ -24,7 +24,7 @@ classdef trafoTest < matlab.unittest.TestCase
            for k=1:numel(testCase.trafos)
               ks = testCase.trafos{k};
               theta = initTheta(ks);
-              Y0  = randn(nFeatIn(ks),10);
+              Y0  = randn([vFeatIn(ks),10]);
               f = @(Y) linearizeY(ks,theta,Y);
               isOK = checkJacobian(f,vec(Y0),'out',0);
               
@@ -38,11 +38,11 @@ classdef trafoTest < matlab.unittest.TestCase
               ks = testCase.trafos{k};
               
               th = randn(nTheta(ks),1);
-              Y  = randn(nFeatIn(ks),10);
+              Y  = randn([vFeatIn(ks),10]);
               Z  = ks.forwardProp(th,Y);
               
               Z1 = ks.forwardProp(th,vec(Y));
-              Z2 = ks.forwardProp(th,reshape(Y,[nFeatIn(ks), 10]));
+              Z2 = ks.forwardProp(th,reshape(Y,[vFeatIn(ks), 10]));
               
               testCase.verifyTrue(all(size(Z)==size(Z1)));
               testCase.verifyTrue(all(size(Z)==size(Z2)));
@@ -57,7 +57,7 @@ classdef trafoTest < matlab.unittest.TestCase
                 ks = testCase.trafos{k};
                 
                 th = randn(nTheta(ks),1);
-                Y  = randn(nFeatIn(ks),10);
+                Y  = randn([vFeatIn(ks),10]);
                 
                 J  = getJthetaOp(ks,th,Y);
                 chkA = checkAdjoint(J);
@@ -69,7 +69,7 @@ classdef trafoTest < matlab.unittest.TestCase
                 ks = testCase.trafos{k};
                 
                 th = randn(nTheta(ks),1);
-                Y  = randn(nFeatIn(ks),10);
+                Y  = randn([vFeatIn(ks),10]);
                 
                 J  = getJYOp(ks,th,Y);
                 chkA = checkAdjoint(J);
@@ -82,7 +82,7 @@ classdef trafoTest < matlab.unittest.TestCase
                 ks = testCase.trafos{k};
                 
                 th = randn(nTheta(ks),1);
-                Y  = randn(nFeatIn(ks),10);
+                Y  = randn([vFeatIn(ks),10]);
                 
                 J  = getJOp(ks,th,Y);
                 chkA = checkAdjoint(J);

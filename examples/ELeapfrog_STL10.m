@@ -89,7 +89,7 @@ net   = Meganet(blocks);
 pLoss = softmaxLoss();
 
 theta  = initTheta(net);
-W      = 0.1*vec(randn(10,nFeatOut(net)+1));
+W      = 0.1*vec(randn(10,vFeatOut(net)+1));
 W = min(W,.2);
 W = max(W,-.2);
 

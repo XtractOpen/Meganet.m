@@ -42,8 +42,8 @@ classdef abstractMeganetElement < handle
 %
 %  nTheta   - return the number of parameters, numel(theta) for this
 %              element (may have to ask lower-level elements for this)
-%  nFeatIn  - number of input features
-%  nFeatOut - number of output features
+%  vFeatIn  - input feature dimensions
+%  vFeatOut - output feature dimensions
 %  initTheta - initialize parameters
 
 
@@ -55,19 +55,19 @@ methods
         n = [];
         error('children of abstractMeganetElement must provide method nTheta');
     end
-    function n = nFeatIn(~)
-        % function n = nFeatIn(this)
+    function n = vFeatIn(~)
+        % function n = vFeatIn(this)
         %
         % return number of input features, i.e., size(Y,1)
         n = [];
-        error('children of abstractMeganetElement must provide method nFeatIn');
+        error('children of abstractMeganetElement must provide method vFeatIn');
     end
-    function n = nFeatOut(~)
-        % function n = nFeatOut(this)
+    function n = vFeatOut(~)
+        % function n = vFeatOut(this)
         %
         % return number of output features, i.e., size(Y_N,1)
         n = [];
-        error('children of abstractMeganetElement must provide method nFeatOut');
+        error('children of abstractMeganetElement must provide method vFeatOut');
     end
     function varargout = split(~,~)
         % function varargout = split(this,theta)
@@ -171,7 +171,7 @@ methods
             %   dY     - directional derivative, numel(dY)==numel(Y)
             
             if nargin<4; tmp=[]; end
-            nex    = numel(Y)/prod(nFeatIn(this));
+            nex    = numel(Y)/prod(vFeatIn(this));
             m      = nex*nDataOut(this);
             n      = numel(Y);
             Amv    = @(x) JYmv(this,x,theta,Y,tmp);
@@ -240,7 +240,7 @@ methods
             %
             %   J     - Jacobian, LinearOperator
             if nargin<4; tmp=[]; end
-            nex    = numel(Y)/prod(nFeatIn(this));
+            nex    = numel(Y)/prod(vFeatIn(this));
             m      = nex*nDataOut(this);
             n      = numel(theta);
             Amv    = @(x) Jthetamv(this,x,theta,Y,tmp);
@@ -374,7 +374,7 @@ methods
             
             if nargin<4; tmp=[]; end
 
-            nex    = numel(Y)/prod(nFeatIn(this));
+            nex    = numel(Y)/prod(vFeatIn(this));
             m      = nex*nDataOut(this);
             nth    = numel(theta);
             nY     = numel(Y);

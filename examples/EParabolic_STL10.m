@@ -11,6 +11,8 @@
 %      Reversible Architectures for Arbitrarily Deep Residual Neural Networks,
 %      AAAI Conference on Artificial Intelligence 2018
 %
+% EParabolic_STL10(5000,32,3)
+%
 % =========================================================================
 function EParabolic_STL10(nex,nf0,nt)
 
@@ -26,7 +28,7 @@ cin = size(Y0,3);
 resFile = sprintf('%s-nex-%d-nf0-%d-nt-%d',mfilename,nex,nf0,nt);
 
 % set GPU flag and precision
-useGPU = 1;
+useGPU = 0;
 precision='single';
 
 [Y0,C,Ytest,Ctest] = gpuVar(useGPU,precision,Y0,C,Ytest,Ctest);
@@ -84,8 +86,11 @@ for k=1:numel(h)
 end
 
 %% Connector block
-B = gpuVar(useGPU,precision,kron(eye(nf(k+1)),ones(prod(nImgc),1)));
-blocks{end+1} = connector(B'/prod(nImgc));
+% B = gpuVar(useGPU,precision,kron(eye(nf(k+1)),ones(prod(nImgc),1)));
+B = kron(eye(nf(k+1)),ones(prod(nImgc),1));
+B = reshape(B', [nImgc nf(k+1) nf(k+1)]);
+B = gpuVar(useGPU,precision,B);
+blocks{end+1} = connector( LinearOperator(B/prod(nImgc),[nImgc nf(k+1)],nf(k+1)) );
 RegOps{end+1} = opEye(nTheta(blocks{end}));
 
 %% Put it all together
@@ -93,7 +98,7 @@ net   = Meganet(blocks);
 pLoss = softmaxLoss();
 
 theta  = initTheta(net);
-W      = 0.1*vec(randn(10,prod(nFeatOut(net))+1));
+W      = 0.1*vec(randn(10,prod(vFeatOut(net))+1));
 W = min(W,.2);
 W = max(W,-.2);
 

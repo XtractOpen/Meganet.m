@@ -33,12 +33,12 @@ classdef Meganet < abstractMeganetElement
                 end
             end
             
-            nout = nFeatOut(blocks{1});
+            nout = vFeatOut(blocks{1});
             for k=2:nBlocks
-                if nFeatIn(blocks{k}) ~= nout
+                if vFeatIn(blocks{k}) ~= nout
                     error('%s - dim of input features of layer %d does not match output features of layer %d',mfilename,k,k-1);
                 end
-                nout = nFeatOut(blocks{k});
+                nout = vFeatOut(blocks{k});
             end
             this.blocks = blocks;
             for k=1:nBlocks
@@ -57,12 +57,12 @@ classdef Meganet < abstractMeganetElement
                 n = n + nTheta(this.blocks{k});
             end
         end
-        function n = nFeatOut(this)
-            n = nFeatOut(this.blocks{end});
+        function n = vFeatOut(this)
+            n = vFeatOut(this.blocks{end});
         end
         
-        function n = nFeatIn(this)
-            n = nFeatIn(this.blocks{1});
+        function n = vFeatIn(this)
+            n = vFeatIn(this.blocks{1});
         end
         function n = nDataOut(this)
             n = 0;
@@ -119,7 +119,7 @@ classdef Meganet < abstractMeganetElement
         
         % ---------- apply forward problem ------------
         function [Ydata,Y,tmp] = forwardProp(this,theta,Y0)
-%             nex = numel(Y0)/nFeatIn(this);
+%             nex = numel(Y0)/vFeatIn(this);
 %             Y0  = reshape(Y0,[],nex);
             nex = sizeLastDim( Y0 );
             nBlocks = numel(this.blocks);
@@ -134,7 +134,7 @@ classdef Meganet < abstractMeganetElement
         end
         
         function YN = applyBatch(this,theta,Y0,batchSize)
-           % nex = numel(Y0)/nFeatIn(this);
+           % nex = numel(Y0)/vFeatIn(this);
            nex = sizeLastDim( Y0 );
            YN = zeros(nDataOut(this),nex,'like',Y0);
            if not(isempty(batchSize))
@@ -158,7 +158,7 @@ classdef Meganet < abstractMeganetElement
         
         % ----------- Jacobian matvecs -------------
         function [dYdata,dY] = JYmv(this,dY,theta,~,tmp)
-            nex = numel(dY)/prod(nFeatIn(this));
+            nex = numel(dY)/prod(vFeatIn(this));
             dY  = reshape(dY,[],nex);
             dYdata = [];
             nBlocks = numel(this.blocks);
@@ -172,7 +172,7 @@ classdef Meganet < abstractMeganetElement
         end
         
         function [dYdata,dY] = Jmv(this,dtheta,dY,theta,~,tmp)
-            nex = numel(dY)/prod(nFeatIn(this));
+            nex = numel(dY)/prod(vFeatIn(this));
             dY  = reshape(dY,[],nex);
             dYdata = [];
             nBlocks = numel(this.blocks);
@@ -189,7 +189,7 @@ classdef Meganet < abstractMeganetElement
         
         % ----------- Jacobian' matvecs -----------
         function W = JYTmv(this,Wdata,~,theta,Y,tmp)
-            nex = numel(Y)/prod(nFeatIn(this));
+            nex = numel(Y)/prod(vFeatIn(this));
             Wdata  = reshape(Wdata,[],nex);
             nBlocks  = numel(this.blocks);
             
@@ -197,7 +197,7 @@ classdef Meganet < abstractMeganetElement
             for k=nBlocks:-1:1
                 nk = nTheta(this.blocks{k});
                 if cntW < size(Wdata,1)
-                    no = nFeatOut(this.blocks{k});
+                    no = prod(vFeatOut(this.blocks{k}));
                     Wdk =  Wdata(end-cntW-no+1:end-cntW,:);
                     cntW = cntW + no;
                 else
@@ -215,7 +215,7 @@ classdef Meganet < abstractMeganetElement
                doDerivative =[1;0]; 
             end
             
-            nex = numel(Y)/prod(nFeatIn(this));
+            nex = numel(Y)/prod(vFeatIn(this));
             if isempty(W)
                 W=0;
             else
@@ -231,7 +231,7 @@ classdef Meganet < abstractMeganetElement
             cnt = 0;cntW = 0; cntWd = 0;
             for k=nBlocks:-1:1
                 nk = nTheta(this.blocks{k});
-                no = nFeatOut(this.blocks{k});
+                no = prod(vFeatOut(this.blocks{k}));
                 %                 W  = Wdata(end-cntW-no+1:end-cntW,:);
                 if any(this.blocks{k}.outTimes)
                     ndk = nDataOut(this.blocks{k});

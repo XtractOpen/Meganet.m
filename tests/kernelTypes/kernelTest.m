@@ -13,14 +13,14 @@ classdef kernelTest < matlab.unittest.TestCase
               ks = testCase.kernels{k};
               
               th0 = randn(nTheta(ks),1);
-              Y   = randn(nFeatIn(ks),10);
+              Y   = randn([vFeatIn(ks),10]);
               [th0,Y] = gpuVar(ks.useGPU,ks.precision,th0,Y);
               Z   = getOp(ks,th0)*Y;
               Yt  = getOp(ks,th0)'*Z;
               
               
-              testCase.verifyTrue(size(Z,1)==nFeatOut(ks));
-              testCase.verifyTrue(size(Yt,1)==nFeatIn(ks));
+              testCase.verifyTrue(size(Z,1)==vFeatOut(ks)); %%TODO DOUBLE CHECK
+              testCase.verifyTrue(size(Yt,1)==vFeatIn(ks));
            end
         end
         
@@ -30,7 +30,7 @@ classdef kernelTest < matlab.unittest.TestCase
               if ks.useGPU == 1
                   
                   th   = randn(nTheta(ks),1);
-                  Y0   = randn(nFeatIn(ks),10);
+                  Y0   = randn([vFeatIn(ks),10]);
                   Z1   = getOp(ks,th)*Y0;
                   Y1   = getOp(ks,th)'*Z1;
                   
@@ -73,8 +73,8 @@ classdef kernelTest < matlab.unittest.TestCase
               th  = randn(nTheta(ks),1);
               dth = randn(nTheta(ks),1);
               nex = 1;
-              Y  = randn(nFeatIn(ks),nex)+nex;
-              Z  = randn(nFeatOut(ks),nex)-nex;
+              Y  = randn([vFeatIn(ks),nex])+nex;
+              Z  = randn([vFeatOut(ks),nex])-nex;
               
               [th,Y,Z] = gpuVar(ks.useGPU, ks.precision,th,Y,Z);
               

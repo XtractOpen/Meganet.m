@@ -62,7 +62,7 @@ alpha  = 1e-3;
 reg1 = tikhonovReg(opEye(nTheta(block1)),alpha);
 reg2 = tikhonovReg(opTimeDer(nTheta(block2),nTh+1,hTh),alpha);
 pRegTh = blockReg({reg1,reg2});
-regOpW = opEye((nFeatOut(net)+1)*size(Ctrain,1));
+regOpW = opEye((vFeatOut(net)+1)*size(Ctrain,1));
 pRegW = tikhonovReg(regOpW,1e-10);
 
 
@@ -84,7 +84,7 @@ th0 = split(net,initTheta(net));
 th0{2} = 0*th0{2};
 th0 = vec(th0);
 
-x0       = [th0; randn(((nFeatOut(net)+1)*size(Ctrain,1)),1)];
+x0       = [th0; randn(((vFeatOut(net)+1)*size(Ctrain,1)),1)];
 xOpt  = solve(opt,fctn,x0,fval);
 thetaOpt = xOpt(1:nTheta(net));
 WOpt      = reshape(xOpt(nTheta(net)+1:end),[],5);
