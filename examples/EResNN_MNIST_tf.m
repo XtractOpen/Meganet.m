@@ -67,7 +67,7 @@ net    = Meganet(blocks,'useGPU',useGPU,'precision',precision);
 pLoss  = softmaxLoss();
 
 % setup regularizers
-regDW  = gpuVar(useGPU,precision,[ones(10*sizeFeatOut(net),1); zeros(10,1)]);
+regDW  = gpuVar(useGPU,precision,[ones(10*numelFeatOut(net),1); zeros(10,1)]);
 RegOpW = opDiag(regDW);
 
 RegOpW.precision = precision;
@@ -86,7 +86,7 @@ fval = dnnBatchObjFctn(net,[],pLoss,[],Ytest,Ctest,'batchSize',256,'useGPU',useG
 if doTrain || not(exist(resFile,'file'))
     % initialize weights
     theta = initTheta(net);
-    W     = 0.1*randn(10,sizeFeatOut(net)+1);
+    W     = 0.1*randn(10,numelFeatOut(net)+1);
     W     = max(min(0.2,W),-0.2);
     
     [theta,W] = gpuVar(fctn.useGPU,fctn.precision,theta,W);
