@@ -49,17 +49,17 @@ classdef doubleSymLayer < abstractMeganetElement
             this.activation = activation;
             this.K = K;
             if not(exist('Bin','var')) || isempty(Bin)
-                Bin = zeros([vFeatOut(K),0]);
+                Bin = zeros([sizeFeatOut(K),0]);
             end
             if not(exist('Bout','var')) || isempty(Bout)
-                Bout = zeros([vFeatIn(K),0]);
+                Bout = zeros([sizeFeatIn(K),0]);
             end
-            if not(isempty(nLayer1)) && any(vFeatIn(nLayer1) ~= vFeatOut(this.K))
+            if not(isempty(nLayer1)) && any(sizeFeatIn(nLayer1) ~= sizeFeatOut(this.K))
                 error('input dimension of normalization layer must match output dimension of K')
             end
             this.nLayer1 = nLayer1;
             
-            if not(isempty(nLayer2)) && any(vFeatIn(nLayer2) ~= vFeatIn(this.K))
+            if not(isempty(nLayer2)) && any(sizeFeatIn(nLayer2) ~= sizeFeatIn(this.K))
                 error('input dimension of normalization layer must match output dimension of K')
             end
             this.nLayer2 = nLayer2;
@@ -89,7 +89,7 @@ classdef doubleSymLayer < abstractMeganetElement
         
         function [Z,QZ,tmp] = forwardProp(this,theta,Y,varargin)
             QZ =[]; tmp =  cell(1,2);
-            nex        = numel(Y)/prod(vFeatIn(this));
+            nex        = numel(Y)/numelFeatIn(this);
             Y          = reshape(Y,[],nex);
             storedAct  = (nargout>1);
             
@@ -132,7 +132,7 @@ classdef doubleSymLayer < abstractMeganetElement
             %   KY    - K(theta)*Y
             %   tmpNL - temp results of norm Layer
             
-            nex = numel(Y)/prod(vFeatIn(this));
+            nex = numel(Y)/numelFeatIn(this);
             tmpNL1 =[]; tmpNL2 = []; KZ = [];
             [th1, th2,~,th4,th5]  = split(this,theta);
             
@@ -173,16 +173,16 @@ classdef doubleSymLayer < abstractMeganetElement
             end
         end
         
-        function n = vFeatIn(this)
-            n = vFeatIn(this.K);
+        function n = sizeFeatIn(this)
+            n = sizeFeatIn(this.K);
         end
         
-        function n = vFeatOut(this)
-            n = vFeatIn(this.K);
+        function n = sizeFeatOut(this)
+            n = sizeFeatIn(this.K);
         end
         
         function n = nDataOut(this)
-            n = vFeatIn(this);
+            n = sizeFeatIn(this);
         end
         
         function theta = initTheta(this)
@@ -221,14 +221,14 @@ classdef doubleSymLayer < abstractMeganetElement
         end
         
         function dZ = JYmv(this,dY,theta,Y,KY)
-            nex       = numel(Y)/prod(vFeatIn(this));
+            nex       = numel(Y)/numelFeatIn(this);
             Y   = reshape(Y,[],nex);
             [th1, ~,~,th4,th5]  = split(this,theta);
             
             [A,dA,KY,KZ,tmpNL1,tmpNL2] = getTempsForSens(this,theta,Y,KY);
             
             
-            nex = numel(dY)/prod(vFeatIn(this));
+            nex = numel(dY)/numelFeatIn(this);
             dY  = reshape(dY,[],nex);
             
             Kop = getOp(this.K,th1);
@@ -248,7 +248,7 @@ classdef doubleSymLayer < abstractMeganetElement
             
             [A,dA,KY,KZ,tmpNL1,tmpNL2] = getTempsForSens(this,theta,Y,KY);
             
-            nex = numel(Y)/prod(vFeatIn(this));
+            nex = numel(Y)/numelFeatIn(this);
             Kop    = getOp(this.K,th1);
             dKop   = getOp(this.K,dth1);
             if numel(dY)>1
@@ -275,7 +275,7 @@ classdef doubleSymLayer < abstractMeganetElement
             [th1, ~,~,th4,th5]  = split(this,theta);
             [A,dA,KY,KZ,tmpNL1,tmpNL2] = getTempsForSens(this,theta,Y,KY);
             
-            nex       = numel(Y)/prod(vFeatIn(this));
+            nex       = numel(Y)/numelFeatIn(this);
             Z         = reshape(Z,[],nex);
             Kop       = getOp(this.K,th1);
             
@@ -301,7 +301,7 @@ classdef doubleSymLayer < abstractMeganetElement
             [th1, ~,~,th4,th5]  = split(this,theta);
             [A,dA,KY,KZ,tmpNL1,tmpNL2] = getTempsForSens(this,theta,Y,KY);
             
-            nex       = numel(Y)/prod(vFeatIn(this));
+            nex       = numel(Y)/numelFeatIn(this);
             Z         = reshape(Z,[],nex);
             Kop       = getOp(this.K,th1);
             
@@ -323,7 +323,7 @@ classdef doubleSymLayer < abstractMeganetElement
             [A,dA,KY,KZ,tmpNL1,tmpNL2] = getTempsForSens(this,theta,Y,KY);
             
             dY = [];
-            nex       = numel(Y)/prod(vFeatIn(this));
+            nex       = numel(Y)/numelFeatIn(this);
             Z         = reshape(Z,[],nex);
             Kop       = getOp(this.K,th1);
             

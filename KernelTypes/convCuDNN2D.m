@@ -90,7 +90,7 @@ classdef convCuDNN2D < convKernel
         end
 
         function dY = Jthetamv(this,dtheta,~,Y,~)
-            nex    =  numel(Y)/prod(vFeatIn(this));
+            nex    =  numel(Y)/numelFeatIn(this);
             Y      = reshape(Y,[],nex);
             dY = getOp(this,this.Q*dtheta)*Y;
         end

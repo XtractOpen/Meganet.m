@@ -50,11 +50,17 @@ classdef convKernel
             this.Q = Q;
         end
         
-        function n = vFeatIn(this)
+        function n = sizeFeatIn(this)
             n = nImgIn(this);
         end
-        function n = vFeatOut(this)
+        function n = sizeFeatOut(this)
             n = nImgOut(this);
+        end
+        function n = numelFeatIn(this)
+            n = prod(nImgIn(this));
+        end
+        function n = numelFeatOut(this)
+            n = prod(nImgOut(this));
         end
         
         function n = nImgIn(this)
@@ -170,8 +176,8 @@ classdef convKernel
         end
         
         function A = getOp(this,K)
-            n   = vFeatIn(this);
-            m   = vFeatOut(this);
+            n   = sizeFeatIn(this);
+            m   = sizeFeatOut(this);
             Af  = @(Y) this.Amv(K,Y);
             ATf = @(Y) this.ATmv(K,Y);
             A   = LinearOperator(m,n,Af,ATf);
@@ -182,7 +188,7 @@ classdef convKernel
         end
         
         function dY = Jthetamv(this,dtheta,~,Y,~)
-            nex    =  numel(Y)/prod(vFeatIn(this));
+            nex    =  numel(Y)/numelFeatIn(this);
             Y      = reshape(Y,[],nex);
             dY = getOp(this,dtheta)*Y;
         end

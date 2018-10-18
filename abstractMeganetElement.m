@@ -40,11 +40,13 @@ classdef abstractMeganetElement < handle
 % In addition, elements of this class also need to provide the folowing
 % methods
 %
-%  nTheta   - return the number of parameters, numel(theta) for this
-%              element (may have to ask lower-level elements for this)
-%  vFeatIn  - input feature dimensions
-%  vFeatOut - output feature dimensions
-%  initTheta - initialize parameters
+%  nTheta       - return the number of parameters, numel(theta) for this
+%                 element (may have to ask lower-level elements for this)
+%  sizeFeatIn   - input feature dimensions
+%  sizeFeatOut  - output feature dimensions
+%  numelFeatIn  - input feature number of total elements
+%  numelFeatOut - ouput feature number of total elements
+%  initTheta    - initialize parameters
 
 
 methods
@@ -55,19 +57,33 @@ methods
         n = [];
         error('children of abstractMeganetElement must provide method nTheta');
     end
-    function n = vFeatIn(~)
-        % function n = vFeatIn(this)
+    function n = sizeFeatIn(~)
+        % function n = sizeFeatIn(this)
         %
-        % return number of input features, i.e., size(Y,1)
+        % return dimensions of input features, i.e., for 2D Y, size(Y,1)
         n = [];
-        error('children of abstractMeganetElement must provide method vFeatIn');
+        error('children of abstractMeganetElement must provide method sizeFeatIn');
     end
-    function n = vFeatOut(~)
-        % function n = vFeatOut(this)
+    function n = sizeFeatOut(~)
+        % function n = sizeFeatOut(this)
         %
-        % return number of output features, i.e., size(Y_N,1)
+        % return dimensions of the output features, i.e., for 2D Y, size(Y,2)
         n = [];
-        error('children of abstractMeganetElement must provide method vFeatOut');
+        error('children of abstractMeganetElement must provide method sizeFeatOut');
+    end
+    function n = numelFeatOut(this)
+        % function n = numelFeatOut(this)
+        %
+        % return number of output features
+        n = prod(sizeFeatOut(this));
+        % error('children of abstractMeganetElement must provide method numelFeatOut');
+    end
+    function n = numelFeatIn(this)
+        % function n = numelFeatIn(this)
+        %
+        % return number of output features
+        n = prod(sizeFeatIn(this));
+        % error('children of abstractMeganetElement must provide method numelFeatIn');
     end
     function varargout = split(~,~)
         % function varargout = split(this,theta)
@@ -171,7 +187,7 @@ methods
             %   dY     - directional derivative, numel(dY)==numel(Y)
             
             if nargin<4; tmp=[]; end
-            nex    = numel(Y)/prod(vFeatIn(this));
+            nex    = numel(Y)/numelFeatIn(this);
             m      = nex*nDataOut(this);
             n      = numel(Y);
             Amv    = @(x) JYmv(this,x,theta,Y,tmp);
@@ -240,7 +256,7 @@ methods
             %
             %   J     - Jacobian, LinearOperator
             if nargin<4; tmp=[]; end
-            nex    = numel(Y)/prod(vFeatIn(this));
+            nex    = numel(Y)/numelFeatIn(this);
             m      = nex*nDataOut(this);
             n      = numel(theta);
             Amv    = @(x) Jthetamv(this,x,theta,Y,tmp);
@@ -374,7 +390,7 @@ methods
             
             if nargin<4; tmp=[]; end
 
-            nex    = numel(Y)/prod(vFeatIn(this));
+            nex    = numel(Y)/numelFeatIn(this);
             m      = nex*nDataOut(this);
             nth    = numel(theta);
             nY     = numel(Y);

@@ -48,17 +48,17 @@ classdef doubleLayer < abstractMeganetElement
                 K2.precision = precision;
             end
             if isempty(Bin1)
-                Bin1 = zeros([vFeatOut(K1),0]);
+                Bin1 = zeros([sizeFeatOut(K1),0]);
             end
             this.Bin1 = gpuVar(K1.useGPU, K1.precision, Bin1);
                 
             if isempty(Bin2)
-                Bin2 = zeros([vFeatOut(K2),0]);
+                Bin2 = zeros([sizeFeatOut(K2),0]);
             end
             this.Bin2 = gpuVar(K2.useGPU, K2.precision, Bin2);
             
             if isempty(Bout)
-                Bout = zeros([vFeatOut(K2),0]);
+                Bout = zeros([sizeFeatOut(K2),0]);
             end
             this.Bout = gpuVar(K2.useGPU, K2.precision, Bout);
             
@@ -71,9 +71,9 @@ classdef doubleLayer < abstractMeganetElement
                 activation2  = @tanhActivation;
             end
             this.activation2 = activation2;
-            if vFeatOut(K1) ~= vFeatIn(K2)
+            if sizeFeatOut(K1) ~= sizeFeatIn(K2)
                 error('%s - number of output features of first trafo (%d) must match input of second trafo (%d)',...
-                    mfilename,vFeatOut(K1), vFeatIn(K2));
+                    mfilename,sizeFeatOut(K1), sizeFeatIn(K2));
             end
             this.K1      = K1;
             this.K2      = K2;
@@ -81,10 +81,10 @@ classdef doubleLayer < abstractMeganetElement
             this.nLayer2 = nLayer2;
             this.storeInterm=storeInterm;
             
-            if not(isempty(nLayer1)) && vFeatIn(nLayer1)~=vFeatOut(this.K1)
+            if not(isempty(nLayer1)) && sizeFeatIn(nLayer1)~=sizeFeatOut(this.K1)
                 error('input dimension of first normalization layer does not match output dimension of K1')
             end
-            if not(isempty(nLayer2)) && vFeatIn(nLayer2)~=vFeatOut(this.K2)
+            if not(isempty(nLayer2)) && sizeFeatIn(nLayer2)~=sizeFeatOut(this.K2)
                 error('input dimension of second normalization layer does not match output dimension of K2')
             end
             
@@ -137,15 +137,15 @@ classdef doubleLayer < abstractMeganetElement
                 n = n + nTheta(this.nLayer2);
             end
         end
-        function n = vFeatIn(this)
-            n = vFeatIn(this.K1);
+        function n = sizeFeatIn(this)
+            n = sizeFeatIn(this.K1);
         end
         
-        function n = vFeatOut(this)
-            n = vFeatOut(this.K2);
+        function n = sizeFeatOut(this)
+            n = sizeFeatOut(this.K2);
         end
         function n = nDataOut(this)
-            n = vFeatOut(this);
+            n = sizeFeatOut(this);
         end
         
         function theta = initTheta(this)
@@ -165,7 +165,7 @@ classdef doubleLayer < abstractMeganetElement
         % ------- apply forward model ----------
         function [Ydata,Y,tmp] = forwardProp(this,theta,Y,varargin)
             
-            nex = numel(Y)/prod(vFeatIn(this));
+            nex = numel(Y)/numelFeatIn(this);
             Y   = reshape(Y,[],nex);
             
             tmp        = cell(1,2);
@@ -250,7 +250,7 @@ classdef doubleLayer < abstractMeganetElement
         end
         
         function [dZ] = JYmv(this,dY,theta,Y,dA)
-            nex = numel(dY)/prod(vFeatIn(this));
+            nex = numel(dY)/numelFeatIn(this);
             if not(isempty(dY)) && (not(isscalar(dY) && dY==0))
                 % load temps and recompute activations
                 dY  = reshape(dY,[],nex);
@@ -270,7 +270,7 @@ classdef doubleLayer < abstractMeganetElement
         end
         
         function [dZ] = Jmv(this,dtheta,dY,theta,Y,dA)
-            nex = numel(Y)/prod(vFeatIn(this));
+            nex = numel(Y)/numelFeatIn(this);
             Y  = reshape(Y,[],nex);
             
             [dth1,dth2,dth3,dth4,dth5,dth6,dth7] = this.split(dtheta);
@@ -304,7 +304,7 @@ classdef doubleLayer < abstractMeganetElement
         % ----------- Jacobian' matvecs ----------
         
         function [dth,dAZ1] = JthetaTmv(this,W,~,theta,Y,dA)
-            nex        = numel(W)/prod(vFeatOut(this));
+            nex        = numel(W)/numelFeatOut(this);
             W          = reshape(W,[],nex);
             dth6 = []; dth7=[];
             dth5 = vec(sum(this.Bout'*W,2));
@@ -332,7 +332,7 @@ classdef doubleLayer < abstractMeganetElement
         
         function dY = JYTmv(this,Z,~,theta,Y,dA)
             [th1, th2,th3,th4,~,th6,th7] = this.split(theta);
-            nex = numel(Z)/prod(vFeatOut(this));
+            nex = numel(Z)/numelFeatOut(this);
             Z   = reshape(Z,[],nex);
             
             [A1,dA1,A2,dA2,K1Y,K2Z,tmpNL1,tmpNL2] = getTempsForSens(this,theta,Y,dA);
@@ -355,7 +355,7 @@ classdef doubleLayer < abstractMeganetElement
             if not(exist('doDerivative','var')) || isempty(doDerivative)
                doDerivative =[1;0]; 
             end
-            nex       = numel(Y)/prod(vFeatIn(this));
+            nex       = numel(Y)/numelFeatIn(this);
             Z         = reshape(Z,[],nex);
             
             dY = [];

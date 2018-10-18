@@ -33,7 +33,7 @@ classdef ResNN < abstractMeganetElement
                 layer.precision = precision;
             end
             this.layer = layer;
-            if any(vFeatOut(layer)~=vFeatIn(layer))
+            if any(sizeFeatOut(layer)~=sizeFeatIn(layer))
                 error('%s - dim. of input and output features must agree for ResNet layers',mfilename);
             end
             this.nt    = nt;
@@ -45,15 +45,15 @@ classdef ResNN < abstractMeganetElement
         function n = nTheta(this)
             n = this.nt*nTheta(this.layer);
         end
-        function n = vFeatIn(this)
-            n = vFeatIn(this.layer);
+        function n = sizeFeatIn(this)
+            n = sizeFeatIn(this.layer);
         end
-        function n = vFeatOut(this)
-            n = vFeatOut(this.layer);
+        function n = sizeFeatOut(this)
+            n = sizeFeatOut(this.layer);
         end
         function n = nDataOut(this)
            if numel(this.Q)==1
-               n = nnz(this.outTimes)*prod(vFeatOut(this.layer));
+               n = nnz(this.outTimes)*prod(sizeFeatOut(this.layer));
            else
                n = nnz(this.outTimes)*size(this.Q,1);
            end
@@ -79,7 +79,7 @@ classdef ResNN < abstractMeganetElement
         
         % ------- forwardProp forward problems -----------
         function [Ydata,Y,tmp] = forwardProp(this,theta,Y0)
-            nex = numel(Y0)/prod(vFeatIn(this));
+            nex = numel(Y0)/numelFeatIn(this);
             Y   = reshape(Y0,[],nex);
             if nargout>1;    tmp = cell(this.nt,2); end
             
@@ -101,7 +101,7 @@ classdef ResNN < abstractMeganetElement
             if isempty(dY)
                 dY = 0.0;
             elseif numel(dY)>1
-                nex = numel(dY)/prod(vFeatIn(this));
+                nex = numel(dY)/numelFeatIn(this);
                 dY   = reshape(dY,[],nex);
             end
             dYdata = [];
@@ -119,7 +119,7 @@ classdef ResNN < abstractMeganetElement
             if isempty(dY)
                 dY = 0.0;
             elseif numel(dY)>1
-                nex = numel(dY)/prod(vFeatIn(this));
+                nex = numel(dY)/numelFeatIn(this);
                 dY   = reshape(dY,[],nex);
             end
             
@@ -137,7 +137,7 @@ classdef ResNN < abstractMeganetElement
         % -------- Jacobian' matvecs ----------------
         
         function W = JYTmv(this,Wdata,W,theta,Y,tmp)
-            nex = numel(Y)/prod(vFeatIn(this));
+            nex = numel(Y)/numelFeatIn(this);
             if ~isempty(Wdata)
                 Wdata = reshape(Wdata,[],nnz(this.outTimes),nex);
             end
@@ -165,7 +165,7 @@ classdef ResNN < abstractMeganetElement
                doDerivative =[1;0]; 
             end
             
-            nex = numel(Y)/prod(vFeatIn(this));
+            nex = numel(Y)/numelFeatIn(this);
             if ~isempty(Wdata)
                 Wdata = reshape(Wdata,[],nnz(this.outTimes),nex);
             end

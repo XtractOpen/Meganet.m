@@ -23,7 +23,7 @@ pLoss = logRegressionLoss();
 %% solve the coupled problem
 regOp = opTimeDer(nTheta(net),nt,h);
 pRegK = tikhonovReg(regOp,1e-2,[]);
-regOpW = opEye((prod(vFeatOut(net))+1)*size(Ctrain,1));
+regOpW = opEye((prod(sizeFeatOut(net))+1)*size(Ctrain,1));
 pRegW = tikhonovReg(regOpW,1e-2);
 
 classSolver = newton();

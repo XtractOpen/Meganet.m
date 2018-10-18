@@ -16,8 +16,8 @@ ya = linspace(domain(3), domain(4), N);
 [XX,YY] = meshgrid(xa,ya);
 
 Y = [XX(:) YY(:)]';
-if prod(vFeatIn(net)) > 2
-    Y = [Y; zeros(prod(vFeatIn(net))-2,size(Y,2))]; % TODO
+if prod(sizeFeatIn(net)) > 2
+    Y = [Y; zeros(prod(sizeFeatIn(net))-2,size(Y,2))]; % TODO
 end
     
 if not(isempty(theta))

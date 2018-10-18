@@ -40,15 +40,15 @@ classdef connector < abstractMeganetElement
         function np = nTheta(this)
             np = 0;
         end
-        function n = vFeatIn(this)
+        function n = sizeFeatIn(this)
                 n = this.K.n;
         end
-        function n = vFeatOut(this)
+        function n = sizeFeatOut(this)
                 n = this.K.m;
         end
         function n = nDataOut(this)
             if numel(this.Q)==1
-                n = nnz(this.outTimes)*prod(vFeatOut(this));
+                n = nnz(this.outTimes)*numelFeatOut(this);
             else
                 n = nnz(this.outTimes)*size(this.Q,1);
             end
@@ -60,7 +60,7 @@ classdef connector < abstractMeganetElement
         
         % -------- forwardProp forward problem -------
         function [Ydata,Y,tmp] = forwardProp(this,~,Y0)
-%             nex = numel(Y0)/vFeatIn(this);
+%             nex = numel(Y0)/sizeFeatIn(this);
 %             Y0  = reshape(Y0,[],nex);
             nex = sizeLastDim(Y0);
             Y0  = reshape(Y0,[],nex);
@@ -76,7 +76,7 @@ classdef connector < abstractMeganetElement
         
         function [dYdata,dY] = Jmv(this,~,dY,~,~,~)
             if (isempty(dY)); dY = 0.0; return; end
-            nex = numel(dY)/prod(vFeatIn(this));
+            nex = numel(dY)/numelFeatIn(this);
             dY  = reshape(dY,[],nex);
             dY = this.K*dY;
             if this.outTimes==1
@@ -87,7 +87,7 @@ classdef connector < abstractMeganetElement
         end
             
         function [dtheta,W] = JTmv(this,Wdata,W,~,Y,~,doDerivative)
-            nex = numel(Y)/prod(vFeatIn(this));
+            nex = numel(Y)/numelFeatIn(this);
             if isempty(W)
                 W = 0;
             elseif not(isscalar(W))

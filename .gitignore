@@ -10,3 +10,4 @@ matconvnet-1.0-beta25/
 data/cifar-10-batches-mat/
 *.m~
 pax_global_header
+MeganetAddOns

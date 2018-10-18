@@ -53,13 +53,13 @@ classdef NN < abstractMeganetElement
                 end
             end
             
-            nout = vFeatOut(layers{1});
+            nout = sizeFeatOut(layers{1});
             for k=2:nt
-                if any(vFeatIn(layers{k}) ~= nout)
+                if any(sizeFeatIn(layers{k}) ~= nout)
                     error('%s - dim. of input features must match dim. of output features',...
                         mfilename);
                 end
-                nout = vFeatOut(layers{k});
+                nout = sizeFeatOut(layers{k});
             end
             this.layers   = layers;
             this.outTimes = outTimes;
@@ -74,18 +74,18 @@ classdef NN < abstractMeganetElement
             end
         end
         
-        function n = vFeatIn(this)
-            n = vFeatIn(this.layers{1});
+        function n = sizeFeatIn(this)
+            n = sizeFeatIn(this.layers{1});
         end
         
-        function n = vFeatOut(this)
-            n = vFeatOut(this.layers{end});
+        function n = sizeFeatOut(this)
+            n = sizeFeatOut(this.layers{end});
         end
         
         function n = nDataOut(this)
             n=0;
             for k=1:numel(this.layers)
-                n = n+this.outTimes(k)* prod(vFeatOut(this.layers{k}));
+                n = n+this.outTimes(k)* prod(sizeFeatOut(this.layers{k}));
             end
         end
         
@@ -174,7 +174,7 @@ classdef NN < abstractMeganetElement
         
         % -------- Jacobian' matvecs --------
         function W = JYTmv(this,Wdata,W,theta,Y,tmp)
-            nex = numel(Y)/prod(vFeatIn(this));
+            nex = numel(Y)/numelFeatIn(this);
             if ~isempty(Wdata)
                 Wdata = reshape(Wdata,[],nex);
             end
@@ -190,7 +190,7 @@ classdef NN < abstractMeganetElement
                 Yi = tmp{i,1};
                 ni = nTheta(this.layers{i});
                 if this.outTimes(i)==1
-                    nn = prod(vFeatOut(this.layers{i}));
+                    nn = prod(sizeFeatOut(this.layers{i}));
                     W = W + this.Q'*Wdata(end-cnt2-nn+1:end-cnt2,:);
                     cnt2 = cnt2 + nn;
                 end
@@ -205,7 +205,7 @@ classdef NN < abstractMeganetElement
                doDerivative =[1;0]; 
             end
             
-            nex = numel(Y)/prod(vFeatIn(this));
+            nex = numel(Y)/numelFeatIn(this);
             if ~isempty(Wdata)
                 Wdata = reshape(Wdata,[],nex);
             end
@@ -222,7 +222,7 @@ classdef NN < abstractMeganetElement
             for i=nt:-1:1
                 Yi = tmp{i,1};
                 if this.outTimes(i)==1
-                    nn = prod(vFeatOut(this.layers{i}));
+                    nn = prod(sizeFeatOut(this.layers{i}));
                     W = W+ this.Q'*Wdata(end-cnt2-nn+1:end-cnt2,:);
                     cnt2 = cnt2 + nn;
                 end

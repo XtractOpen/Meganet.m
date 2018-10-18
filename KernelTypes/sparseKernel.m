@@ -64,11 +64,19 @@ classdef sparseKernel
             n = size(this.Qs,2);
         end
         
-        function n = vFeatIn(this)
+        function n = sizeFeatIn(this)
             n = this.nK(2);
         end
         
-        function n = vFeatOut(this)
+        function n = sizeFeatOut(this)
+            n = this.nK(1);
+        end
+        
+        function n = numelFeatIn(this) % nK is 2-D so same as sizeFeatIn
+            n = this.nK(2); 
+        end
+        
+        function n = numelFeatOut(this) % nK is 2-D so same as sizeFeatOut
             n = this.nK(1);
         end
         

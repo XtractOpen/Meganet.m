@@ -52,7 +52,7 @@ alpha  = 5e-6;
 reg1 = tikhonovReg(opEye(nTheta(block1)),alpha);
 reg2 = tikhonovReg(opTimeDer(nTheta(block2),nt,h),alpha);
 pRegTh = blockReg({reg1,reg2});
-regOpW = opEye((vFeatOut(net)+1)*size(Ctrain,1));
+regOpW = opEye((sizeFeatOut(net)+1)*size(Ctrain,1));
 pRegW = tikhonovReg(regOpW,1e-10);
 
 %% setup classification and Newton solver for this subproblem

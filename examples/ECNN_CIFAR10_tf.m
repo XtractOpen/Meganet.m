@@ -52,7 +52,7 @@ fval = dnnBatchObjFctn(net,[],pLoss,[],Ytest,Ctest,'batchSize',256,'useGPU',useG
 if doTrain || not(exist(resFile,'file'))
 % initialize weights
 theta  = 1e-3*vec(randn(nTheta(net),1));
-W      = 1e-3*vec(randn(10,prod(vFeatOut(net))+1));
+W      = 1e-3*vec(randn(10,prod(sizeFeatOut(net))+1));
 [theta,W] = gpuVar(fctn.useGPU,fctn.precision,theta,W);
 
 % setup optimization

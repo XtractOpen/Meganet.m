@@ -44,16 +44,24 @@ classdef scalingKernel < handle
             n = sum(vec(this.nData).*vec(this.isWeight));
         end
         
-        function n = vFeatIn(this)
+        function n = sizeFeatIn(this)
             n = this.nData(1:2);
         end
         
-        function n = vFeatOut(this)
+        function n = sizeFeatOut(this)
             n = this.nData(1:2);
+        end
+        
+        function n = numelFeatIn(this)
+            n = prod(this.nData(1:2));
+        end
+        
+        function n = numelFeatOut(this)
+            n = prod(this.nData(1:2));
         end
        
         function A = getOp(this,theta)
-            n   = vFeatIn(this);
+            n   = sizeFeatIn(this);
             Af  = @(Y) this.Amv(theta,Y);
             ATf = @(Y) this.Amv(theta,Y);
             A   = LinearOperator(n,n,Af,ATf);

@@ -59,16 +59,16 @@ classdef batchNormLayer < abstractMeganetElement
             n = 2*this.nData(3);
         end
         
-        function n = vFeatIn(this)
+        function n = sizeFeatIn(this)
             n = this.nData(1:3);
         end
         
-        function n = vFeatOut(this)
+        function n = sizeFeatOut(this)
             n = this.nData(1:3);
         end
        
         function n = nDataOut(this)
-            n = vFeatOut(this);
+            n = sizeFeatOut(this);
         end
         
         function theta = initTheta(this)
