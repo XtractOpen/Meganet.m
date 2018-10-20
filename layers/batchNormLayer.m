@@ -31,26 +31,20 @@ classdef batchNormLayer < abstractMeganetElement
             this.eps = eps;
         end
         function [s2,b2] = split(this,theta)
-            s2 = reshape(theta(1:this.nData(3)),1,this.nData(3),1);
+            s2 = reshape(theta(1:this.nData(3)),1,1,this.nData(3),1);
             cnt = numel(s2);
-            b2 = reshape(theta(cnt+(1:this.nData(3))),1,this.nData(3),1);
+            b2 = reshape(theta(cnt+(1:this.nData(3))),1,1,this.nData(3),1);
         end
         
         function [Ydata,Y,dA] = forwardProp(this,theta,Y,varargin)
-           
-           Y   = reshape(Y,this.nData(1)*this.nData(2), this.nData(3),[]); dA = [];
-           nex = size(Y,3);
-           % normalization
-           
-           Y  = Y-mean(Y,3);
-           
-           Y  = Y./sqrt(mean(Y.^2,3)+this.eps);
+           dA = [];
+           Y  = Y-mean(Y,4);
+           Y  = Y./sqrt(mean(Y.^2,4)+this.eps);
            
            % scaling
            [s2,b2] = split(this,theta);           
            Y = Y.*s2;
            Y = Y + b2;
-           Y = reshape(Y,[],nex);
            Ydata = Y;
         end
         
@@ -79,73 +73,59 @@ classdef batchNormLayer < abstractMeganetElement
         
         
         function [dYdata,dY] = Jthetamv(this,dtheta,theta,Y,~)
-           Y   = reshape(Y,this.nData(1)*this.nData(2), this.nData(3),[]);
-           nex = size(Y,3);
            [ds2,db2] = split(this,dtheta);
            
            % normalization
-           Y  = Y-mean(Y,3);
-           Y  = Y./sqrt(mean(Y.^2,3)+this.eps);
+           Y  = Y-mean(Y,4);
+           Y  = Y./sqrt(mean(Y.^2,4)+this.eps);
            
            % scaling
            dY = Y.*ds2;
            dY = dY + db2;
            
-           dY = reshape(dY,[],nex);
            dYdata = dY;
         end
         
         function dtheta = JthetaTmv(this,Z,~,theta,Y,~)
-            Y   = reshape(Y,this.nData(1)*this.nData(2), this.nData(3),[]);
-            Z   = reshape(Z,this.nData(1)*this.nData(2), this.nData(3),[]);
             % normalization
-           Y  = Y-mean(Y,3);
-           Y  = Y./sqrt(mean(Y.^2,3)+this.eps);
+           Y  = Y-mean(Y,4);
+           Y  = Y./sqrt(mean(Y.^2,4)+this.eps);
            
             W = Y.*Z;
-            dtheta     = vec(sum(sum(W,1),3));
-            dtheta = [dtheta; vec(sum(sum(Z,1),3))];
+            dtheta     = vec(sum(sum(sum(W,1),2),4));
+            dtheta = [dtheta; vec(sum(sum(sum(Z,1),2),4))];
         end
        
         
         function [dYdata,dY] = JYmv(this,dY,theta,Y,~)
-            dY   = reshape(dY,this.nData(1)*this.nData(2), this.nData(3),[]);
-            nex = size(dY,3);
+            Y  = reshape(Y, this.nData(1), this.nData(2), this.nData(3),[]);
+            dY = reshape(dY, this.nData(1), this.nData(2), this.nData(3),[]);
             s2 = split(this,theta);
             
-            % normalization
-            nf  = this.nData(2);
-            Y    = reshape(Y,[],nf,nex);
+            Fy  = Y-mean(Y,4);
+            FdY = dY-mean(dY,4);
+            den = sqrt(mean(Fy.^2,4)+this.eps);
             
-            Fy  = Y-mean(Y,3);
-            FdY = dY-mean(dY,3);
-            den = sqrt(mean(Fy.^2,3)+this.eps);
-            
-            dY = FdY./den  - (Fy.* (mean(Fy.*FdY,3) ./(den.^3))) ;
+            dY = FdY./den  - (Fy.* (mean(Fy.*FdY,4) ./(den.^3))) ;
             % scaling
             dY = dY.*s2;
-            dY = reshape(dY,[],nex);
             dYdata = dY;
         end
         
         function FdY = JYTmv(this,FdY,~,theta,Y,~)
-           FdY   = reshape(FdY,this.nData(1)*this.nData(2), this.nData(3),[]); 
-           Y   = reshape(Y,this.nData(1)*this.nData(2), this.nData(3),[]); 
-           nex = size(FdY,3);
            % scaling
            s2 = split(this,theta);
            FdY = FdY.*s2;
            
            % normalization
-           Fy  = Y-mean(Y,3);
-           FdY = FdY-mean(FdY,3);
-           den = sqrt(mean(Fy.^2,3)+this.eps);
+           Fy  = Y-mean(Y,4);
+           FdY = FdY-mean(FdY,4);
+           den = sqrt(mean(Fy.^2,4)+this.eps);
            
-           tt = mean(Fy.*FdY,3) ./(den.^3);
+           tt = mean(Fy.*FdY,4) ./(den.^3);
            FdY = FdY./den;
            clear den;
            FdY = FdY - Fy.*tt;
-           FdY = reshape(FdY,[],nex);
         end
         
         

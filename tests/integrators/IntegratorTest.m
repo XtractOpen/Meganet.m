@@ -31,36 +31,13 @@ classdef IntegratorTest < matlab.unittest.TestCase
               Y0  = randn([sizeFeatIn(ks),10]);
               [Y0,th0] = gpuVar(ks.useGPU,ks.precision,Y0,th0);
               f = @(Y) linearizeY(ks,th0,Y);
-              isOK = checkJacobian(f,vec(Y0),'out',0,...
+              isOK = checkJacobian(f,Y0,'out',0,...
                                 'useGPU',ks.useGPU,'precision',ks.precision);
               testCase.verifyTrue(isOK);
            end
         end
 
-        function testVecInput(testCase)
-        % test if kernel operates on vectorized and reshapes images alike
-           for k=1:numel(testCase.integrators)
-              ks = testCase.integrators{k};
-              
-              th0 = randn(nTheta(ks),1);
-              Y  = randn([sizeFeatIn(ks),10]);
-              [Y,th0] = gpuVar(ks.useGPU,ks.precision,Y,th0);
-              [~,Z]  = ks.forwardProp(th0,Y);
-              
-              [~,Z1] = ks.forwardProp(th0,vec(Y));
-              [~,Z2] = ks.forwardProp(th0,reshape(Y,[sizeFeatIn(ks), 10]));
-              
-              testCase.verifyTrue(all(size(Z)==size(Z1)));
-              testCase.verifyTrue(all(size(Z)==size(Z2)));
-              
-              if isempty(th0)||numel(th0)==0
-                  break;
-              end
-                testCase.verifyTrue(norm(Z(:)-Z1(:))/norm(Z(:)) < 1e2*eps(th0(1)));
-                testCase.verifyTrue(norm(Z(:)-Z2(:))/norm(Z(:)) < 1e2*eps(th0(1)));
-           end
-        end            
-        
+               
         function testGetJThetaOp(testCase)
             for k=1:numel(testCase.integrators)
                 ks = testCase.integrators{k};

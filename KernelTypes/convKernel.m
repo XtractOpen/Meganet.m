@@ -95,6 +95,7 @@ classdef convKernel
                 
                 theta = max(min(2*sd, theta),-2*sd);
             end
+            theta = gpuVar(this.useGPU,this.precision,theta);
         end
         
         function [thFine] = prolongateConvStencils(this,theta,getRP)

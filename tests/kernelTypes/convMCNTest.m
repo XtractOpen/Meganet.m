@@ -5,15 +5,15 @@ classdef convMCNTest < kernelTest
     methods (TestClassSetup)
         function addKernels(testCase)
             ks    = cell(0,1);
-             ks{end+1} = convMCN([24 14],[3 3,1,2]);
-             ks{end+1} = convMCN([14 24],[3 3,2,2]);
-             ks{end+1} = convMCN([16 32],[3 3,1,4],'stride',2);
-             ks{end+1} = convMCN([16 32],[1 1,1,4],'stride',2);
-             ks{end+1} = convMCN([16 32],[2 2,1,4],'stride',2);
-             ks{end+1} = convMCN([16 32],[2 2,1,4],'pad',[0 1 0 1]);
-             Q = opRemoveAvg([3 3 1 4]);
-             ks{end+1} = convMCN([16 32],[3 3,1,4],'stride',2,'Q',Q);
-%              ks{end+1} = convMCN([16 32],[3 3,2,2],'precision','single');
+              ks{end+1} = convMCN([24 14],[3 3,3,4]);
+              ks{end+1} = convMCN([14 24],[3 3,2,2]);
+              ks{end+1} = convMCN([16 32],[3 3,2,2],'stride',2);
+              ks{end+1} = convMCN([16 32],[1 1,2,4],'stride',2);
+             ks{end+1} = convMCN([16 32],[2 2,3,4],'stride',2);
+%               ks{end+1} = convMCN([16 32],[2 2,3,4],'pad',[0 1 0 1]);
+             Q = opRemoveAvg([3 3 3 4]);
+             ks{end+1} = convMCN([16 32],[3 3,3,4],'stride',2,'Q',Q);
+            ks{end+1} = convMCN([16 32],[3 3,2,2],'precision','single');
             testCase.kernels = ks;
         end
     end

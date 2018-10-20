@@ -19,8 +19,8 @@ classdef kernelTest < matlab.unittest.TestCase
               Yt  = getOp(ks,th0)'*Z;
               
               
-              testCase.verifyTrue(size(Z,1)==numelFeatOut(ks));
-              testCase.verifyTrue(size(Yt,1)==numelFeatIn(ks));
+              testCase.verifyTrue(all(size(Z(:,:,:,1))==sizeFeatOut(ks)));
+              testCase.verifyTrue(all(size(Yt(:,:,:,1))==sizeFeatIn(ks)));
            end
         end
         
@@ -29,8 +29,8 @@ classdef kernelTest < matlab.unittest.TestCase
               ks = testCase.kernels{k};
               if ks.useGPU == 1
                   
-                  th   = randn(nTheta(ks),1);
-                  Y0   = randn([sizeFeatIn(ks),10]);
+                  th   = initTheta(ks);
+                  Y0   = randn([sizeFeatIn(ks),10],'like',th);
                   Z1   = getOp(ks,th)*Y0;
                   Y1   = getOp(ks,th)'*Z1;
                   
@@ -57,8 +57,7 @@ classdef kernelTest < matlab.unittest.TestCase
         function testAdjoint(testCase)
             for k=1:numel(testCase.kernels)
               ks    = testCase.kernels{k};
-              theta = randn(nTheta(ks),1);
-              theta = gpuVar(ks.useGPU,ks.precision,theta);
+              theta = initTheta(ks);
               A     = getOp(ks,theta);
               OK    = checkAdjoint(A,ks.useGPU,ks.precision);
               testCase.verifyTrue(OK);
@@ -70,16 +69,16 @@ classdef kernelTest < matlab.unittest.TestCase
            for k=1:numel(testCase.kernels)
               ks = testCase.kernels{k};
               
-              th  = randn(nTheta(ks),1);
-              dth = randn(nTheta(ks),1);
+              th  = initTheta(ks);
+              dth = randn(nTheta(ks),1,'like',th);
               nex = 1;
-              Y  = randn([sizeFeatIn(ks),nex])+nex;
-              Z  = randn([sizeFeatOut(ks),nex])-nex;
+              Y  = randn([sizeFeatIn(ks),nex],'like',th)+nex;
+              Z  = randn([sizeFeatOut(ks),nex],'like',th)-nex;
               
               [th,Y,Z] = gpuVar(ks.useGPU, ks.precision,th,Y,Z);
               
-              t1 = vec(Z)'*vec(Jthetamv(ks,dth,th,Y));
-              t2 = vec(dth)'*vec(JthetaTmv(ks,Z,th,Y));
+              t1 = sum(vec(Z.* Jthetamv(ks,dth,th,Y)));
+              t2 = sum(vec(dth.*JthetaTmv(ks,Z,th,Y)));
               testCase.verifyTrue(norm(t1-t2)/norm(t2) < 1e2*eps(gather(t1)));
            end
         end            

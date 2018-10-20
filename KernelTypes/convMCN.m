@@ -35,10 +35,9 @@ classdef convMCN < convKernel
             theta = rand(sK); 
             theta(:,1,:) = -1; theta(:,3,:) = 1;
             
-            I  = rand(nImg); I(4:12,4:12) = 2;
+            I  = rand([nImg sK(3)]); I(4:12,4:12,:) = 2;
             Ik = Amv(kernel,theta,I);
             Ik2 = ATmv(kernel,theta,Ik);
-            Ik = reshape(Ik,kernel.nImgOut());
             figure(1); clf;
             subplot(1,2,1);
             imagesc(I);
@@ -51,38 +50,27 @@ classdef convMCN < convKernel
         
         function [Y,tmp] = Amv(this,theta,Y)
             tmp   = []; % no need to store any intermediates
-            nex   = numel(Y)/prod(nImgIn(this));
             % nex = sizeLastDim(Y);
             
             % compute convolution
-            Y   = reshape(Y,[nImgIn(this) nex]); 
             K   = reshape(this.Q*theta(:),this.sK);
             Y   = vl_nnconv(Y,K,[],'pad',this.pad,'stride',this.stride);
-            Y   = reshape(Y,[],nex);
         end
 
         
         function dY = Jthetamv(this,dtheta,~,Y,~)
-            nex    =  numel(Y)/numelFeatIn(this);
-            Y      = reshape(Y,[],nex);
             dY = getOp(this,this.Q*dtheta(:))*Y;
         end
         
         
         function dtheta = JthetaTmv(this,Z,~,Y,~)
             %  derivative of Z*(A(theta)*Y) w.r.t. theta
-            nex    =  numel(Y)/prod(nImgIn(this));
-            Y      = reshape(Y,[nImgIn(this) nex]);
-            Z      = reshape(Z,[nImgOut(this) nex]);
-            % get derivative w.r.t. convolution kernels
             [~,dtheta] = vl_nnconv(Y,zeros(this.sK,'like',Y), [],Z,'pad',this.pad,'stride',this.stride);
             dtheta = this.Q'*dtheta(:);
         end
 
        function dY = ATmv(this,theta,Z)
             
-            nex    =  numel(Z)/prod(nImgOut(this));
-            Z      = reshape(Z,[nImgOut(this) nex]);
             theta = reshape(this.Q*theta(:),this.sK);
 
             crop = this.pad;
@@ -95,7 +83,6 @@ classdef convMCN < convKernel
             if this.stride==2 && this.sK(1)==1
                 dY = padarray(dY,[1 1],0,'post');
             end
-            dY = reshape(dY,[],nex);
        end
     end
 end

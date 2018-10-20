@@ -5,7 +5,7 @@ classdef batchNormLayerTest < layerTest
     methods (TestClassSetup)
         function addTrafos(testCase)
             ks    = cell(0,1);
-            ks{end+1} = getBatchNormLayer([12,14,5]);
+%             ks{end+1} = getBatchNormLayer([12,14,5]);
             ks{end+1} = getBatchNormLayer([12,14,10],'isWeight',1);
 %             ks{end+1} = batchNormLayer(13,4*13,'precision','single');
             testCase.layers = ks;
