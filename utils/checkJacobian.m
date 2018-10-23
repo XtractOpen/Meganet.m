@@ -41,7 +41,7 @@ else
     error('cannot deal this derivative')
 end
 
-if norm(vec(dvF))/(norm(x0)+norm(x0)==0) < 1e-10
+if norm(vec(dvF))/(norm(vec(x0))+norm(vec(x0))==0) < 1e-10
     warning('gradient is small');
 end
 nF     = norm(vec(F));
@@ -51,7 +51,7 @@ Success = zeros(30,1);
 for j=1:30
     Ft = fctn(x0+2.0^(-j)*v);      % function value
     Err(j,1) = gather(norm(vec(F-Ft))/nF);    % Error TaylorPoly 0
-    Err(j,2) = gather(norm(vec(F + 2.0^(-j)*dvF - Ft))/nF); % Error TaylorPoly 1
+    Err(j,2) = gather(norm(vec(F) + 2.0^(-j)*vec(dvF) - vec(Ft))/nF); % Error TaylorPoly 1
     if j>1
         Order(j,:) = log2(Err(j-1,:)./Err(j,:));
     end

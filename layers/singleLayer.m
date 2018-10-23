@@ -133,6 +133,7 @@ classdef singleLayer < abstractMeganetElement
             %   tmpNL - temp results of norm Layer
             
             % nex = numel(Y)/sizeFeatIn(this);
+            
             nex = sizeLastDim(Y);
             tmpNL =[];
             [th1, th2,~,th4]  = split(this,theta);
