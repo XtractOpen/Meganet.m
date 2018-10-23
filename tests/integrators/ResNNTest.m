@@ -11,10 +11,9 @@ classdef ResNNTest < IntegratorTest
             TT = dense([4 4]);
              ks{end+1} = ResNN(doubleLayer(TT,TT),10,.1) ;
              ks{end+1} = ResNN(doubleSymLayer(TT),10,.1) ;
-             outTimes = zeros(4,1); outTimes(2:2:end)=1;
-             ks{end+1} = ResNN(singleLayer(dense([14 14])),4,0.1,'outTimes',outTimes);
+             ks{end+1} = ResNN(singleLayer(dense([14 14])),4,0.1);
              ks{end+1} = ResNN(singleLayer(dense([14 14]),'useGPU',0),3,0.1);
-             ks{end+1} = ResNN(doubleLayer(TT,TT),4,.1,'outTimes',outTimes) ;
+             ks{end+1} = ResNN(doubleLayer(TT,TT),4,.1) ;
              ks{end+1} = ResNN(doubleSymLayer(TT),4,.1,'useGPU',0,'precision','double') ;
              
            testCase.integrators = ks;

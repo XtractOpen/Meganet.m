@@ -44,8 +44,8 @@ end
 if norm(vec(dvF))/(norm(vec(x0))+norm(vec(x0))==0) < 1e-10
     warning('gradient is small');
 end
-nF     = norm(vec(F));
-Err   = zeros(30,2);
+nF      = norm(vec(F));
+Err     = zeros(30,2);
 Order   = zeros(30,2);
 Success = zeros(30,1);
 for j=1:30

@@ -279,11 +279,9 @@ classdef dnnVarProBatchObjFctn < objFctn
             
             blocks = cell(2,1);
             blocks{1} = NN({singleLayer(dense([2*nf nf]))});
-            outTimes = zeros(10,1);
-            outTimes(end:-2:1)=1;
-            blocks{2} = ResNN(doubleSymLayer(dense([2*nf 2*nf])),10,.1,'outTimes',outTimes);
             net    = Meganet(blocks);
             nth    = nTheta(net);
+            blocks{2} = ResNN(doubleSymLayer(dense([2*nf 2*nf])),10,.1);
             theta  = randn(nth,1);
             
             Y = randn(nf,nex);

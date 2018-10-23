@@ -256,10 +256,10 @@ methods
             %
             %   J     - Jacobian, LinearOperator
             if nargin<4; tmp=[]; end
-%            nex    = numel(Y)/numelFeatIn(this);
+            nex    = sizeLastDim(Y);
 %            m      = [nDataOut(this)  nex]; %%%% ???? TODO
 %            n      = numel(theta);
-%             nex    = numel(Y)/numelFeatIn(this);
+%            nex    = numel(Y)/numelFeatIn(this);
             m      = sizeFeatOut(this);
             n      = nTheta(this);
             Amv    = @(x) Jthetamv(this,x,theta,Y,tmp);
@@ -392,8 +392,8 @@ methods
             %   J     - Jacobian, LinearOperator
             
             if nargin<4; tmp=[]; end
-
-            % nex    = numel(Y)/numelFeatIn(this);
+            
+            % nex    = sizeLastDim(Y);
             % m      = [nDataOut(this) nex]; %%%% ???? TODO
             m      = sizeFeatOut(this);
             nth    = numel(theta);

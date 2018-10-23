@@ -366,7 +366,7 @@ classdef dnnBatchObjFctn < objFctn
             blocks = cell(2,1);
             blocks{1} = NN({singleLayer(dense([2*nf nf]))});
             outTimes = ones(10,1);
-            blocks{2} = ResNN(doubleLayer(dense([2*nf 2*nf]),dense([2*nf 2*nf])),10,.1,'outTimes',outTimes);
+            blocks{2} = ResNN(doubleLayer(dense([2*nf 2*nf]),dense([2*nf 2*nf])),10,.1);
             net    = Meganet(blocks);
             nth = nTheta(net);
             theta  = randn(nth,1);

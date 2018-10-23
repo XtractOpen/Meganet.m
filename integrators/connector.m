@@ -4,7 +4,6 @@ classdef connector < abstractMeganetElement
     properties
         K   % numeric K is unsupported, use LinearOperator(K)
         b
-        outTimes 
         Q
         useGPU
         precision
@@ -17,7 +16,6 @@ classdef connector < abstractMeganetElement
                 this.runMinimalExample;
                 return;
             end
-            outTimes = 0;
             Q = 1.0;
             for k=1:2:length(varargin)     % overwrites default parameter
                 eval([varargin{k},'=varargin{',int2str(k+1),'};']);
@@ -32,7 +30,6 @@ classdef connector < abstractMeganetElement
             end
             this.K = K;
             this.b = b;
-            this.outTimes = outTimes;
             this.Q = Q;
         end
         
@@ -65,11 +62,8 @@ classdef connector < abstractMeganetElement
             nex = sizeLastDim(Y0);
             Y0  = reshape(Y0,[],nex);
             Y = this.K*Y0 + this.b;
-            if this.outTimes==1
-                Ydata = this.Q*Y;
-            else
-                Ydata = [];
-            end
+            
+            Ydata = [];
             tmp = {Y0};
             tmp{2} = Y;
         end
@@ -79,11 +73,9 @@ classdef connector < abstractMeganetElement
             nex = numel(dY)/numelFeatIn(this);
             dY  = reshape(dY,[],nex);
             dY = this.K*dY;
-            if this.outTimes==1
-                dYdata = this.Q*dY;
-            else
-                dYdata = [];
-            end
+            
+            dYdata = [];
+            
         end
             
         function [dtheta,W] = JTmv(this,Wdata,W,~,Y,~,doDerivative)
@@ -107,7 +99,7 @@ classdef connector < abstractMeganetElement
         function runMinimalExample(~)
             nex = 10;
             
-            net = connector(LinearOperator(randn(4,2)),.3,'outTimes',1);
+            net = connector(LinearOperator(randn(4,2)),.3);
             theta  = randn(nTheta(net),1);
             
             Y0  = randn(2,nex); 
