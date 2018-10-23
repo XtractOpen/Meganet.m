@@ -87,9 +87,9 @@ classdef doubleSymLayer < abstractMeganetElement
             end
         end
         
-        function [Z,QZ,tmp] = forwardProp(this,theta,Y,varargin)
-            QZ =[]; tmp =  cell(1,2);
-            nex        = numel(Y)/numelFeatIn(this);
+        function [Z,tmp] = forwardProp(this,theta,Y,varargin)
+            tmp =  cell(1,2);
+            nex        = numel(Y)/numelFeatIn(this); % TODO remove this
             Y          = reshape(Y,[],nex);
             storedAct  = (nargout>1);
             
@@ -144,7 +144,7 @@ classdef doubleSymLayer < abstractMeganetElement
             end
             
             if not(isempty(this.nLayer1))
-                [KYn,~,tmpNL1] = forwardProp(this.nLayer1,th4,KY);
+                [KYn,tmpNL1] = forwardProp(this.nLayer1,th4,KY);
             else
                 KYn = KY;
             end
@@ -158,7 +158,7 @@ classdef doubleSymLayer < abstractMeganetElement
                 else
                     KZ = tmp{2};
                 end
-                [~,~,tmpNL2] = forwardProp(this.nLayer2,th5,KZ);
+                [~,tmpNL2] = forwardProp(this.nLayer2,th5,KZ);
             end
                 
         end
@@ -180,10 +180,7 @@ classdef doubleSymLayer < abstractMeganetElement
         function n = sizeFeatOut(this)
             n = sizeFeatIn(this.K);
         end
-        
-        function n = nDataOut(this)
-            n = sizeFeatIn(this);
-        end
+
         
         function theta = initTheta(this)
             theta = [vec(initTheta(this.K)); ...

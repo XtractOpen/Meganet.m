@@ -45,7 +45,7 @@ classdef IntegratorTest < matlab.unittest.TestCase
                 th0 = randn(nTheta(ks),1);
                 Y  = randn([sizeFeatIn(ks),10]);
                 [Y,th0] = gpuVar(ks.useGPU,ks.precision,Y,th0);
-                [~,~,dA] = forwardProp(ks,th0,Y);
+                [~,dA] = forwardProp(ks,th0,Y);
                 if nTheta(ks)>0
                 J  = getJthetaOp(ks,th0,Y,dA);
                 chkA = checkAdjoint(J,ks.useGPU,ks.precision);
@@ -60,7 +60,7 @@ classdef IntegratorTest < matlab.unittest.TestCase
                 th0 = randn(nTheta(ks),1);
                 Y  = randn([sizeFeatIn(ks),10]);
                 [Y,th0] = gpuVar(ks.useGPU,ks.precision,Y,th0);
-                [~,~,dA] = forwardProp(ks,th0,Y);
+                [~,dA] = forwardProp(ks,th0,Y);
                 
                 J  = getJYOp(ks,th0,Y,dA);
                 chkA = checkAdjoint(J,ks.useGPU,ks.precision);
@@ -75,7 +75,7 @@ classdef IntegratorTest < matlab.unittest.TestCase
                 th0 = randn(nTheta(ks),1);
                 Y  = randn([sizeFeatIn(ks),10]);
                 [Y,th0] = gpuVar(ks.useGPU,ks.precision,Y,th0);
-                [~,~,dA] = forwardProp(ks,th0,Y);
+                [~,dA] = forwardProp(ks,th0,Y);
                 
                 J  = getJOp(ks,th0,Y,dA);
                 chkA = checkAdjoint(J,ks.useGPU,ks.precision);

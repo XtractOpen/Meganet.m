@@ -44,7 +44,7 @@ classdef layerTest < matlab.unittest.TestCase
                 if nTheta(ks)>0
                     th0 = initTheta(ks);
                     Y  = randn([sizeFeatIn(ks),10],'like',th0);
-                    [~,~,dA] = forwardProp(ks,th0,Y);
+                    [~,dA] = forwardProp(ks,th0,Y);
                     
                     J  = getJthetaOp(ks,th0,Y,dA);
                     [chkA,errA] = checkAdjoint(J);
@@ -58,7 +58,7 @@ classdef layerTest < matlab.unittest.TestCase
                 
                 th0 = initTheta(ks);
                 Y  = randn([sizeFeatIn(ks),10],'like',th0);
-                [~,~,dA] = forwardProp(ks,th0,Y);
+                [~,dA] = forwardProp(ks,th0,Y);
                 
                 J  = getJYOp(ks,th0,Y,dA);
                 [chkA,errA] = checkAdjoint(J,ks.useGPU,ks.precision);
@@ -72,7 +72,7 @@ classdef layerTest < matlab.unittest.TestCase
                 
                 th0 = initTheta(ks);
                 Y  = randn([sizeFeatIn(ks),10],'like',th0);
-                [~,~,dA] = forwardProp(ks,th0,Y);
+                [~,dA] = forwardProp(ks,th0,Y);
                 
                 J  = getJOp(ks,th0,Y,dA);
                 [chkA,errA] = checkAdjoint(J,ks.useGPU,ks.precision);

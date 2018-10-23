@@ -62,7 +62,7 @@ classdef singleLayer < abstractMeganetElement
             th4 = theta(cnt+1:end);
         end
         
-        function [Ydata,Y,KY] = forwardProp(this,theta,Y,varargin)
+        function [Y,KY] = forwardProp(this,theta,Y,varargin)
             doDerivative  = (nargout>1); KY = [];
             for k=1:2:length(varargin)     % overwrites default parameter
                 eval([varargin{k},'=varargin{',int2str(k+1),'};']);
@@ -89,7 +89,6 @@ classdef singleLayer < abstractMeganetElement
             if not(isempty(th3))
                 Y = Y +this.Bout*th3;
             end
-            Ydata = Y;
         end
         
         function n = nTheta(this)
@@ -104,10 +103,6 @@ classdef singleLayer < abstractMeganetElement
         end
         
         function n = sizeFeatOut(this)
-            n = sizeFeatOut(this.K);
-        end
-        
-        function n = nDataOut(this)
             n = sizeFeatOut(this.K);
         end
         
@@ -143,7 +138,7 @@ classdef singleLayer < abstractMeganetElement
                 KY = getOp(this.K,th1)*Y;
             end
             if not(isempty(this.nLayer))
-                [KYn,~,tmpNL] = forwardProp(this.nLayer,th4,KY);
+                [KYn,tmpNL] = forwardProp(this.nLayer,th4,KY);
             else
                 KYn = KY;
             end
@@ -184,7 +179,7 @@ classdef singleLayer < abstractMeganetElement
             dZ = dA.*dZ;
         end
         
-        function [dZ] = Jmv(this,dtheta,dY,theta,Y,KY)
+        function dZ = Jmv(this,dtheta,dY,theta,Y,KY)
             [th1, ~,~,th4]  = split(this,theta);
                         
             [dA,KY,tmpNL] = getTempsForSens(this,theta,Y,KY);

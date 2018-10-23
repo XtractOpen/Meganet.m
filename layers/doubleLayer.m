@@ -144,9 +144,6 @@ classdef doubleLayer < abstractMeganetElement
         function n = sizeFeatOut(this)
             n = sizeFeatOut(this.K2);
         end
-        function n = nDataOut(this)
-            n = sizeFeatOut(this);
-        end
         
         function theta = initTheta(this)
             theta = [vec(initTheta(this.K1)); vec(initTheta(this.K2)); ...
@@ -163,7 +160,7 @@ classdef doubleLayer < abstractMeganetElement
         end
         
         % ------- apply forward model ----------
-        function [Ydata,Y,tmp] = forwardProp(this,theta,Y,varargin)
+        function [Y,tmp] = forwardProp(this,theta,Y,varargin)
             
             nex = numel(Y)/numelFeatIn(this);
             Y   = reshape(Y,[],nex);
@@ -191,7 +188,6 @@ classdef doubleLayer < abstractMeganetElement
             if not(isempty(th5))
                 Y     = Y+  this.Bout*th5;
             end
-            Ydata = Y;
         end
         
         function [A1,dA1,A2,dA2,K1Y,K2Z,tmpNL1,tmpNL2] = getTempsForSens(this,theta,Y,tmp)
@@ -219,7 +215,7 @@ classdef doubleLayer < abstractMeganetElement
                 K1Y = tmp{1};
             end
             if not(isempty(this.nLayer1))
-                [K1Yn,~,tmpNL1] = forwardProp(this.nLayer1,th6,K1Y);
+                [K1Yn,tmpNL1] = forwardProp(this.nLayer1,th6,K1Y);
             else
                 K1Yn = K1Y;
             end
@@ -234,7 +230,7 @@ classdef doubleLayer < abstractMeganetElement
             end
             
             if not(isempty(this.nLayer2))
-                [K2Zn,~,tmpNL2] = forwardProp(this.nLayer2,th7,K2Z);
+                [K2Zn,tmpNL2] = forwardProp(this.nLayer2,th7,K2Z);
             else
                 K2Zn= K2Z;
             end

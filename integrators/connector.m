@@ -4,7 +4,6 @@ classdef connector < abstractMeganetElement
     properties
         K   % numeric K is unsupported, use LinearOperator(K)
         b
-        Q
         useGPU
         precision
     end
@@ -16,7 +15,6 @@ classdef connector < abstractMeganetElement
                 this.runMinimalExample;
                 return;
             end
-            Q = 1.0;
             for k=1:2:length(varargin)     % overwrites default parameter
                 eval([varargin{k},'=varargin{',int2str(k+1),'};']);
             end
@@ -43,27 +41,19 @@ classdef connector < abstractMeganetElement
         function n = sizeFeatOut(this)
                 n = this.K.m;
         end
-        function n = nDataOut(this)
-            if numel(this.Q)==1
-                n = nnz(this.outTimes)*numelFeatOut(this);
-            else
-                n = nnz(this.outTimes)*size(this.Q,1);
-            end
-        end
         
         function theta = initTheta(this)
             theta = [];
         end
         
         % -------- forwardProp forward problem -------
-        function [Ydata,Y,tmp] = forwardProp(this,~,Y0)
+        function [Y,tmp] = forwardProp(this,~,Y0)
 %             nex = numel(Y0)/sizeFeatIn(this);
 %             Y0  = reshape(Y0,[],nex);
             nex = sizeLastDim(Y0);
             Y0  = reshape(Y0,[],nex);
             Y = this.K*Y0 + this.b;
-            
-            Ydata = [];
+           
             tmp = {Y0};
             tmp{2} = Y;
         end
@@ -103,7 +93,7 @@ classdef connector < abstractMeganetElement
             theta  = randn(nTheta(net),1);
             
             Y0  = randn(2,nex); 
-            [Ydata,~,tmp]   = net.forwardProp(theta,Y0);
+            [Ydata,tmp]   = net.forwardProp(theta,Y0);
             dmb = randn(size(theta));
             dY0 = randn(size(Y0));
             

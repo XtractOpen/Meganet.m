@@ -79,13 +79,6 @@ classdef NN < abstractMeganetElement
             n = sizeFeatOut(this.layers{end});
         end
         
-        function n = nDataOut(this)
-            n=0;
-            for k=1:numel(this.layers)
-                n = n + prod(sizeFeatOut(this.layers{k}));
-            end
-        end
-        
         function theta = initTheta(this)
             theta = [];
             for k=1:numel(this.layers)
@@ -106,17 +99,16 @@ classdef NN < abstractMeganetElement
         end
         
         % --------- forward problem ----------
-        function [Ydata,Y,tmp] = forwardProp(this,theta,Y0)
+        function [Y,tmp] = forwardProp(this,theta,Y0)
             Y = Y0;
             nt = numel(this.layers);
             
             if nargout>1;    tmp = cell(nt,2); end
-            Ydata = [];
             cnt = 0;
             for i=1:nt
                 ni = nTheta(this.layers{i});
                 if (nargout>1), tmp{i,1} = Y; end
-                [Y,~,tmp{i,2}] = this.layers{i}.forwardProp(theta(cnt+(1:ni)),Y);
+                [Y,tmp{i,2}] = this.layers{i}.forwardProp(theta(cnt+(1:ni)),Y);
                 cnt = cnt + ni;
             end
         end
@@ -317,7 +309,7 @@ classdef NN < abstractMeganetElement
             mb  = randn(nTheta(net),1);
             
             Y0  = randn(2,nex);
-            [Ydata,~,tmp]   = net.forwardProp(mb,Y0);
+            [Ydata,tmp]   = net.forwardProp(mb,Y0);
             dmb = randn(size(mb));
             dY0 = randn(size(Y0));
             

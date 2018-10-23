@@ -54,7 +54,7 @@ classdef normLayer < abstractMeganetElement
             Y = nEl*Y;
         end
         
-        function [Ydata,Y,dA] = forwardProp(this,~,Y,varargin)
+        function [Y,dA] = forwardProp(this,~,Y,varargin)
             dA = [];
             for k=1:2:length(varargin)     % overwrites default parameter
                 eval([varargin{k},'=varargin{',int2str(k+1),'};']);
@@ -65,7 +65,6 @@ classdef normLayer < abstractMeganetElement
             
             % normalize
             Y  = Y./sqrt(compMean(this,Y.^2)+this.eps);
-            Ydata = Y;
         end
         
         function n = nTheta(this)
@@ -78,10 +77,6 @@ classdef normLayer < abstractMeganetElement
         
         function n = sizeFeatOut(this)
             n = this.nData;
-        end
-        
-        function n = nDataOut(this)
-            n = sizeFeatOut(this);
         end
         
         function theta = initTheta(this)
@@ -164,7 +159,7 @@ classdef normLayer < abstractMeganetElement
             L = batchNormLayer(nfilt,nFeat);
             
             
-            [Ydata,~,dA]   = L.forwardProp([],Y0);
+            [Y,dA]   = L.forwardProp([],Y0);
             dY0  = randn(size(Y0));
             
             dY = L.Jmv([],dY0,[],Y0,dA);
@@ -173,13 +168,13 @@ classdef normLayer < abstractMeganetElement
                 
                 Yt = L.forwardProp([],Y0+hh*dY0);
                 
-                E0 = norm(Yt(:)-Ydata(:));
-                E1 = norm(Yt(:)-Ydata(:)-hh*dY(:));
+                E0 = norm(Yt(:)-Y(:));
+                E1 = norm(Yt(:)-Y(:)-hh*dY(:));
                 
                 fprintf('h=%1.2e\tE0=%1.2e\tE1=%1.2e\n',hh,E0,E1);
             end
             
-            W = randn(size(Ydata));
+            W = randn(size(Y));
             t1  = W(:)'*dY(:);
             
             [~,dWY] = L.JTmv(W,[],[],Y0,dA);

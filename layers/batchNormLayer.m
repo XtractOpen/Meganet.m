@@ -36,7 +36,7 @@ classdef batchNormLayer < abstractMeganetElement
             b2 = reshape(theta(cnt+(1:this.nData(3))),1,1,this.nData(3),1);
         end
         
-        function [Ydata,Y,dA] = forwardProp(this,theta,Y,varargin)
+        function [Y,dA] = forwardProp(this,theta,Y,varargin)
            dA = [];
            Y  = Y-mean(Y,4);
            Y  = Y./sqrt(mean(Y.^2,4)+this.eps);
@@ -59,10 +59,6 @@ classdef batchNormLayer < abstractMeganetElement
         
         function n = sizeFeatOut(this)
             n = this.nData(1:3);
-        end
-       
-        function n = nDataOut(this)
-            n = sizeFeatOut(this);
         end
         
         function theta = initTheta(this)

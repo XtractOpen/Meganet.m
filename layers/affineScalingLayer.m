@@ -57,7 +57,7 @@ classdef affineScalingLayer < abstractMeganetElement
            end
         end
         
-        function [Ydata,Y,dA] = forwardProp(this,theta,Y,varargin)
+        function [Y,dA] = forwardProp(this,theta,Y,varargin)
             Y   = reshape(Y,this.nData(1), this.nData(2),[]); dA = [];
            nex = size(Y,3);
            if this.isWeight(3) && nex ~= this.nData(3)
@@ -80,7 +80,6 @@ classdef affineScalingLayer < abstractMeganetElement
            end
            
            Y = reshape(Y,[],nex);
-            Ydata = Y;
         end
         
         function Y = scaleCoord(this,Y,s1,s2,s3)
@@ -99,7 +98,6 @@ classdef affineScalingLayer < abstractMeganetElement
         
         function n = nTheta(this)
             n = 2*sum(vec(this.nData).*vec(this.isWeight));
-            
         end
         
         function n = sizeFeatIn(this)
@@ -108,10 +106,6 @@ classdef affineScalingLayer < abstractMeganetElement
         
         function n = sizeFeatOut(this)
             n = this.nData(1:2); %%%%%% ARE these really the same? TODO
-        end
-       
-        function n = nDataOut(this)
-            n = sizeFeatOut(this);
         end
         
         function theta = initTheta(this)

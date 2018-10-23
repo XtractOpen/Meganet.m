@@ -164,7 +164,7 @@ methods
             %
             %   Z     - current output features
             %   J     - Jacobian, LinearOperator
-            [Z,~,tmp]  = forwardProp(this,theta,Y);
+            [Z,tmp]  = forwardProp(this,theta,Y);
             J        = getJYOp(this,theta,Y,tmp);
         end
         
@@ -256,9 +256,6 @@ methods
             %   J     - Jacobian, LinearOperator
             if nargin<4; tmp=[]; end
             nex    = sizeLastDim(Y);
-%            m      = [nDataOut(this)  nex]; %%%% ???? TODO
-%            n      = numel(theta);
-%            nex    = numel(Y)/numelFeatIn(this);
             m      = sizeFeatOut(this);
             n      = nTheta(this);
             Amv    = @(x) Jthetamv(this,x,theta,Y,tmp);
@@ -282,7 +279,7 @@ methods
             %
             %   Z     - output features
             %   J     - Jacobian, LinearOperator
-            [Z,~,tmp] = forwardProp(this,theta,Y);
+            [Z,tmp] = forwardProp(this,theta,Y);
             J       = getJthetaOp(this,theta,Y,tmp);
         end
         
@@ -393,7 +390,6 @@ methods
             if nargin<4; tmp=[]; end
             
             % nex    = sizeLastDim(Y);
-            % m      = [nDataOut(this) nex]; %%%% ???? TODO
             m      = sizeFeatOut(this);
             nth    = nTheta(this);
             nY     = numelFeatIn(this);

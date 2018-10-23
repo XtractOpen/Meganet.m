@@ -124,7 +124,7 @@ classdef dnnBatchObjFctn < objFctn
                 end
                 
                 if compGrad
-                    [YNk,~,tmp]                  = forwardProp(this.net,theta,Yk); % forward propagation
+                    [YNk,tmp]          = forwardProp(this.net,theta,Yk); % forward propagation
                     J = getJthetaOp(this.net,theta,Yk,tmp);
                     [Fk,hisLk,dWFk,d2WFk,dYF,d2YF] = getMisfit(this.pLoss,W,YNk,Ck);
                 else
@@ -365,7 +365,6 @@ classdef dnnBatchObjFctn < objFctn
             
             blocks = cell(2,1);
             blocks{1} = NN({singleLayer(dense([2*nf nf]))});
-            outTimes = ones(10,1);
             blocks{2} = ResNN(doubleLayer(dense([2*nf 2*nf]),dense([2*nf 2*nf])),10,.1);
             net    = Meganet(blocks);
             nth = nTheta(net);
@@ -385,7 +384,7 @@ classdef dnnBatchObjFctn < objFctn
             
             
             pLoss = softmaxLoss();
-            W = vec(randn(2,nDataOut(net)+1));
+            W = vec(randn(2,numelFeatOut(net)+1));
             pRegW  = tikhonovReg(.01*speye(numel(W)));
             pRegTheta    = tikhonovReg(.01*speye(numel(theta)));
             

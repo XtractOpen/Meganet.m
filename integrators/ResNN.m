@@ -55,8 +55,6 @@ classdef ResNN < abstractMeganetElement
             t1 = 0:this.h:(this.nt-1)*this.h;
             
             net2 = ResNN(this.layer,2*this.nt,this.h/2,'useGPU',this.useGPU,'Q',this.Q,'precision',this.precision);
-            net2.outTimes = (sum(this.outTimes)>0)*net2.outTimes;
-          
             t2 = 0:net2.h:(net2.nt-1)*net2.h;
             
             theta2 = inter1D(theta,t1,t2);
@@ -73,7 +71,7 @@ classdef ResNN < abstractMeganetElement
             
             for i=1:this.nt
                 if (nargout>1), tmp{i,1} = Y; end
-                [Z,~,tmp{i,2}] = forwardProp(this.layer,theta(:,i),Y);
+                [Z,tmp{i,2}] = forwardProp(this.layer,theta(:,i),Y);
                 Y =  Y + this.h * Z;
             end
         end

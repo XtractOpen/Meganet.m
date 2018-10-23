@@ -63,6 +63,7 @@ classdef dnnVarProBatchObjFctn < objFctn
                 Y = this.Y(:,idx);
                 C = this.C(:,idx);
             end
+            colons = repmat( {':'} , 1 , ndims(Y)-1 ); % variable-length colons for indexing Y
             
             compGrad = nargout>2;
             compHess = nargout>3;
@@ -71,11 +72,10 @@ classdef dnnVarProBatchObjFctn < objFctn
             nex = sizeLastDim(Y);
             nb  = nBatches(this,nex);
             % forward prop
-            YN = zeros(nDataOut(this.net),nex,'like',this.Y);
+            YN = zeros(nDataOut(this.net),nex,'like',this.Y); % TODO : remove nDataOut
             for k=1:nb
                 if nb>1
                     idk = this.getBatchIds(k,nex);
-                    colons = repmat( {':'} , 1 , ndims(Y)-1 );
                     Yk  = Y( colons{:} , idk);
                 else
                     Yk = Y;
@@ -92,12 +92,11 @@ classdef dnnVarProBatchObjFctn < objFctn
             fctn   = classObjFctn(this.pLoss,this.pRegW,YN,C);
             W      = solve(this.optClass,fctn,zeros(size(C,1)*(size(YN,1)+1),1,'like',theta)); % TODO size(YN,1)
             
-            %compute loss
+            % compute loss
             F = 0.0; hisLoss = []; dJth = 0.0;
             for k=nb:-1:1
                 idk = this.getBatchIds(k,nex);
                 if nb>1
-                    colons = repmat( {':'} , 1 , ndims(Y)-1 );
                     Yk  = Y( colons{:} , idk);
                     Ck  = C(:,idk);
                 else
@@ -290,7 +289,7 @@ classdef dnnVarProBatchObjFctn < objFctn
             C(2,Y(2,:)<=Y(1,:).^2) = 1;
             
             pLoss = softmaxLoss();
-            W = vec(randn(2,nDataOut(net)+1));
+            W = vec(randn(2,numelFeatOut(net)+1));
             pRegW        = tikhonovReg(opEye(numel(W)),1e-3);
             pRegTheta    = tikhonovReg(opEye(numel(theta)),1e-3);
             

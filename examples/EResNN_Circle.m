@@ -41,13 +41,12 @@ fval = dnnObjFctn(net,[],pLoss,[],Yv,Cv);
 
 % th0 = 1e0*max(randn(nTheta(net),1),0);
 th0 = repmat(1e-2*[randn(4,1);0],nt,1);
-%  W0  = randn((nDataOut(net)+1)*size(Ctrain,1),1);
 % W0  = [1;0;0;0;1;0]
 thetaOpt = solve(opt,fctn,th0,fval);
 [Jc,para] = eval(fctn,thetaOpt);
 WOpt = para.W;
 %%
-[Ydata,Yn,tmp] = forwardProp(net,thetaOpt,Yv);
+[Yn,tmp] = forwardProp(net,thetaOpt,Yv);
 figure(1);
 subplot(1,3,2);
 viewFeatures2D(Yn,Cv);

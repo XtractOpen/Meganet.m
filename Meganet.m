@@ -4,7 +4,6 @@ classdef Meganet < abstractMeganetElement
     
     properties
         blocks
-        outTimes
         useGPU
         precision
     end
@@ -18,7 +17,6 @@ classdef Meganet < abstractMeganetElement
             nBlocks = numel(blocks);
             useGPU = [];
             precision = [];
-            outTimes = zeros(nBlocks,1); outTimes(end)=1;
             for k=1:2:length(varargin)     % overwrites default parameter
                 eval([varargin{k},'=varargin{',int2str(k+1),'};']);
             end
@@ -41,12 +39,6 @@ classdef Meganet < abstractMeganetElement
                 nout = sizeFeatOut(blocks{k});
             end
             this.blocks = blocks;
-            for k=1:nBlocks
-                this.blocks{k}.outTimes = this.blocks{k}.outTimes*outTimes(k);
-            end
-            if nDataOut(this)==0
-                this.blocks{end}.outTimes(end)=1;
-            end
         end
         
         % ------- counting ----------
@@ -63,12 +55,6 @@ classdef Meganet < abstractMeganetElement
         
         function n = sizeFeatIn(this)
             n = sizeFeatIn(this.blocks{1});
-        end
-        function n = nDataOut(this)
-            n = 0;
-            for k=1:numel(this.blocks)
-                n = n + nDataOut(this.blocks{k});
-            end
         end
         
         function theta = initTheta(this)
@@ -118,25 +104,20 @@ classdef Meganet < abstractMeganetElement
         end
         
         % ---------- apply forward problem ------------
-        function [Ydata,Y,tmp] = forwardProp(this,theta,Y0)
-%             nex = numel(Y0)/sizeFeatIn(this);
-%             Y0  = reshape(Y0,[],nex);
-            nex = sizeLastDim( Y0 );
+        function [Y,tmp] = forwardProp(this,theta,Y0)
             nBlocks = numel(this.blocks);
             Y  = Y0;
             tmp = cell(nBlocks,1);
             thetas = split(this,theta);
-            Ydata = [];
             for k=1:nBlocks
-                [Yd,Y,tmp{k}] = forwardProp(this.blocks{k},thetas{k},Y);
-                Ydata = [Ydata;Yd];
+                [Y,tmp{k}] = forwardProp(this.blocks{k},thetas{k},Y);
             end
         end
         
         function YN = applyBatch(this,theta,Y0,batchSize)
-           % nex = numel(Y0)/sizeFeatIn(this);
-           nex = sizeLastDim( Y0 );
-           YN = zeros(nDataOut(this),nex,'like',Y0);
+           colons = repmat( {':'} , 1 , ndims(Y0)-1 ); % variable-length colons for indexing Y
+           nex = sizeLastDim(Y0);
+           YN = zeros(size(Y0));
            if not(isempty(batchSize))
                nBlocks = ceil(nex/batchSize);
                id = randperm(nex);
@@ -151,7 +132,7 @@ classdef Meganet < abstractMeganetElement
                if numel(idk)==0
                    break;
                end
-                YN(:,idk) = forwardProp(this,theta,Y0(:,idk));
+                YN(colons{:},idk) = forwardProp(this,theta,Y0(colons{:},idk));
                 cnt = cnt + numel(idk);
             end
         end
@@ -210,7 +191,7 @@ classdef Meganet < abstractMeganetElement
         end
         
        
-        function [dtheta,W] = JTmv(this,Wdata,W,theta,Y,tmp,doDerivative)
+        function [dtheta,W] = JTmv(this,W,theta,Y,tmp,doDerivative)
             if not(exist('doDerivative','var')) || isempty(doDerivative) 
                doDerivative =[1;0]; 
             end
@@ -221,9 +202,6 @@ classdef Meganet < abstractMeganetElement
             else
                 W  = reshape(W,[],nex);
             end
-            if not(isempty(Wdata))
-                Wdata = reshape(Wdata,[],nex);
-            end
             
             nBlocks  = numel(this.blocks);
             dtheta = 0*theta;
@@ -233,12 +211,9 @@ classdef Meganet < abstractMeganetElement
                 nk = nTheta(this.blocks{k});
                 no = prod(sizeFeatOut(this.blocks{k}));
                 %                 W  = Wdata(end-cntW-no+1:end-cntW,:);
-                if any(this.blocks{k}.outTimes)
-                    ndk = nDataOut(this.blocks{k});
-                    Wd  = Wdata(end-cntWd-prod(ndk)+1:end-cntWd,:);
-                else
-                    Wd = [];
-                end
+                
+                Wd = [];
+                
                 cntW = cntW + no;
                 [dmbk,W] = JTmv(this.blocks{k},Wd,W,theta(end-cnt-nk+1:end-cnt),tmp{k}{1,1},tmp{k});
                 dtheta(end-cnt-nk+1:end-cnt) = dmbk;
@@ -314,13 +289,7 @@ classdef Meganet < abstractMeganetElement
                 end
             end
         end
-        function this = set.outTimes(this,value)
-            nBlocks = numel(this.blocks);
-            for k=1:nBlocks
-                this.blocks{k}.outTimes = this.blocks{k}.outTimes*value(k);
-                this.outTimes = value;
-            end
-        end
+        
         function useGPU = get.useGPU(this)
             useGPU = this.blocks{1}.useGPU;
             for k=2:length(this.blocks)
@@ -344,7 +313,7 @@ classdef Meganet < abstractMeganetElement
         function runMinimalExample(~)
             nex    = 10;
             blocks = cell(0,1);
-            blocks{end+1} = NN({singleLayer(dense([4 2]))},'outTimes',0);
+            blocks{end+1} = NN({singleLayer(dense([4 2]))});
             blocks{end+1} = ResNN(singleLayer(dense([4 4])),3,1);
             net    = Meganet(blocks);
             net.useGPU=0;
