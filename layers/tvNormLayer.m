@@ -106,14 +106,20 @@ classdef tvNormLayer < abstractMeganetElement
             Y   = reshape(Y,this.nData(1),this.nData(2), this.nData(3),[]);
             s2 = split(this,theta);
             
+            % normalization
+%             nf  = this.nData(2);
+%             Y    = reshape(Y,[],nf,nex);
+            Y   = reshape(Y,this.nData(1)*this.nData(2), this.nData(3),[]);
             
             Fy  = Y-mean(Y,3);
             FdY = dY-mean(dY,3);
             den = sqrt(mean(Fy.^2,3)+this.eps);
             
-            dY = FdY./den  - (Fy.* (mean(Fy.*FdY,3) ./(den.^3))) ;
+            % TODO FdY and den are different shapes
+            dY = FdY./den  - (Fy.* (mean(Fy.*FdY,2) ./(den.^3))) ;
             % scaling
-            dY = dY.*s2;
+            dY = dY.*s2; % (3-D) .* (2-D matrix)
+            dY = reshape(dY,[],nex);
             dYdata = dY;
         end
         

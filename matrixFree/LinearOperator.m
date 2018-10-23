@@ -128,7 +128,7 @@ classdef LinearOperator
             end
             ABf  = @(x) this.Amv(x) + B.Amv(x);
             ABTf = @(x) this.ATmv(x) + B.ATmv(x);
-            AB = LinearOperator(ABm,ABn, ABf, ABTf);
+            AB = LinearOperator(ABm, ABn, ABf, ABTf);
         end
         
         function AB = minus(this,B)
