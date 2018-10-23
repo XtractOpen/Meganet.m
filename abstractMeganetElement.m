@@ -187,9 +187,8 @@ methods
             %   dY     - directional derivative, numel(dY)==numel(Y)
             
             if nargin<4; tmp=[]; end
-            nex    = numel(Y)/numelFeatIn(this);
-            m      = [nDataOut(this) nex];
-            n      = numel(Y);
+            m      = sizeFeatOut(this);
+            n      = sizeFeatIn(this);
             Amv    = @(x) JYmv(this,x,theta,Y,tmp);
             ATmv   = @(x) JYTmv(this,x,[],theta,Y,tmp);
             J      = LinearOperator(m,n,Amv,ATmv);
@@ -396,9 +395,9 @@ methods
             % nex    = sizeLastDim(Y);
             % m      = [nDataOut(this) nex]; %%%% ???? TODO
             m      = sizeFeatOut(this);
-            nth    = numel(theta);
+            nth    = nTheta(this);
             nY     = numelFeatIn(this);
-            Amv    = @(x) Jmv(this,x(1:nth),x(nth+1:end),theta,Y,tmp);
+            Amv    = @(x) Jmv(this,x(1:nth),reshape(x(nth+1:end),sizeFeatIn(this)),theta,Y,tmp);
             ATmv   = @(x) JTmv(this,x,[],theta,Y,tmp,[1;1]);
             J      = LinearOperator(m,nth+nY,Amv,ATmv);
         end

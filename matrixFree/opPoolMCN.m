@@ -32,7 +32,7 @@ classdef opPoolMCN < LinearOperator
             this.m = [this.nImg(1:2)./this.stride this.nImg(3)];
             this.n = this.nImg;
             this.Amv  = @(x) applyPool(this,x);
-            this.ATmv = @(x) applyTranspose(this,x);
+            this.ATmv = @(x) applyPoolTranspose(this,x);
         end
         
         function Z = applyPool(this,Y)
@@ -43,7 +43,7 @@ classdef opPoolMCN < LinearOperator
             Z   = reshape(Z,[],nex);
         end
         
-        function Y = applyTranspose(this,Z)
+        function Y = applyPoolTranspose(this,Z)
             % apply transpose of average pooling operator to Z
             nex = numel(Z)/prod(this.m);
             Z   = reshape(Z,[this.nImg(1:2)./this.pool this.nImg(3) nex]);

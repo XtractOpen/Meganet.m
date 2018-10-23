@@ -18,7 +18,7 @@ Dop.beta = betaD;
 
 L = blkdiag(G,D);
 Lop = blkdiag(Gop,Dop);
-%%
+%
 x0 = randn(size(L,2),1);
 
 t1 = L*x0(:);
@@ -38,12 +38,12 @@ t1  = pinv(full(A))*rhs;
 t2  = PCmv(Lop,rhs);
 assert(norm(t1-t2(:))/norm(t1)<1e-10,'preconditioner not working');
 
-%% solve proximal problem: min_x .5*a|L*x|^2 + .5*|x-y|^2
+% solve proximal problem: min_x .5*a|L*x|^2 + .5*|x-y|^2
 y = randn(size(L,2),1); y(2:6) = 5;
 a = rand(1);
 
 t1 = (a*full(A) + eye(size(L,2))) \ y;
 t2 = PCmv(Lop,y,a,1);
-norm(t1-t2)/norm(t1)
+assert(norm(t1-t2)/norm(t1)<1e-14,'proximal problem not working')
 
 
