@@ -188,7 +188,7 @@ methods
             
             if nargin<4; tmp=[]; end
             nex    = numel(Y)/numelFeatIn(this);
-            m      = nex*nDataOut(this);
+            m      = [nDataOut(this) nex];
             n      = numel(Y);
             Amv    = @(x) JYmv(this,x,theta,Y,tmp);
             ATmv   = @(x) JYTmv(this,x,[],theta,Y,tmp);
@@ -257,7 +257,7 @@ methods
             %   J     - Jacobian, LinearOperator
             if nargin<4; tmp=[]; end
             nex    = numel(Y)/numelFeatIn(this);
-            m      = nex*nDataOut(this);
+            m      = [nDataOut(this)  nex]; %%%% ???? TODO
             n      = numel(theta);
             Amv    = @(x) Jthetamv(this,x,theta,Y,tmp);
             ATmv   = @(x) JthetaTmv(this,x,[],theta,Y,tmp);
@@ -391,7 +391,7 @@ methods
             if nargin<4; tmp=[]; end
 
             nex    = numel(Y)/numelFeatIn(this);
-            m      = nex*nDataOut(this);
+            m      = [nDataOut(this) nex]; %%%% ???? TODO
             nth    = numel(theta);
             nY     = numel(Y);
             Amv    = @(x) Jmv(this,x(1:nth),x(nth+1:end),theta,Y,tmp);

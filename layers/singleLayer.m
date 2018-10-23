@@ -68,9 +68,9 @@ classdef singleLayer < abstractMeganetElement
                 eval([varargin{k},'=varargin{',int2str(k+1),'};']);
             end
             
-%             nex = numel(Y)/sizeFeatIn(this);
-%             Y   = reshape(Y,[],nex);
-            nex = sizeLastDim(Y);            
+            nex = numel(Y)/numelFeatIn(this);
+            Y   = reshape(Y,[],nex);
+%             nex = sizeLastDim(Y);  % fails for vectorization test          
             Y   = reshape(Y,[],nex);
             [th1,th2,th3,th4] = split(this,theta);
             
