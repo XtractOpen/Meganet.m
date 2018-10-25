@@ -199,8 +199,13 @@ classdef singleLayer < abstractMeganetElement
             if not(isempty(this.nLayer))
                 dZ = Jmv(this.nLayer,dth4,dZ,th4,KY,tmpNL);
             end
-            dZ = dZ +  this.Bin*dth2;
-            dZ = dA.*dZ + this.Bout*dth3;
+            if not(isempty(this.Bin))
+                dZ = dZ +  this.Bin*dth2;
+            end
+            dZ = dA.*dZ;
+            if not(isempty(this.Bout))
+                dZ = dZ + this.Bout*dth3;
+            end
         end
         
         function [dtheta,dY] = JTmv(this,Z,~,theta,Y,KY,doDerivative)

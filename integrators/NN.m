@@ -6,7 +6,6 @@ classdef NN < abstractMeganetElement
     
     properties
         layers  % layers of Neural Network, cell array
-        Q
         useGPU
         precision
     end
@@ -36,7 +35,6 @@ classdef NN < abstractMeganetElement
             useGPU = [];
             precision = [];
             nt   = numel(layers);
-            Q = 1.0;
             for k=1:2:length(varargin)     % overwrites default parameter
                 eval([varargin{k},'=varargin{',int2str(k+1),'};']);
             end
@@ -60,7 +58,6 @@ classdef NN < abstractMeganetElement
                 nout = sizeFeatOut(layers{k});
             end
             this.layers   = layers;
-            this.Q        = Q;
         end
         
         % ---------- counting thetas, input and output features -----
@@ -99,8 +96,7 @@ classdef NN < abstractMeganetElement
         end
         
         % --------- forward problem ----------
-        function [Y,tmp] = forwardProp(this,theta,Y0)
-            Y = Y0;
+        function [Y,tmp] = forwardProp(this,theta,Y)
             nt = numel(this.layers);
             
             if nargout>1;    tmp = cell(nt,2); end
@@ -126,10 +122,9 @@ classdef NN < abstractMeganetElement
             end
         end
         % -------- Jacobian matvecs --------
-        function [dYdata,dY] = JYmv(this,dY,theta,~,tmp)
+        function dY = JYmv(this,dY,theta,~,tmp)
             nt = numel(this.layers);
             cnt = 0;
-            dYdata = [];
             for i=1:nt
                 ni = nTheta(this.layers{i});
                 dY = JYmv(this.layers{i},dY,theta(cnt+(1:ni)),...
@@ -138,11 +133,10 @@ classdef NN < abstractMeganetElement
             end
         end
         
-        function [dYdata,dY] = Jmv(this,dtheta,dY,theta,~,tmp)
+        function dY = Jmv(this,dtheta,dY,theta,~,tmp)
             nt = numel(this.layers);
             if isempty(dY); dY = 0.0; end
             
-            dYdata= [];
             cnt = 0; 
             for i=1:nt
                 ni = nTheta(this.layers{i});
@@ -153,19 +147,13 @@ classdef NN < abstractMeganetElement
         end
         
         % -------- Jacobian' matvecs --------
-        function W = JYTmv(this,Wdata,W,theta,Y,tmp)
-            nex = numel(Y)/numelFeatIn(this);
-            if ~isempty(Wdata)
-                Wdata = reshape(Wdata,[],nex);
-            end
+        function W = JYTmv(this,W,theta,Y,tmp)
             if isempty(W)
                 W = 0;
-            elseif numel(W)>1
-                W     = reshape(W,[],nex);
             end
             nt = numel(this.layers);
             
-            cnt = 0; cnt2 = 0;
+            cnt = 0;
             for i=nt:-1:1
                 Yi = tmp{i,1};
                 ni = nTheta(this.layers{i});
@@ -175,25 +163,19 @@ classdef NN < abstractMeganetElement
             end
         end
             
-        function [dtheta,W] = JTmv(this,Wdata,W,theta,Y,tmp,doDerivative)
+        function [dtheta,W] = JTmv(this,W,theta,Y,tmp,doDerivative)
             if not(exist('doDerivative','var')) || isempty(doDerivative); 
                doDerivative =[1;0]; 
             end
             
-            nex = numel(Y)/numelFeatIn(this);
-            if ~isempty(Wdata)
-                Wdata = reshape(Wdata,[],nex);
-            end
             if isempty(W)
                 W = 0;
-            elseif numel(W)>1
-                W     = reshape(W,[],nex);
             end
             
             dtheta = 0*theta;
             nt = numel(this.layers);
             
-            cnt = 0; cnt2 = 0;
+            cnt = 0; 
             for i=nt:-1:1
                 Yi = tmp{i,1};
                 ni        = nTheta(this.layers{i});

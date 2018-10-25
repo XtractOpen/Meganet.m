@@ -28,7 +28,6 @@ classdef connector < abstractMeganetElement
             end
             this.K = K;
             this.b = b;
-            this.Q = Q;
         end
         
         % -------- counting ---------
@@ -50,34 +49,18 @@ classdef connector < abstractMeganetElement
         function [Y,tmp] = forwardProp(this,~,Y0)
 %             nex = numel(Y0)/sizeFeatIn(this);
 %             Y0  = reshape(Y0,[],nex);
-            nex = sizeLastDim(Y0);
-            Y0  = reshape(Y0,[],nex);
             Y = this.K*Y0 + this.b;
-           
-            tmp = {Y0};
-            tmp{2} = Y;
+            tmp = [];
         end
         
-        function [dYdata,dY] = Jmv(this,~,dY,~,~,~)
+        function dY = Jmv(this,~,dY,~,~,~)
             if (isempty(dY)); dY = 0.0; return; end
-            nex = numel(dY)/numelFeatIn(this);
-            dY  = reshape(dY,[],nex);
             dY = this.K*dY;
-            
-            dYdata = [];
-            
         end
             
-        function [dtheta,W] = JTmv(this,Wdata,W,~,Y,~,doDerivative)
-            nex = numel(Y)/numelFeatIn(this);
+        function [dtheta,W] = JTmv(this,W,~,Y,~,doDerivative)
             if isempty(W)
                 W = 0;
-            elseif not(isscalar(W))
-                W     = reshape(W,[],nex);
-            end
-            if ~isempty(Wdata)
-                Wdata = reshape(Wdata,[],nex);
-                W     = W+ this.Q'*Wdata;
             end
             
             dtheta = [];
