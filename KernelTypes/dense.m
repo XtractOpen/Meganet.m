@@ -90,7 +90,6 @@ classdef dense
        end
         
        function Z = implicitTimeStep(this,theta,Y,h)
-           
            Kop = getOp(this,theta);
            Z   = (h*(Kop'*Kop) + eye(size(Kop,2)))\Y; 
        end

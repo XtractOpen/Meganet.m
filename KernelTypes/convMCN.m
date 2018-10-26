@@ -66,7 +66,7 @@ classdef convMCN < convKernel
         function dtheta = JthetaTmv(this,Z,~,Y,~)
             %  derivative of Z*(A(theta)*Y) w.r.t. theta
             [~,dtheta] = vl_nnconv(Y,zeros(this.sK,'like',Y), [],Z,'pad',this.pad,'stride',this.stride);
-            dtheta = dtheta(:);
+            % dtheta = dtheta(:);
         end
 
        function dY = ATmv(this,theta,Z)

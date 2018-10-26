@@ -75,8 +75,11 @@ classdef kernelTest < matlab.unittest.TestCase
               ks = testCase.kernels{k};
               
               th  = initTheta(ks);
-              % dth = randn(nTheta(ks),1,'like',th);
-              dth = randn(ks.sK,'like', th);
+              if isprop(ks,'sK')
+                dth = randn(ks.sK,'like', th); 
+              else
+                dth = randn(nTheta(ks),1,'like',th); % dense kernel has no sK
+              end
               nex = 1;
               Y  = randn([sizeFeatIn(ks),nex],'like',th)+nex;
               Z  = randn([sizeFeatOut(ks),nex],'like',th)-nex;
