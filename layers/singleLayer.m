@@ -167,11 +167,9 @@ classdef singleLayer < abstractMeganetElement
         function [dZ] = JYmv(this,dY,theta,Y,KY)
             [th1,~,~,th4]  = split(this,theta);
             nex       = numel(Y)/numelFeatIn(this);
-            Y   = reshape(Y,[],nex);
             [dA,KY,tmpNL] = getTempsForSens(this,theta,Y,KY);
 
             Kop = getOp(this.K,th1);
-            dY   = reshape(dY,[],nex);
             dZ = Kop*dY;
             if not(isempty(this.nLayer))
                 dZ = JYmv(this.nLayer,dZ,th4,KY,tmpNL);

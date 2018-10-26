@@ -28,7 +28,6 @@ classdef connector < abstractMeganetElement
             end
             this.K = K;
             this.b = b;
-            this.Q = Q;
         end
         
         % -------- counting ---------
@@ -58,26 +57,20 @@ classdef connector < abstractMeganetElement
             tmp{2} = Y;
         end
         
-        function [dYdata,dY] = Jmv(this,~,dY,~,~,~)
+        function [dY] = Jmv(this,~,dY,~,~,~)
             if (isempty(dY)); dY = 0.0; return; end
             nex = numel(dY)/numelFeatIn(this);
             dY  = reshape(dY,[],nex);
             dY = this.K*dY;
             
-            dYdata = [];
-            
         end
             
-        function [dtheta,W] = JTmv(this,Wdata,W,~,Y,~,doDerivative)
+        function [dtheta,W] = JTmv(this,W,~,Y,~,doDerivative)
             nex = numel(Y)/numelFeatIn(this);
             if isempty(W)
                 W = 0;
             elseif not(isscalar(W))
                 W     = reshape(W,[],nex);
-            end
-            if ~isempty(Wdata)
-                Wdata = reshape(Wdata,[],nex);
-                W     = W+ this.Q'*Wdata;
             end
             
             dtheta = [];
@@ -86,6 +79,7 @@ classdef connector < abstractMeganetElement
                 dtheta=[dtheta(:); W(:)];
             end
         end
+        
         function runMinimalExample(~)
             nex = 10;
             
@@ -93,7 +87,7 @@ classdef connector < abstractMeganetElement
             theta  = randn(nTheta(net),1);
             
             Y0  = randn(2,nex); 
-            [Ydata,tmp]   = net.forwardProp(theta,Y0);
+            [Y,tmp]   = net.forwardProp(theta,Y0);
             dmb = randn(size(theta));
             dY0 = randn(size(Y0));
             
@@ -103,13 +97,13 @@ classdef connector < abstractMeganetElement
                 
                 Yt = net.forwardProp(theta+hh*dmb(:),Y0+hh*dY0);
                 
-                E0 = norm(Yt(:)-Ydata(:));
-                E1 = norm(Yt(:)-Ydata(:)-hh*dY(:));
+                E0 = norm(Yt(:)-Y(:));
+                E1 = norm(Yt(:)-Y(:)-hh*dY(:));
                 
                 fprintf('h=%1.2e\tE0=%1.2e\tE1=%1.2e\n',hh,E0,E1);
             end
             
-            W = randn(size(Ydata));
+            W = randn(size(Y));
             t1  = W(:)'*dY(:);
             
             [dWdmb,dWY] = net.JTmv(W,[],theta,Y0,tmp);

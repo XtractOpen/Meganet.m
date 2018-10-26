@@ -18,9 +18,14 @@ classdef kernelTest < matlab.unittest.TestCase
               Z   = getOp(ks,th0)*Y;
               Yt  = getOp(ks,th0)'*Z;
               
-              
-              testCase.verifyTrue(all(size(Z(:,:,:,1))==sizeFeatOut(ks)));
-              testCase.verifyTrue(all(size(Yt(:,:,:,1))==sizeFeatIn(ks)));
+%               colonsZ = repmat( {':'} , 1 , ndims(Z) -1 );
+%               colonsYt = repmat( {':'} , 1 , ndims(Yt) -1 );
+%               testCase.verifyTrue( all( size( Z(colonsZ{:} ,1))==sizeFeatOut(ks)) ); % size() squeezes out the trailing 1's
+%               testCase.verifyTrue( all( size(Yt(colonsYt{:},1))==sizeFeatIn(ks) ) );
+              szZ = size(Z);
+              szYt = size(Yt);
+              testCase.verifyTrue( all( szZ(1:end-1)==sizeFeatOut(ks)) ); % TODO still may fail if nex=1
+              testCase.verifyTrue( all( szYt(1:end-1)==sizeFeatIn(ks)) );
            end
         end
         
@@ -70,7 +75,8 @@ classdef kernelTest < matlab.unittest.TestCase
               ks = testCase.kernels{k};
               
               th  = initTheta(ks);
-              dth = randn(nTheta(ks),1,'like',th);
+              % dth = randn(nTheta(ks),1,'like',th);
+              dth = randn(ks.sK,'like', th);
               nex = 1;
               Y  = randn([sizeFeatIn(ks),nex],'like',th)+nex;
               Z  = randn([sizeFeatOut(ks),nex],'like',th)-nex;

@@ -104,9 +104,9 @@ classdef normLayer < abstractMeganetElement
             %
             % A = A*diag(Fy)*Fy --> A' = A*diag(Fy)
             
-            Y = reshape(Y,this.nData(1), this.nData(2), this.nData(3), []);
-            dY = reshape(dY,this.nData(1), this.nData(2), this.nData(3), []);
-            
+%             Y = reshape(Y,this.nData(1), this.nData(2), this.nData(3), []);
+%             dY = reshape(dY,this.nData(1), this.nData(2), this.nData(3), []);
+%             
             Fy  = Y-compMean(this,Y);
             FdY = dY-compMean(this,dY);
             den = sqrt(compMean(this,Fy.^2)+this.eps);

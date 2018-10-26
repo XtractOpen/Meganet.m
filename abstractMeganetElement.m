@@ -118,9 +118,9 @@ methods
             % Output: 
             %
             %   dY     - directional derivative, numel(dY)==numel(Y)
-            [~,dY] = JTmv(this,Wdata,W,theta,Y,tmp);
+            [dY] = JTmv(this,Wdata,W,theta,Y,tmp);
         end
-        function [dYdata,dY] = JYmv(this,dY,theta,Y,tmp)
+        function [dY] = JYmv(this,dY,theta,Y,tmp)
             % dZ = abstractMeganetElement.JYTmv(this,W,theta,Y,tmp)
             %
             % computes dZ = J_Y(theta,Y)*dY
@@ -137,7 +137,7 @@ methods
             % Output: 
             %
             %   dZ     - directional derivative, numel(dZ)==numel(Z)
-            [dYdata,dY] = Jmv(this,[],dY,theta,Y,tmp);
+            [dY] = Jmv(this,[],dY,theta,Y,tmp);
         end
         
         function [this,theta] = prolongateWeights(this,theta)
@@ -197,7 +197,7 @@ methods
         
 
         % -------- derivatives for theta ---------
-        function [dYdata,dY] = Jthetamv(this,dtheta,theta,Y,tmp)
+        function [dY] = Jthetamv(this,dtheta,theta,Y,tmp)
             % dZ = abstractMeganetElement.Jthetamv(this,W,theta,Y,tmp)
             %
             % computes dZ = J_theta(theta,Y)*dtheta
@@ -214,10 +214,10 @@ methods
             % Output: 
             %
             %   dZ     - directional derivative, numel(dZ)==numel(Z)
-            [dYdata,dY] = Jmv(this,dtheta,[],theta,Y,tmp);
+            [dY] = Jmv(this,dtheta,[],theta,Y,tmp);
         end
         
-        function dtheta = JthetaTmv(this,Wdata,W,theta,Y,tmp)
+        function dtheta = JthetaTmv(this,W,theta,Y,tmp)
             % dY = abstractMeganetElement.JthetaTmv(this,W,theta,Y,tmp)
             %
             % computes dtheta = transpose(J_theta(theta,Y))*W 
@@ -234,7 +234,7 @@ methods
             % Output: 
             %
             %   dtheta - directional derivative, numel(dtheta)==numel(theta)
-            dtheta = JTmv(this,Wdata,W,theta,Y,tmp);
+            dtheta = JTmv(this,W,theta,Y,tmp);
         end
         
         
@@ -284,7 +284,7 @@ methods
         end
         
         % --------  combined derivatives ----------
-        function [dZdata,dZ] = Jmv(this,dtheta,dY,theta,Y,tmp)
+        function [dZ] = Jmv(this,dtheta,dY,theta,Y,tmp)
             % dZ = abstractMeganetElement.Jmv(this,dtheta,dY,theta,Y,tmp)
             %
             % computes dZ = J_theta(theta,Y)*dtheta + J_Y(theta,Y)*dY
@@ -305,20 +305,18 @@ methods
             
             if nargin<4; tmp=[]; end
             if isempty(dtheta) || norm(dtheta(:))==0
-                dZdata = 0;
                 dZ     = 0;
             else
-                [dZdata,dZ] = Jthetamv(this,dtheta,theta,Y,tmp);
+                [dZ] = Jthetamv(this,dtheta,theta,Y,tmp);
             end
 
             if not(isempty(dY)) && norm(dY(:))>0
-                [dZdt,dZt] = JYmv(this,dY,theta,Y,tmp);
-                dZdata = dZdata + dZdt;
+                [dZt] = JYmv(this,dY,theta,Y,tmp);
                 dZ     = dZ + dZt;
             end
         end
         
-        function [dtheta,dY] = JTmv(this,Wdata,W,theta,Y,tmp,doDerivative)
+        function [dtheta,dY] = JTmv(this,W,theta,Y,tmp,doDerivative)
             % dZ = abstractMeganetElement.JTmv(this,Z,theta,Y,tmp)
             %
             % computes [dtheta;dY] = [J_theta(theta,Y)'; J_Y(theta)']*Z
@@ -351,9 +349,9 @@ methods
             if not(exist('doDerivative','var')) || isempty(doDerivative); 
                doDerivative =[1;0]; 
             end
-            dtheta = JthetaTmv(this,Wdata,W,theta,Y,tmp);
+            dtheta = JthetaTmv(this,W,theta,Y,tmp);
             if nargout==2 || doDerivative(2)==1
-                dY     = JYTmv(this,Wdata,W,theta,Y,tmp);
+                dY     = JYTmv(this,W,theta,Y,tmp);
             end
             
             if nargout==1 && all(doDerivative==1)
@@ -394,7 +392,7 @@ methods
             nth    = nTheta(this);
             nY     = numelFeatIn(this);
             Amv    = @(x) Jmv(this,x(1:nth),reshape(x(nth+1:end),sizeFeatIn(this)),theta,Y,tmp);
-            ATmv   = @(x) JTmv(this,x,[],theta,Y,tmp,[1;1]);
+            ATmv   = @(x) JTmv(this,x,theta,Y,tmp,[1;1]);
             J      = LinearOperator(m,nth+nY,Amv,ATmv);
         end
 

@@ -138,53 +138,40 @@ classdef Meganet < abstractMeganetElement
         end
         
         % ----------- Jacobian matvecs -------------
-        function [dYdata,dY] = JYmv(this,dY,theta,~,tmp)
+        function [dY] = JYmv(this,dY,theta,~,tmp)
             nex = numel(dY)/numelFeatIn(this);
             dY  = reshape(dY,[],nex);
-            dYdata = [];
             nBlocks = numel(this.blocks);
             cnt = 0;
             for k=1:nBlocks
                 nk = nTheta(this.blocks{k});
-                [dYdatak,dY] = JYmv(this.blocks{k},dY,theta(cnt+(1:nk)),[],tmp{k});
-                dYdata = [dYdata;dYdatak];
+                [dY] = JYmv(this.blocks{k},dY,theta(cnt+(1:nk)),[],tmp{k});
                 cnt = cnt+nk;
             end
         end
         
-        function [dYdata,dY] = Jmv(this,dtheta,dY,theta,~,tmp)
+        function [dY] = Jmv(this,dtheta,dY,theta,~,tmp)
             nex = numel(dY)/numelFeatIn(this);
             dY  = reshape(dY,[],nex);
-            dYdata = [];
             nBlocks = numel(this.blocks);
             cnt = 0;
             for k=1:nBlocks
                 nk = nTheta(this.blocks{k});
-                [dYdatak,dY] = Jmv(this.blocks{k},dtheta(cnt+(1:nk)),dY,theta(cnt+(1:nk)),[],...
+                [dY] = Jmv(this.blocks{k},dtheta(cnt+(1:nk)),dY,theta(cnt+(1:nk)),[],...
                     tmp{k});
-                
-                dYdata = [dYdata;dYdatak];
                 cnt = cnt+nk;
             end
         end
         
         % ----------- Jacobian' matvecs -----------
-        function W = JYTmv(this,Wdata,~,theta,Y,tmp)
+        function W = JYTmv(this,~,theta,Y,tmp)
             nex = numel(Y)/numelFeatIn(this);
-            Wdata  = reshape(Wdata,[],nex);
             nBlocks  = numel(this.blocks);
             
-            cnt = 0; cntW = 0; W = [];
+            cnt = 0; W = [];
             for k=nBlocks:-1:1
                 nk = nTheta(this.blocks{k});
-                if cntW < size(Wdata,1)
-                    no = prod(sizeFeatOut(this.blocks{k}));
-                    Wdk =  Wdata(end-cntW-no+1:end-cntW,:);
-                    cntW = cntW + no;
-                else
-                    Wdk = [];
-                end
-                W = JYTmv(this.blocks{k},Wdk,W,theta(end-cnt-nk+1:end-cnt),tmp{k}{1,1},...
+                W = JYTmv(this.blocks{k},W,theta(end-cnt-nk+1:end-cnt),tmp{k}{1,1},...
                     tmp{k});
                 cnt = cnt+nk;
             end
@@ -196,27 +183,19 @@ classdef Meganet < abstractMeganetElement
                doDerivative =[1;0]; 
             end
             
-            nex = numel(Y)/numelFeatIn(this);
+            % nex = numel(Y)/numelFeatIn(this);
             if isempty(W)
                 W=0;
-            else
-                W  = reshape(W,[],nex);
             end
             
             nBlocks  = numel(this.blocks);
             dtheta = 0*theta;
             
-            cnt = 0;cntW = 0; cntWd = 0;
+            cnt = 0;
             for k=nBlocks:-1:1
                 nk = nTheta(this.blocks{k});
-                no = prod(sizeFeatOut(this.blocks{k}));
-                %                 W  = Wdata(end-cntW-no+1:end-cntW,:);
-                
-                Wd = [];
-                
-                cntW = cntW + no;
-                [dmbk,W] = JTmv(this.blocks{k},Wd,W,theta(end-cnt-nk+1:end-cnt),tmp{k}{1,1},tmp{k});
-                dtheta(end-cnt-nk+1:end-cnt) = dmbk;
+                [dThetak,W] = JTmv(this.blocks{k},W,theta(end-cnt-nk+1:end-cnt),tmp{k}{1,1},tmp{k});
+                dtheta(end-cnt-nk+1:end-cnt) = dThetak;
                 cnt = cnt+nk;
             end
             if nargout==1 && all(doDerivative==1)
@@ -319,34 +298,34 @@ classdef Meganet < abstractMeganetElement
             net.useGPU=0;
             net.precision = 'double';
             np  = nTheta(net);
-            mb     = randn(np,1);
+            theta     = randn(np,1);
             
             numelFeatOut(net)
             
             Y0 = randn(2,nex);
             
-            [Ydata,~,tmp] = net.forwardProp(mb,Y0);
+            [Y,tmp] = net.forwardProp(theta,Y0);
             
-            dmb = randn(np,1);
+            dtheta = randn(np,1);
             dY0 = randn(size(Y0));
-            dY  = net.Jmv(dmb,dY0,mb,[],tmp);
+            dY  = net.Jmv(dtheta,dY0,theta,[],tmp);
             
             for k=1:14
                 hh = 2^(-k);
                 
-                Yt = net.forwardProp(mb+hh*dmb(:),Y0+hh*dY0);
+                Yt = net.forwardProp(theta+hh*dtheta(:),Y0+hh*dY0);
                 
-                E0 = norm(Yt(:)-Ydata(:));
-                E1 = norm(Yt(:)-Ydata(:)-hh*dY(:));
+                E0 = norm(Yt(:)-Y(:));
+                E1 = norm(Yt(:)-Y(:)-hh*dY(:));
                 
                 fprintf('h=%1.2e\tE0=%1.2e\tE1=%1.2e\n',hh,E0,E1);
             end
             
-            W = randn(size(Ydata));
+            W = randn(size(Y));
             t1  = W(:)'*dY(:);
             
-            [dWdmb,dWY] = net.JTmv(W,[],mb,Y0,tmp);
-            t2 = dmb(:)'*dWdmb(:) + dY0(:)'*dWY(:);
+            [dWdtheta,dWY] = net.JTmv(W,theta,Y0,tmp);
+            t2 = dtheta(:)'*dWdtheta(:) + dY0(:)'*dWY(:);
             
             fprintf('adjoint test: t1=%1.2e\tt2=%1.2e\terr=%1.2e\n',t1,t2,abs(t1-t2));
         end

@@ -46,7 +46,6 @@ classdef tvNormLayer < abstractMeganetElement
            [s2,b2] = split(this,theta);           
            Y = Y.*s2;
            Y = Y + b2;
-           Ydata = Y;
         end
         
         
@@ -69,7 +68,7 @@ classdef tvNormLayer < abstractMeganetElement
         end
         
         
-        function [dYdata,dY] = Jthetamv(this,dtheta,theta,Y,~)
+        function [dY] = Jthetamv(this,dtheta,theta,Y,~)
            Y   = reshape(Y,this.nData(1),this.nData(2), this.nData(3),[]);
            [ds2,db2] = split(this,dtheta);
            
@@ -80,8 +79,6 @@ classdef tvNormLayer < abstractMeganetElement
            % scaling
            dY = Y.*ds2;
            dY = dY + db2;
-           
-           dYdata = dY;
         end
         
         function dtheta = JthetaTmv(this,Z,~,theta,Y,~)
@@ -97,7 +94,7 @@ classdef tvNormLayer < abstractMeganetElement
         end
        
         
-        function [dYdata,dY] = JYmv(this,dY,theta,Y,~)
+        function [dY] = JYmv(this,dY,theta,Y,~)
             dY   = reshape(dY,this.nData(1),this.nData(2), this.nData(3),[]);
             Y   = reshape(Y,this.nData(1),this.nData(2), this.nData(3),[]);
             s2 = split(this,theta);
@@ -116,7 +113,6 @@ classdef tvNormLayer < abstractMeganetElement
             % scaling
             dY = dY.*s2; % (3-D) .* (2-D matrix)
             dY = reshape(dY,[],nex);
-            dYdata = dY;
         end
         
         function dY = JYTmv(this,dY,~,theta,Y,~)

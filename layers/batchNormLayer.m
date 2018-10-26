@@ -45,7 +45,6 @@ classdef batchNormLayer < abstractMeganetElement
            [s2,b2] = split(this,theta);           
            Y = Y.*s2;
            Y = Y + b2;
-           Ydata = Y;
         end
         
         
@@ -68,7 +67,7 @@ classdef batchNormLayer < abstractMeganetElement
         end
         
         
-        function [dYdata,dY] = Jthetamv(this,dtheta,theta,Y,~)
+        function [dY] = Jthetamv(this,dtheta,theta,Y,~)
            [ds2,db2] = split(this,dtheta);
            
            % normalization
@@ -78,8 +77,6 @@ classdef batchNormLayer < abstractMeganetElement
            % scaling
            dY = Y.*ds2;
            dY = dY + db2;
-           
-           dYdata = dY;
         end
         
         function dtheta = JthetaTmv(this,Z,~,theta,Y,~)
@@ -93,7 +90,7 @@ classdef batchNormLayer < abstractMeganetElement
         end
        
         
-        function [dYdata,dY] = JYmv(this,dY,theta,Y,~)
+        function [dY] = JYmv(this,dY,theta,Y,~)
             Y  = reshape(Y, this.nData(1), this.nData(2), this.nData(3),[]);
             dY = reshape(dY, this.nData(1), this.nData(2), this.nData(3),[]);
             s2 = split(this,theta);
@@ -105,7 +102,6 @@ classdef batchNormLayer < abstractMeganetElement
             dY = FdY./den  - (Fy.* (mean(Fy.*FdY,4) ./(den.^3))) ;
             % scaling
             dY = dY.*s2;
-            dYdata = dY;
         end
         
         function FdY = JYTmv(this,FdY,~,theta,Y,~)

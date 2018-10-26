@@ -20,7 +20,6 @@ classdef convKernel
     properties
         nImg  % image size
         sK    % kernel size: [nxfilter,nyfilter,nInputChannels,nOutputChannels]
-        Q
         stride
         useGPU
         precision
@@ -34,20 +33,15 @@ classdef convKernel
             nImg = nImg(1:2);
             stride = 1;
             useGPU = 0;
-            Q =[];
             precision = 'double';
             for k=1:2:length(varargin)     % overwrites default parameter
                 eval([ varargin{k},'=varargin{',int2str(k+1),'};']);
-            end
-            if isempty(Q)
-                 Q = opEye(prod(sK));
             end
             this.nImg = nImg;
             this.sK   = sK;
             this.stride = stride;
             this.useGPU = useGPU;
             this.precision = precision;
-            this.Q = Q;
         end
         
         function n = sizeFeatIn(this)
@@ -75,26 +69,17 @@ classdef convKernel
         
         
         function theta = initTheta(this)
-            if isa(this.Q,'opEye')
-                sd= 0.1;
-                theta = sd*randn(this.sK);
-                id1 = find(theta>2*sd);
-                theta(id1(:)) = randn(numel(id1),1);
-                id2 = find(theta< -2*sd);
-                theta(id2(:)) = randn(numel(id2),1);
-                theta = max(min(2*sd, theta),-2*sd);
-            else
-                n = prod(this.sK([1,2,4]));
-                sd = sqrt(2/n);
-                theta = sd*randn(this.nTheta(),1);
-                id1 = find(theta>2*sd);
-                theta(id1(:)) = randn(numel(id1),1);
-                
-                id2 = find(theta< -2*sd);
-                theta(id2(:)) = randn(numel(id2),1);
-                
-                theta = max(min(2*sd, theta),-2*sd);
-            end
+            n = prod(this.sK([1,2,4]));
+            sd = sqrt(2/n);
+            theta = sd*randn(this.nTheta(),1);
+            id1 = find(theta>2*sd);
+            theta(id1(:)) = randn(numel(id1),1);
+
+            id2 = find(theta< -2*sd);
+            theta(id2(:)) = randn(numel(id2),1);
+
+            theta = max(min(2*sd, theta),-2*sd);
+            
             theta = gpuVar(this.useGPU,this.precision,theta);
         end
         
@@ -115,7 +100,7 @@ classdef convKernel
                 getRP = @avgRestrictionGalerkin;
             end
             thFine = theta;
-            if isa(this.Q,'opEye')
+            if isa(this.Q,'opEye') %%%%%% TODO
                 if all(this.sK(1:2)==3)
                     [WH,A,Qp] = getFineScaleConvAlgCC([0;-1;0;0;0;0;0;1;0],'getRP',getRP);
                     thFine = A\(Qp\reshape(theta,9,[]));
@@ -143,7 +128,7 @@ classdef convKernel
             end
             
                 
-            if isa(this.Q,'opEye')
+            if isa(this.Q,'opEye') %%%%%% TODO : remove?
                 if all(this.sK(1:2)==3)
                     [WH,A,Qp] = getFineScaleConvAlgCC([0;-1;0;0;0;0;0;1;0],'getRP',getRP);
                     thCoarse = Qp*(A*reshape(theta,9,[]));
@@ -185,7 +170,7 @@ classdef convKernel
         end
         
         function n = nTheta(this)
-            n = size(this.Q,2);
+            n = prod(this.sK);
         end
         
         function dY = Jthetamv(this,dtheta,~,Y,~)

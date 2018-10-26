@@ -54,7 +54,7 @@ classdef ResNN < abstractMeganetElement
             % piecewise linear interpolation of network weights 
             t1 = 0:this.h:(this.nt-1)*this.h;
             
-            net2 = ResNN(this.layer,2*this.nt,this.h/2,'useGPU',this.useGPU,'Q',this.Q,'precision',this.precision);
+            net2 = ResNN(this.layer,2*this.nt,this.h/2,'useGPU',this.useGPU,'precision',this.precision);
             t2 = 0:net2.h:(net2.nt-1)*net2.h;
             
             theta2 = inter1D(theta,t1,t2);
@@ -198,7 +198,6 @@ classdef ResNN < abstractMeganetElement
             else
                 this.layer.useGPU  = value;
             end
-            this.Q = gpuVar(value,this.precision,this.Q);
         end
         function this = set.precision(this,value)
             if not(strcmp(value,'single') || strcmp(value,'double'))
@@ -206,7 +205,6 @@ classdef ResNN < abstractMeganetElement
             else
                 this.layer.precision = value;
             end
-            this.Q = gpuVar(this.useGPU,value,this.Q);
         end
         function useGPU = get.useGPU(this)
             useGPU = this.layer.useGPU;

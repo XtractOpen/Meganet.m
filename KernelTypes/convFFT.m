@@ -90,6 +90,8 @@ classdef convFFT < convKernel
         
         function Y = Amv(this,theta,Y)
             nex   = numel(Y)/prod(nImgIn(this));
+            % nex = sizeLastDim(Y); % fails if nex=1
+            % nex = size(Y, numel(nImgOut(this))+1);
             
             % compute convolution
             AY = zeros([nImgOut(this) nex],'like',Y); %start with transpose
@@ -103,12 +105,14 @@ classdef convFFT < convKernel
                 T  = Sk .* Yh;
                 AY(:,:,k,:)  = sum(T,3);
             end
-            AY = real(fft2(AY));
-            Y  = reshape(AY,[],nex);
+            Y = real(fft2(AY));
+            
+            % Y  = reshape(AY,[],nex);
         end
         
         function ATY = ATmv(this,theta,Z)
             nex =  numel(Z)/prod(nImgOut(this));
+            % nex = sizeLastDim(Z); % fails when nex=1
             ATY = zeros([nImgIn(this) nex],'like',Z); %start with transpose
             theta    = reshape(theta, [prod(this.sK(1:2)),this.sK(3:4)]);
             
@@ -123,13 +127,13 @@ classdef convFFT < convKernel
                 ATY(:,:,k,:) = sum(T,3);
             end
             ATY = real(ifft2(ATY));
-            ATY = reshape(ATY,[],nex);
+%             ATY = reshape(ATY,[],nex);
         end
         
         function dY = Jthetamv(this,dtheta,~,Y,~)
-            nex    =  numel(Y)/numelFeatIn(this);
-            Y      = reshape(Y,[],nex);
-            dY = getOp(this,dtheta)*Y;
+            nex  =  numel(Y)/numelFeatIn(this);
+            Y    = reshape(Y,[],nex);
+            dY   = getOp(this,dtheta)*Y;
         end
         
         function dtheta = JthetaTmv(this,Z,~,Y)

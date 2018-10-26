@@ -13,7 +13,6 @@ classdef sparseKernel
         nK           % size of matrix
         ival         % row-indices of non-zero elements in sparse matrix
         jval         % column-indices of non-zero elements in sparse matrix
-        Qs           % basis for non-zero elements (default: speye)
         useGPU
         precision
     end
@@ -21,7 +20,6 @@ classdef sparseKernel
     methods
         function this = sparseKernel(ival,jval,nK,varargin)
             % constructor, required arguments are ival, jval, nK
-            Qs   = [];
             useGPU = 0;
             precision = 'double';
             for k=1:2:length(varargin)     % overwrites default parameter
@@ -37,10 +35,6 @@ classdef sparseKernel
             this.ival = ival;
             this.jval = jval;
             
-            if (isempty(Qs))
-                Qs = speye(numel(jval));
-            end
-            this.Qs   = Qs;
             
         end
         function this = gpuVar(this,useGPU,precision)
@@ -61,7 +55,7 @@ classdef sparseKernel
         end
         
         function n = nTheta(this)
-            n = size(this.Qs,2);
+            n = size(this.Qs,2); %%%% TODO
         end
         
         function n = sizeFeatIn(this)
@@ -85,7 +79,7 @@ classdef sparseKernel
         end
         
         function A = getOp(this,theta)
-            A = sparse(this.ival,this.jval,this.Qs*theta,this.nK(1),this.nK(2));
+            A = sparse(this.ival,this.jval,theta,this.nK(1),this.nK(2));
         end
         
         function dY = Jthetamv(this,dtheta,~,Y,~)
@@ -93,8 +87,7 @@ classdef sparseKernel
         end
         
         function dtheta = JthetaTmv(this,Z,~,Y,~)
-            t = sum(Z(this.ival,:) .* Y(this.jval,:),2);
-            dtheta = this.Qs'*t;
+            dtheta = sum(Z(this.ival,:) .* Y(this.jval,:),2);
             
         end
         

@@ -42,7 +42,6 @@ classdef reshapeLayer < abstractMeganetElement
         
         function n = nTheta(this)
             n = 0;
-            
         end
         
         function n = nFeatIn(this)

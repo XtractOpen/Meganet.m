@@ -111,7 +111,7 @@ classdef LeapFrogNN < abstractMeganetElement
         end
         
         
-        function [dYdata,dY] = Jmv(this,dtheta,dY,theta,~,tmp)
+        function [dY] = Jmv(this,dtheta,dY,theta,~,tmp)
             if isempty(dY)
                 dY = 0.0;
             end

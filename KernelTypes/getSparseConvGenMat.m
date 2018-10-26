@@ -19,7 +19,7 @@ end
     [JQ,IQ] = sort(V);
     VQ = ones(numel(IQ),1);
 
-    Qs = sparse(IQ,JQ,VQ,nnz(A0),prod(sK));
+    Qs = sparse(IQ,JQ,VQ,nnz(A0),prod(sK)); %%%TODO remove?
 
 end
 

@@ -8,7 +8,6 @@ classdef dense
     
     properties
         nK
-        Q
         useGPU
         precision
     end
@@ -18,11 +17,9 @@ classdef dense
             this.nK = nK;
             useGPU  = 0;
             precision = 'double';
-            Q = 1.0;
             for k=1:2:length(varargin)     % overwrites default parameter
                 eval([ varargin{k},'=varargin{',int2str(k+1),'};']);
             end
-            this.Q = Q;
             this.useGPU = useGPU;
             this.precision = precision;
             
@@ -45,11 +42,7 @@ classdef dense
         end
         
         function n = nTheta(this)
-            if this.Q==1.0
-                n = prod(this.nK);
-            else
-                n = size(this.Q,2);
-            end
+            n = prod(this.nK);
         end
         
         function n = sizeFeatIn(this)
@@ -73,7 +66,7 @@ classdef dense
         end
             
         function A = getOp(this,theta)
-            A = reshape(this.Q*vec(theta),this.nK);
+            A = reshape(vec(theta),this.nK);
         end
         
         function dY = Jthetamv(this,dtheta,~,Y,~)
@@ -93,7 +86,7 @@ classdef dense
             nex    =  numel(Y)/numelFeatIn(this);
             Y      = reshape(Y,[],nex);
             Z      = reshape(Z,[],nex);
-            dtheta   = this.Q'*vec(Z*Y');
+            dtheta   = vec(Z*Y');
        end
         
        function Z = implicitTimeStep(this,theta,Y,h)

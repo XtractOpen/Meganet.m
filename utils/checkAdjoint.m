@@ -15,7 +15,7 @@ if not(exist('precision','var')) || isempty(precision)
 end
 
 if isa(A,'LinearOperator')
-    v = randn([A.n,1]);
+    v = randn([A.n,1]); % TODO: issues when last dim is 1 bc matlab squeezes
 else
     v = randn(size(A,2),1);
 end

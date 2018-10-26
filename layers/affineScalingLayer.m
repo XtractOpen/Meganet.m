@@ -115,9 +115,9 @@ classdef affineScalingLayer < abstractMeganetElement
         end
         
         
-        function [dYdata,dY] = Jthetamv(this,dtheta,theta,Y,~)
-           Y   = reshape(Y,this.nData(1), this.nData(2),[]);
-           nex = size(Y,3);
+        function dY = Jthetamv(this,dtheta,theta,Y,~)
+           % Y   = reshape(Y,this.nData(1), this.nData(2),[]);
+           % nex = size(Y,3);
            if this.isWeight(3) && nex ~= this.nData(3)
                error('number of examples (%d) must match number of weights (%d)',nex,this.nData(3));
            end
@@ -150,8 +150,6 @@ classdef affineScalingLayer < abstractMeganetElement
                dY = dY + db3;
            end
            
-           dY = reshape(dY,[],nex);
-           dYdata = dY;
         end
         
         function dtheta = JthetaTmv(this,Z,~,theta,Y,~)
@@ -183,7 +181,7 @@ classdef affineScalingLayer < abstractMeganetElement
         end
        
         
-        function [dYdata,dY] = JYmv(this,dY,theta,~,~)
+        function [dY] = JYmv(this,dY,theta,~,~)
            dY   = reshape(dY,this.nData(1), this.nData(2),[]); 
            nex = size(dY,3);
            if this.isWeight(3) && nex ~= this.nData(3)
@@ -204,7 +202,6 @@ classdef affineScalingLayer < abstractMeganetElement
            end
            
            dY = reshape(dY,[],nex);
-           dYdata = dY;
         end
         
         function Z = JYTmv(this,Z,~,theta,~,~)

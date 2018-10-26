@@ -53,25 +53,25 @@ classdef convMCN < convKernel
             % nex = sizeLastDim(Y);
             
             % compute convolution
-            K   = reshape(this.Q*theta(:),this.sK);
+            K   = reshape(theta(:),this.sK);
             Y   = vl_nnconv(Y,K,[],'pad',this.pad,'stride',this.stride);
         end
 
         
         function dY = Jthetamv(this,dtheta,~,Y,~)
-            dY = getOp(this,this.Q*dtheta(:))*Y;
+            dY = getOp(this,dtheta(:))*Y;
         end
         
         
         function dtheta = JthetaTmv(this,Z,~,Y,~)
             %  derivative of Z*(A(theta)*Y) w.r.t. theta
             [~,dtheta] = vl_nnconv(Y,zeros(this.sK,'like',Y), [],Z,'pad',this.pad,'stride',this.stride);
-            dtheta = this.Q'*dtheta(:);
+            dtheta = dtheta(:);
         end
 
        function dY = ATmv(this,theta,Z)
             
-            theta = reshape(this.Q*theta(:),this.sK);
+            theta = reshape(theta(:),this.sK);
 
             crop = this.pad;
             if this.stride==2 && this.sK(1)==3
