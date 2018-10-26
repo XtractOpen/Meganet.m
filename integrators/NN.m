@@ -96,8 +96,7 @@ classdef NN < abstractMeganetElement
         end
         
         % --------- forward problem ----------
-        function [Y,tmp] = forwardProp(this,theta,Y0)
-            Y = Y0;
+        function [Y,tmp] = forwardProp(this,theta,Y)
             nt = numel(this.layers);
             
             if nargout>1;    tmp = cell(nt,2); end
@@ -123,7 +122,8 @@ classdef NN < abstractMeganetElement
             end
         end
         % -------- Jacobian matvecs --------
-        function [dY] = JYmv(this,dY,theta,~,tmp)
+
+        function dY = JYmv(this,dY,theta,~,tmp)
             nt = numel(this.layers);
             cnt = 0;
             for i=1:nt
@@ -134,7 +134,8 @@ classdef NN < abstractMeganetElement
             end
         end
         
-        function [dY] = Jmv(this,dtheta,dY,theta,~,tmp)
+
+        function dY = Jmv(this,dtheta,dY,theta,~,tmp)
             nt = numel(this.layers);
             if isempty(dY); dY = 0.0; end
             
@@ -149,16 +150,12 @@ classdef NN < abstractMeganetElement
         
         % -------- Jacobian' matvecs --------
         function W = JYTmv(this,W,theta,Y,tmp)
-            nex = numel(Y)/numelFeatIn(this);
-            
             if isempty(W)
                 W = 0;
-            elseif numel(W)>1
-                W     = reshape(W,[],nex);
             end
             nt = numel(this.layers);
             
-            cnt = 0; cnt2 = 0;
+            cnt = 0;
             for i=nt:-1:1
                 Yi = tmp{i,1};
                 ni = nTheta(this.layers{i});
@@ -172,18 +169,15 @@ classdef NN < abstractMeganetElement
             if not(exist('doDerivative','var')) || isempty(doDerivative); 
                doDerivative =[1;0]; 
             end
-            
-            nex = numel(Y)/numelFeatIn(this);
+          
             if isempty(W)
                 W = 0;
-            elseif numel(W)>1
-                W     = reshape(W,[],nex);
             end
             
             dtheta = 0*theta;
             nt = numel(this.layers);
             
-            cnt = 0; cnt2 = 0;
+            cnt = 0; 
             for i=nt:-1:1
                 Yi = tmp{i,1};
                 ni        = nTheta(this.layers{i});

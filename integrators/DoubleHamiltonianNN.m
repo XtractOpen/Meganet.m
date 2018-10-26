@@ -110,9 +110,8 @@ classdef DoubleHamiltonianNN < abstractMeganetElement
         
         % -------- Jacobian matvecs ---------------
         function dX = JYmv(this,dX,theta,Y,tmp)
-            nex = numel(Y)/numelFeatIn(this);
             if isempty(dX) || (numel(dX)==0 && dX==0.0)
-                dX     = zeros([sizeFeatOut(this),nex],'like',Y);
+                dX     = zeros(size(Y),'like',Y);
                 return
             end
             
@@ -122,6 +121,7 @@ classdef DoubleHamiltonianNN < abstractMeganetElement
                 dZ = dZ - this.h*JYmv(this.layer1,dY,th1(:,i),tmp{i,1},tmp{i,3});
                 dY = dY + this.h*JYmv(this.layer2,dZ,th2(:,i),tmp{i,2},tmp{i,4});
             end
+            dX = [dY;dZ];
         end
         
         function dX = Jmv(this,dtheta,dX,theta,~,tmp)
@@ -152,10 +152,10 @@ classdef DoubleHamiltonianNN < abstractMeganetElement
             [th1,th2]  = split(this,theta);
             
             for i=this.nt:-1:1
-                dWZ = JYTmv(this.layer2,WY,[],th2(:,i),tmp{i,2},tmp{i,4});
+                dWZ = JYTmv(this.layer2,WY,th2(:,i),tmp{i,2},tmp{i,4});
                 WZ  = WZ + this.h*dWZ;
                 
-                dWY = JYTmv(this.layer1,WZ,[],th1(:,i),tmp{i,1},tmp{i,3});
+                dWY = JYTmv(this.layer1,WZ,th1(:,i),tmp{i,1},tmp{i,3});
                 WY  = WY - this.h*dWY;
             end
             W = [WY;WZ];
@@ -166,7 +166,6 @@ classdef DoubleHamiltonianNN < abstractMeganetElement
                doDerivative =[1;0]; 
             end
             
-            nex = numel(Y)/numelFeatOut(this);
             if isempty(W) || numel(W)==1
                 WY = 0;
                 WZ = 0;
@@ -177,11 +176,11 @@ classdef DoubleHamiltonianNN < abstractMeganetElement
             [dth1,dth2] = split(this,0*theta);
             
             for i=this.nt:-1:1
-                [dt2,dWZ] = JTmv(this.layer2,WY,[],th2(:,i),tmp{i,2},tmp{i,4});
+                [dt2,dWZ] = JTmv(this.layer2,WY,th2(:,i),tmp{i,2},tmp{i,4});
                 WZ  = WZ + this.h*dWZ;
                 dth2(:,i) = this.h*dt2;
                 
-                [dt1,dWY] = JTmv(this.layer1,WZ,[],th1(:,i),tmp{i,1},tmp{i,3});
+                [dt1,dWY] = JTmv(this.layer1,WZ,th1(:,i),tmp{i,1},tmp{i,3});
                 WY  = WY - this.h*dWY;
                 dth1(:,i) = -this.h*dt1;
             end

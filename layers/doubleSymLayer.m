@@ -89,8 +89,6 @@ classdef doubleSymLayer < abstractMeganetElement
         
         function [Z,tmp] = forwardProp(this,theta,Y,varargin)
             tmp =  cell(1,2);
-            nex        = numel(Y)/numelFeatIn(this); % TODO remove this
-            Y          = reshape(Y,[],nex);
             storedAct  = (nargout>1);
             
             [th1,th2,th3,th4,th5] = split(this,theta);
@@ -132,12 +130,10 @@ classdef doubleSymLayer < abstractMeganetElement
             %   KY    - K(theta)*Y
             %   tmpNL - temp results of norm Layer
             
-            nex = numel(Y)/numelFeatIn(this);
             tmpNL1 =[]; tmpNL2 = []; KZ = [];
             [th1, th2,~,th4,th5]  = split(this,theta);
             
             if not(this.storeInterm)
-                Y = reshape(Y,[],nex);
                 KY = getOp(this.K,th1)*Y;
             else
                 KY = tmp{1};
@@ -218,15 +214,11 @@ classdef doubleSymLayer < abstractMeganetElement
         end
         
         function dZ = JYmv(this,dY,theta,Y,KY)
-            nex       = numel(Y)/numelFeatIn(this);
-            Y   = reshape(Y,[],nex);
             [th1, ~,~,th4,th5]  = split(this,theta);
             
             [A,dA,KY,KZ,tmpNL1,tmpNL2] = getTempsForSens(this,theta,Y,KY);
             
             
-            nex = numel(dY)/numelFeatIn(this);
-            dY  = reshape(dY,[],nex);
             
             Kop = getOp(this.K,th1);
             dY = Kop*dY;
@@ -245,11 +237,9 @@ classdef doubleSymLayer < abstractMeganetElement
             
             [A,dA,KY,KZ,tmpNL1,tmpNL2] = getTempsForSens(this,theta,Y,KY);
             
-            nex = numel(Y)/numelFeatIn(this);
             Kop    = getOp(this.K,th1);
             dKop   = getOp(this.K,dth1);
             if numel(dY)>1
-                dY  = reshape(dY,[],nex);
                 KdY = Kop*dY;
             else
                 KdY = 0;
@@ -258,22 +248,24 @@ classdef doubleSymLayer < abstractMeganetElement
             if not(isempty(this.nLayer1))
                 dY = Jmv(this.nLayer1,dth4,dY,th4,KY,tmpNL1);
             end
-            dY     = dY + this.Bin*dth2;
+            if not(isempty(this.Bin))
+                dY     = dY + this.Bin*dth2;
+            end
             
             dY = -(Kop'*(dA.*dY) + dKop'*A);
             if not(isempty(this.nLayer2))
                 dY = Jmv(this.nLayer2,dth5,dY,th5,KZ,tmpNL2);
             end
-            dY = dY + this.Bout*dth3;
+            if not(isempty(this.Bout))
+                dY = dY + this.Bout*dth3;
+            end
         end
         
         
-        function dtheta = JthetaTmv(this,Z,~,theta,Y,KY)
+        function dtheta = JthetaTmv(this,Z,theta,Y,KY)
             [th1, ~,~,th4,th5]  = split(this,theta);
             [A,dA,KY,KZ,tmpNL1,tmpNL2] = getTempsForSens(this,theta,Y,KY);
             
-            nex       = numel(Y)/numelFeatIn(this);
-            Z         = reshape(Z,[],nex);
             Kop       = getOp(this.K,th1);
             
             dth3      = vec(sum(this.Bout'*Z,2));
@@ -294,12 +286,10 @@ classdef doubleSymLayer < abstractMeganetElement
             dtheta    = [-dth1(:); -dth2(:); dth3(:); -dth4(:);dth5(:)];
         end
         
-        function dY = JYTmv(this,Z,~,theta,Y,KY)
+        function dY = JYTmv(this,Z,theta,Y,KY)
             [th1, ~,~,th4,th5]  = split(this,theta);
             [A,dA,KY,KZ,tmpNL1,tmpNL2] = getTempsForSens(this,theta,Y,KY);
             
-            nex       = numel(Y)/numelFeatIn(this);
-            Z         = reshape(Z,[],nex);
             Kop       = getOp(this.K,th1);
             
             if not(isempty(this.nLayer2))
@@ -312,7 +302,7 @@ classdef doubleSymLayer < abstractMeganetElement
             dY  = -(Kop'*dAZ);
         end
         
-        function [dtheta,dY] = JTmv(this,Z,~,theta,Y,KY,doDerivative)
+        function [dtheta,dY] = JTmv(this,Z,theta,Y,KY,doDerivative)
             if not(exist('doDerivative','var')) || isempty(doDerivative)
                 doDerivative =[1;0];
             end
@@ -320,8 +310,6 @@ classdef doubleSymLayer < abstractMeganetElement
             [A,dA,KY,KZ,tmpNL1,tmpNL2] = getTempsForSens(this,theta,Y,KY);
             
             dY = [];
-            nex       = numel(Y)/numelFeatIn(this);
-            Z         = reshape(Z,[],nex);
             Kop       = getOp(this.K,th1);
             
             dth3      = vec(sum(this.Bout'*Z,2));

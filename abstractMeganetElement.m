@@ -101,7 +101,7 @@ methods
     end
         
         % ---------derivatives for Y --------
-        function dY = JYTmv(this,Wdata,W,theta,Y,tmp)
+        function dY = JYTmv(this,W,theta,Y,tmp)
             % dY = abstractMeganetElement.JYTmv(this,W,theta,Y,tmp)
             %
             % computes dY = transpose(J_Y(theta,Y))*W 
@@ -118,9 +118,10 @@ methods
             % Output: 
             %
             %   dY     - directional derivative, numel(dY)==numel(Y)
-            [dY] = JTmv(this,Wdata,W,theta,Y,tmp);
+            [~,dY] = JTmv(this,W,theta,Y,tmp);
         end
-        function [dY] = JYmv(this,dY,theta,Y,tmp)
+        
+        function dY = JYmv(this,dY,theta,Y,tmp)
             % dZ = abstractMeganetElement.JYTmv(this,W,theta,Y,tmp)
             %
             % computes dZ = J_Y(theta,Y)*dY
@@ -137,7 +138,8 @@ methods
             % Output: 
             %
             %   dZ     - directional derivative, numel(dZ)==numel(Z)
-            [dY] = Jmv(this,[],dY,theta,Y,tmp);
+
+            dY = Jmv(this,[],dY,theta,Y,tmp);
         end
         
         function [this,theta] = prolongateWeights(this,theta)
@@ -187,17 +189,17 @@ methods
             %   dY     - directional derivative, numel(dY)==numel(Y)
             
             if nargin<4; tmp=[]; end
-            m      = sizeFeatOut(this);
-            n      = sizeFeatIn(this);
+            m      = [sizeFeatOut(this) size(Y,ndims(Y))];
+            n      = size(Y);
             Amv    = @(x) JYmv(this,x,theta,Y,tmp);
-            ATmv   = @(x) JYTmv(this,x,[],theta,Y,tmp);
+            ATmv   = @(x) JYTmv(this,x,theta,Y,tmp);
             J      = LinearOperator(m,n,Amv,ATmv);
         end
 
         
 
         % -------- derivatives for theta ---------
-        function [dY] = Jthetamv(this,dtheta,theta,Y,tmp)
+        function dY = Jthetamv(this,dtheta,theta,Y,tmp)
             % dZ = abstractMeganetElement.Jthetamv(this,W,theta,Y,tmp)
             %
             % computes dZ = J_theta(theta,Y)*dtheta
@@ -214,7 +216,8 @@ methods
             % Output: 
             %
             %   dZ     - directional derivative, numel(dZ)==numel(Z)
-            [dY] = Jmv(this,dtheta,[],theta,Y,tmp);
+
+            dY = Jmv(this,dtheta,[],theta,Y,tmp);
         end
         
         function dtheta = JthetaTmv(this,W,theta,Y,tmp)
@@ -255,11 +258,10 @@ methods
             %
             %   J     - Jacobian, LinearOperator
             if nargin<4; tmp=[]; end
-            nex    = sizeLastDim(Y);
             m      = sizeFeatOut(this);
             n      = nTheta(this);
             Amv    = @(x) Jthetamv(this,x,theta,Y,tmp);
-            ATmv   = @(x) JthetaTmv(this,x,[],theta,Y,tmp);
+            ATmv   = @(x) JthetaTmv(this,x,theta,Y,tmp);
             J      = LinearOperator(m,n,Amv,ATmv);
         end
 
@@ -284,7 +286,7 @@ methods
         end
         
         % --------  combined derivatives ----------
-        function [dZ] = Jmv(this,dtheta,dY,theta,Y,tmp)
+        function dZ = Jmv(this,dtheta,dY,theta,Y,tmp)
             % dZ = abstractMeganetElement.Jmv(this,dtheta,dY,theta,Y,tmp)
             %
             % computes dZ = J_theta(theta,Y)*dtheta + J_Y(theta,Y)*dY
@@ -307,19 +309,19 @@ methods
             if isempty(dtheta) || norm(dtheta(:))==0
                 dZ     = 0;
             else
-                [dZ] = Jthetamv(this,dtheta,theta,Y,tmp);
+                dZ = Jthetamv(this,dtheta,theta,Y,tmp);
             end
 
             if not(isempty(dY)) && norm(dY(:))>0
-                [dZt] = JYmv(this,dY,theta,Y,tmp);
+                dZt    = JYmv(this,dY,theta,Y,tmp);
                 dZ     = dZ + dZt;
             end
         end
         
         function [dtheta,dY] = JTmv(this,W,theta,Y,tmp,doDerivative)
-            % dZ = abstractMeganetElement.JTmv(this,Z,theta,Y,tmp)
+            % dZ = abstractMeganetElement.JTmv(this,W,theta,Y,tmp,doDerivative)
             %
-            % computes [dtheta;dY] = [J_theta(theta,Y)'; J_Y(theta)']*Z
+            % computes [dtheta;dY] = [J_theta(theta,Y)'; J_Y(theta)']*W
             %
             % Input:
             %
@@ -346,7 +348,7 @@ methods
             % There are different modes for the output. If nargout==2 
             
             if not(exist('tmp','var')); tmp=[]; end
-            if not(exist('doDerivative','var')) || isempty(doDerivative); 
+            if not(exist('doDerivative','var')) || isempty(doDerivative) 
                doDerivative =[1;0]; 
             end
             dtheta = JthetaTmv(this,W,theta,Y,tmp);
@@ -390,8 +392,8 @@ methods
             % nex    = sizeLastDim(Y);
             m      = sizeFeatOut(this);
             nth    = nTheta(this);
-            nY     = numelFeatIn(this);
-            Amv    = @(x) Jmv(this,x(1:nth),reshape(x(nth+1:end),sizeFeatIn(this)),theta,Y,tmp);
+            nY     = numel(Y);
+            Amv    = @(x) Jmv(this,x(1:nth),reshape(x(nth+1:end),size(Y)),theta,Y,tmp);
             ATmv   = @(x) JTmv(this,x,theta,Y,tmp,[1;1]);
             J      = LinearOperator(m,nth+nY,Amv,ATmv);
         end

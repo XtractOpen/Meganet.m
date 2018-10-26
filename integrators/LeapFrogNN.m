@@ -79,7 +79,7 @@ classdef LeapFrogNN < abstractMeganetElement
         end
         
         % ------- forwardProp forward problems -----------
-        function [Y,tmp] = forwardProp(this,theta,Y0)
+        function [Y,tmp] = forwardProp(this,theta,Y)
             
             if nargout>1;    tmp = cell(this.nt,2);  end
             
@@ -111,7 +111,8 @@ classdef LeapFrogNN < abstractMeganetElement
         end
         
         
-        function [dY] = Jmv(this,dtheta,dY,theta,~,tmp)
+
+        function dY = Jmv(this,dtheta,dY,theta,~,tmp)
             if isempty(dY)
                 dY = 0.0;
             end
