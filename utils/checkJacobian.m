@@ -1,7 +1,7 @@
 function [isOK,Err,Order] = checkJacobian(fctn,x0,varargin)
 % function [isOK,Err,Order] = checkJacobian(fctn,x0,varargin)
 
-if nargin==0;
+if nargin==0
     feval(mfilename,@quadTestFun,.4);
     return;
 end
@@ -15,7 +15,7 @@ precision = 'double';
 for k=1:2:length(varargin)     % overwrites default parameter
     eval([varargin{k},'=varargin{',int2str(k+1),'};']);
 end
-if strcmp(precision,'single');
+if strcmp(precision,'single')
     nSuccess=2;
 end
 v = gpuVar(useGPU,precision,v);

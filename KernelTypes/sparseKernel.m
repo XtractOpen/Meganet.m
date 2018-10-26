@@ -13,6 +13,7 @@ classdef sparseKernel
         nK           % size of matrix
         ival         % row-indices of non-zero elements in sparse matrix
         jval         % column-indices of non-zero elements in sparse matrix
+        Qs           % basis for non-zero elements (default: speye)
         useGPU
         precision
     end
@@ -20,6 +21,7 @@ classdef sparseKernel
     methods
         function this = sparseKernel(ival,jval,nK,varargin)
             % constructor, required arguments are ival, jval, nK
+            Qs   = [];
             useGPU = 0;
             precision = 'double';
             for k=1:2:length(varargin)     % overwrites default parameter
@@ -34,6 +36,11 @@ classdef sparseKernel
             end
             this.ival = ival;
             this.jval = jval;
+            
+            if (isempty(Qs))
+                Qs = speye(numel(jval));
+            end
+            this.Qs   = Qs;
             
             
         end
@@ -87,8 +94,8 @@ classdef sparseKernel
         end
         
         function dtheta = JthetaTmv(this,Z,~,Y,~)
-            dtheta = sum(Z(this.ival,:) .* Y(this.jval,:),2);
-            
+            t = sum(Z(this.ival,:) .* Y(this.jval,:),2);
+            dtheta = this.Qs'*t;
         end
         
         function Z = implicitTimeStep(this,theta,Y,h)

@@ -83,8 +83,8 @@ classdef scalingKernel < handle
         end
         
         function [Y,tmp] = Amv(this,theta,Y)
-           Y   = reshape(Y,this.nData(1), this.nData(2),[]);
-           nex = size(Y,3);
+           % Y   = reshape(Y,this.nData(1), this.nData(2),[]);
+           nex = size(Y,3); % TODO....do we need nex?
            if this.isWeight(3) && nex ~= this.nData(3)
                error('number of examples (%d) must match number of weights (%d)',nex,this.nData(3));
            end
@@ -101,7 +101,7 @@ classdef scalingKernel < handle
            if this.isWeight(3) || not(isempty(s3))
                Y = Y.*s3;
            end
-           Y = reshape(Y,[],nex);
+           % Y = reshape(Y,[],nex);
         end
         
         function theta = initTheta(this)
@@ -109,7 +109,7 @@ classdef scalingKernel < handle
         end
         
         function dY = Jthetamv(this,dtheta,theta,Y,~)
-           Y   = reshape(Y,this.nData(1), this.nData(2),[]);
+           % Y   = reshape(Y,this.nData(1), this.nData(2),[]);
            nex = size(Y,3);
            if this.isWeight(3) && nex ~= this.nData(3)
                error('number of examples (%d) must match number of weights (%d)',nex,this.nData(3));
@@ -120,7 +120,7 @@ classdef scalingKernel < handle
            if this.isWeight(1) || not(isempty(ds1))
                dY = Amv(this,[ds1(:);s2(:);s3(:)],Y);
            else
-               dY = reshape(0*Y,[],nex);
+               dY = zeros(size(Y));
            end
            
            if this.isWeight(2) || not(isempty(ds2))
@@ -130,13 +130,13 @@ classdef scalingKernel < handle
            if this.isWeight(3) || not(isempty(ds3))
                dY = dY+Amv(this,[s1(:);s2(:);ds3(:)],Y);
            end
-           dY = reshape(dY,[],nex);
+           % dY = reshape(dY,[],nex);
         end
         
         
         function dtheta = JthetaTmv(this,Z,theta,Y,~)
-            Y   = reshape(Y,this.nData(1), this.nData(2),[]);
-            Z   = reshape(Z,this.nData(1), this.nData(2),[]);
+            % Y   = reshape(Y,this.nData(1), this.nData(2),[]);
+            % Z   = reshape(Z,this.nData(1), this.nData(2),[]);
             nex = size(Y,3);
             if this.isWeight(3) && nex ~= this.nData(3)
                 error('number of examples (%d) must match number of weights (%d)',nex,this.nData(3));

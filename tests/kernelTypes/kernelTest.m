@@ -18,10 +18,6 @@ classdef kernelTest < matlab.unittest.TestCase
               Z   = getOp(ks,th0)*Y;
               Yt  = getOp(ks,th0)'*Z;
               
-%               colonsZ = repmat( {':'} , 1 , ndims(Z) -1 );
-%               colonsYt = repmat( {':'} , 1 , ndims(Yt) -1 );
-%               testCase.verifyTrue( all( size( Z(colonsZ{:} ,1))==sizeFeatOut(ks)) ); % size() squeezes out the trailing 1's
-%               testCase.verifyTrue( all( size(Yt(colonsYt{:},1))==sizeFeatIn(ks) ) );
               szZ = size(Z);
               szYt = size(Yt);
               testCase.verifyTrue( all( szZ(1:end-1)==sizeFeatOut(ks)) ); % TODO still may fail if nex=1
