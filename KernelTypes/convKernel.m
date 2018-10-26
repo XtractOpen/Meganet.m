@@ -26,7 +26,7 @@ classdef convKernel
     end
     
     methods
-        function this = convKernel(nImg, sK,varargin)
+        function this = convKernel(nImg, sK , varargin)
             if nargin==0
                 return;
             end

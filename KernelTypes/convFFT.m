@@ -54,9 +54,11 @@ classdef convFFT < convKernel
             theta  = [theta1(:);];
 
             % create random input, but with a huge rectangle in the middle
-            I  = rand(nImgIn(kernel)); I(4:12,4:12,:) = 2;
-            Ik = reshape(Amv(kernel,theta,I),kernel.nImgOut());
-            ITk = reshape(ATmv(kernel,theta,I),kernel.nImgOut());
+            nex = 7;
+            I  = rand([nImgIn(kernel) nex]); I(4:12,4:12,:,:) = 2;
+            % Ik = reshape(Amv(kernel,theta,I),kernel.nImgOut);
+            Ik = Amv(kernel,theta,I);
+            ITk = ATmv(kernel,theta,Ik);
             
             % display how the learned filters perform
             for i=1:4
@@ -138,7 +140,6 @@ classdef convFFT < convKernel
         
         function dtheta = JthetaTmv(this,Z,~,Y)
             %  derivative of Z*(A(theta)*Y) w.r.t. theta
-            
             nex    =  numel(Y)/numelFeatIn(this);
             
             dth1    = zeros([this.sK(1)*this.sK(2),this.sK(3:4)],'like',Y);
