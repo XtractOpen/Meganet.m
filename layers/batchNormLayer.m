@@ -79,7 +79,7 @@ classdef batchNormLayer < abstractMeganetElement
            dY = dY + db2;
         end
         
-        function dtheta = JthetaTmv(this,Z,~,theta,Y,~)
+        function dtheta = JthetaTmv(this,Z,theta,Y,~)
             % normalization
            Y  = Y-mean(Y,4);
            Y  = Y./sqrt(mean(Y.^2,4)+this.eps);

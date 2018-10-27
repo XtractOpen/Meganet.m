@@ -299,7 +299,7 @@ classdef doubleLayer < abstractMeganetElement
         
         % ----------- Jacobian' matvecs ----------
         
-        function [dth,dAZ1] = JthetaTmv(this,W,~,theta,Y,dA)
+        function [dth,dAZ1] = JthetaTmv(this,W,theta,Y,dA)
             nex        = numel(W)/numelFeatOut(this);
             W          = reshape(W,[],nex);
             dth6 = []; dth7=[];
@@ -357,7 +357,7 @@ classdef doubleLayer < abstractMeganetElement
             dY = [];
             
             [th1, ~] = this.split(theta);
-            [dth,dA1Z]  = JthetaTmv(this,Z,[],theta,Y,tmp);
+            [dth,dA1Z]  = JthetaTmv(this,Z,theta,Y,tmp);
             if nargout==2 || doDerivative(2)==1
                 dY  = getOp(this.K1,th1)'*dA1Z;
             end

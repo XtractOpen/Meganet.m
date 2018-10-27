@@ -7,8 +7,7 @@ runtests('doubleSymLayerTest') % ... dims don't match
 runtests('instNormLayerTest') % ... dims don't match, Array dimensions must match for binary array op.
 runtests('linearNegLayerTest') % ... dims don't match
 runtests('singleLayerTest') % ... dims
-runtests('convFFTTest') % MinExample
-EParabolic_STL10
+EParabolic_STL10(5000,32,3)
 
 %% partial pass
 runtests('normLayerTest') % ... dims
@@ -30,6 +29,7 @@ runtests('denseTest');
 runtests('kernelTest');
 runtests('scalingKernelTest');
 runtests('sparseKernelTest');
+runtests('convFFTTest') % MinExample
 tb = runtests('layerTest');
 
 %%

@@ -69,9 +69,9 @@ classdef singleLayer < abstractMeganetElement
             end
             
             nex = numel(Y)/numelFeatIn(this);
-            Y   = reshape(Y,[],nex);
-%             nex = sizeLastDim(Y);  % fails for vectorization test          
-            Y   = reshape(Y,[],nex);
+%             Y   = reshape(Y,[],nex);
+% %             nex = sizeLastDim(Y);  % fails for vectorization test          
+%             Y   = reshape(Y,[],nex);
             [th1,th2,th3,th4] = split(this,theta);
             
             Y      =  getOp(this.K,th1)*Y;
@@ -127,9 +127,7 @@ classdef singleLayer < abstractMeganetElement
             %   KY    - K(theta)*Y
             %   tmpNL - temp results of norm Layer
             
-            % nex = numel(Y)/sizeFeatIn(this);
-            
-            nex = sizeLastDim(Y);
+            nex = numel(Y)/sizeFeatIn(this);
             tmpNL =[];
             [th1, th2,~,th4]  = split(this,theta);
             
@@ -248,7 +246,7 @@ classdef singleLayer < abstractMeganetElement
 
         end
         
-        function dtheta = JthetaTmv(this,Z,~,theta,Y,KY)
+        function dtheta = JthetaTmv(this,Z,theta,Y,KY)
             [~, ~,~,th4]  = split(this,theta);
             [dA,KY,tmpNL] = getTempsForSens(this,theta,Y,KY);
 

@@ -69,7 +69,7 @@ classdef tvNormLayer < abstractMeganetElement
         
         
         function [dY] = Jthetamv(this,dtheta,theta,Y,~)
-           Y   = reshape(Y,this.nData(1),this.nData(2), this.nData(3),[]);
+           Y   = reshape(Y,this.nData(1),this.nData(2),this.nData(3),[]); % remove this.nData(3) ???
            [ds2,db2] = split(this,dtheta);
            
            % normalization
@@ -81,7 +81,7 @@ classdef tvNormLayer < abstractMeganetElement
            dY = dY + db2;
         end
         
-        function dtheta = JthetaTmv(this,Z,~,theta,Y,~)
+        function dtheta = JthetaTmv(this,Z,theta,Y,~)
             Y   = reshape(Y,this.nData(1),this.nData(2), this.nData(3),[]);
             Z   = reshape(Z,this.nData(1),this.nData(2), this.nData(3),[]);
             % normalization
@@ -94,32 +94,39 @@ classdef tvNormLayer < abstractMeganetElement
         end
        
         
-        function [dY] = JYmv(this,dY,theta,Y,~)
-            dY   = reshape(dY,this.nData(1),this.nData(2), this.nData(3),[]);
-            Y   = reshape(Y,this.nData(1),this.nData(2), this.nData(3),[]);
+        function [dY] = JYmv(this,dY,theta,Y,~) % TODO double check this
+            szY = size(Y);
+            dY   = reshape(dY,this.nData(1)*this.nData(2), this.nData(3),[]);
+            Y   = reshape(Y,this.nData(1)*this.nData(2), this.nData(3),[]);
             s2 = split(this,theta);
+            s2 = reshape(s2,1,this.nData(3),[]); % really just a permute
+            
             
             % normalization
+%             nex = size(dY,3);
 %             nf  = this.nData(2);
 %             Y    = reshape(Y,[],nf,nex);
-            Y   = reshape(Y,this.nData(1)*this.nData(2), this.nData(3),[]);
             
-            Fy  = Y-mean(Y,3);
-            FdY = dY-mean(dY,3);
-            den = sqrt(mean(Fy.^2,3)+this.eps);
+            % Y   = reshape(Y,this.nData(1)*this.nData(2), this.nData(3),[]);
+            
+            Fy  = Y-mean(Y,2);
+            FdY = dY-mean(dY,2);
+            den = sqrt(mean(Fy.^2,2)+this.eps);
             
             % TODO FdY and den are different shapes
             dY = FdY./den  - (Fy.* (mean(Fy.*FdY,2) ./(den.^3))) ;
             % scaling
             dY = dY.*s2; % (3-D) .* (2-D matrix)
-            dY = reshape(dY,[],nex);
+            dY = reshape(dY,szY);
         end
         
         function dY = JYTmv(this,dY,~,theta,Y,~)
-           dY   = reshape(dY,this.nData(1),this.nData(2), this.nData(3),[]); 
-           Y   = reshape(Y,this.nData(1),this.nData(2), this.nData(3),[]); 
+           szY = size(Y);
+           dY   = reshape(dY,this.nData(1)*this.nData(2), this.nData(3),[]); 
+           Y   = reshape(Y,this.nData(1)*this.nData(2), this.nData(3),[]); 
            % scaling
            s2 = split(this,theta);
+           s2 = reshape(s2,1,this.nData(3),[]); % really just a permute
            dY = dY.*s2;
            
            % normalization
@@ -129,6 +136,7 @@ classdef tvNormLayer < abstractMeganetElement
            
            tt = mean(Fy.*FdY,2) ./(den.^3);
            dY = FdY./den  - Fy.*tt;
+           dY = reshape(dY,szY);
         end
         
         

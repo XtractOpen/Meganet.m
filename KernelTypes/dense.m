@@ -70,7 +70,7 @@ classdef dense
         end
         
         function dY = Jthetamv(this,dtheta,~,Y,~)
-            nex    =  numel(Y)/numelFeatIn(this);
+            nex    =  numel(Y)/numelFeatIn(this); % TODO: reshapes necessary?
             Y      = reshape(Y,[],nex);
             dY = getOp(this,dtheta)*Y;
         end

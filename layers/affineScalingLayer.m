@@ -152,7 +152,7 @@ classdef affineScalingLayer < abstractMeganetElement
            
         end
         
-        function dtheta = JthetaTmv(this,Z,~,theta,Y,~)
+        function dtheta = JthetaTmv(this,Z,theta,Y,~)
             Y   = reshape(Y,this.nData(1), this.nData(2),[]);
             Z   = reshape(Z,this.nData(1), this.nData(2),[]);
             nex = size(Y,3);

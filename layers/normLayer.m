@@ -134,7 +134,7 @@ classdef normLayer < abstractMeganetElement
             end
         end
         
-        function dtheta = JthetaTmv(this,Z,~,theta,Y,dA)
+        function dtheta = JthetaTmv(this,Z,theta,Y,dA)
             dtheta = [];
         end
         

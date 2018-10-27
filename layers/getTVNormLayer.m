@@ -18,5 +18,5 @@ end
 if isWeight==1
     L    = tvNormLayer(nData,'useGPU',useGPU,'precision',precision);
 else
-    L = normLayer(nData,'doNorm',[0,1,0],'useGPU',useGPU,'precision',precision);;
+    L = normLayer(nData,'doNorm',[0,1,0],'useGPU',useGPU,'precision',precision);
 end
