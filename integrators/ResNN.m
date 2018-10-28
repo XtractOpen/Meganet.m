@@ -62,9 +62,7 @@ classdef ResNN < abstractMeganetElement
         
         
         % ------- forwardProp forward problems -----------
-        function [Y,tmp] = forwardProp(this,theta,Y0)
-            nex = numel(Y0)/numelFeatIn(this);
-            Y   = reshape(Y0,[],nex);
+        function [Y,tmp] = forwardProp(this,theta,Y)
             if nargout>1;    tmp = cell(this.nt,2); end
             
             theta = reshape(theta,[],this.nt);
