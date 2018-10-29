@@ -81,10 +81,10 @@ classdef doubleLayer < abstractMeganetElement
             this.nLayer2 = nLayer2;
             this.storeInterm=storeInterm;
             
-            if not(isempty(nLayer1)) && sizeFeatIn(nLayer1)~=sizeFeatOut(this.K1)
+            if not(isempty(nLayer1)) && any(sizeFeatIn(nLayer1)~=sizeFeatOut(this.K1))
                 error('input dimension of first normalization layer does not match output dimension of K1')
             end
-            if not(isempty(nLayer2)) && sizeFeatIn(nLayer2)~=sizeFeatOut(this.K2)
+            if not(isempty(nLayer2)) && any(sizeFeatIn(nLayer2)~=sizeFeatOut(this.K2))
                 error('input dimension of second normalization layer does not match output dimension of K2')
             end
             

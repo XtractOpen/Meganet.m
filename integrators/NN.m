@@ -180,8 +180,8 @@ classdef NN < abstractMeganetElement
             cnt = 0; 
             for i=nt:-1:1
                 Yi = tmp{i,1};
-                ni        = nTheta(this.layers{i});
-                [dmbi,W] = JTmv(this.layers{i},W,[],theta(end-cnt-ni+1:end-cnt),...
+                ni = nTheta(this.layers{i});
+                [dmbi,W] = JTmv(this.layers{i},W,theta(end-cnt-ni+1:end-cnt),...
                     Yi,tmp{i,2});
                 dtheta(end-cnt-ni+1:end-cnt)  = dmbi;
                 cnt = cnt+ni;
