@@ -293,11 +293,11 @@ classdef doubleSymLayer < abstractMeganetElement
             Kop       = getOp(this.K,th1);
             
             if not(isempty(this.nLayer2))
-                Z = JYTmv(this.nLayer2,Z,[],th5,KZ,tmpNL2);
+                Z = JYTmv(this.nLayer2,Z,th5,KZ,tmpNL2);
             end
             dAZ       = dA.*(Kop*Z);
             if not(isempty(this.nLayer1))
-                dAZ = JYTmv(this.nLayer1,dAZ,[],th4,KY,tmpNL1);
+                dAZ = JYTmv(this.nLayer1,dAZ,th4,KY,tmpNL1);
             end
             dY  = -(Kop'*dAZ);
         end

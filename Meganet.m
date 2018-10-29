@@ -138,26 +138,26 @@ classdef Meganet < abstractMeganetElement
         end
         
         % ----------- Jacobian matvecs -------------
-        function [dY] = JYmv(this,dY,theta,~,tmp)
+        function dY = JYmv(this,dY,theta,~,tmp)
             nex = numel(dY)/numelFeatIn(this);
             dY  = reshape(dY,[],nex);
             nBlocks = numel(this.blocks);
             cnt = 0;
             for k=1:nBlocks
                 nk = nTheta(this.blocks{k});
-                [dY] = JYmv(this.blocks{k},dY,theta(cnt+(1:nk)),[],tmp{k});
+                dY = JYmv(this.blocks{k},dY,theta(cnt+(1:nk)),[],tmp{k});
                 cnt = cnt+nk;
             end
         end
         
-        function [dY] = Jmv(this,dtheta,dY,theta,~,tmp)
+        function dY = Jmv(this,dtheta,dY,theta,~,tmp)
             nex = numel(dY)/numelFeatIn(this);
             dY  = reshape(dY,[],nex);
             nBlocks = numel(this.blocks);
             cnt = 0;
             for k=1:nBlocks
                 nk = nTheta(this.blocks{k});
-                [dY] = Jmv(this.blocks{k},dtheta(cnt+(1:nk)),dY,theta(cnt+(1:nk)),[],...
+                dY = Jmv(this.blocks{k},dtheta(cnt+(1:nk)),dY,theta(cnt+(1:nk)),[],...
                     tmp{k});
                 cnt = cnt+nk;
             end
@@ -203,7 +203,7 @@ classdef Meganet < abstractMeganetElement
             end
         end
         
-        function [thFine] = prolongateConvStencils(this,theta,getRP)
+        function thFine = prolongateConvStencils(this,theta,getRP)
             % prolongate convolution stencils, doubling image resolution
             %
             % Inputs:
@@ -226,7 +226,7 @@ classdef Meganet < abstractMeganetElement
             end
             thFine = vec(thFine);
         end
-        function [thCoarse] = restrictConvStencils(this,theta,getRP)
+        function thCoarse = restrictConvStencils(this,theta,getRP)
             % restrict convolution stencils, dividing image resolution by two
             %
             % Inputs:

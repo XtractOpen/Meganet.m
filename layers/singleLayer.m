@@ -139,7 +139,7 @@ classdef singleLayer < abstractMeganetElement
             [~,dA] = this.activation( KYn);
         end
         
-        function [dZ] = Jthetamv(this,dtheta,theta,Y,KY)
+        function dZ = Jthetamv(this,dtheta,theta,Y,KY)
             [th1, ~,~,th4]  = split(this,theta);
             
             [dA,KY,tmpNL] = getTempsForSens(this,theta,Y,KY);
@@ -160,7 +160,7 @@ classdef singleLayer < abstractMeganetElement
             end
         end
         
-        function [dZ] = JYmv(this,dY,theta,Y,KY)
+        function dZ = JYmv(this,dY,theta,Y,KY)
             [th1,~,~,th4]  = split(this,theta);
             [dA,KY,tmpNL] = getTempsForSens(this,theta,Y,KY);
 

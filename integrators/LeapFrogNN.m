@@ -139,7 +139,7 @@ classdef LeapFrogNN < abstractMeganetElement
             theta  = reshape(theta,[],this.nt);
             Wold = 0;
             for i=this.nt:-1:1
-                dW = JYTmv(this.layer,W,[],theta(:,i),tmp{i,1},tmp{i,2});
+                dW = JYTmv(this.layer,W,theta(:,i),tmp{i,1},tmp{i,2});
                 Wtemp = W;
                 W     = 2*W - Wold + this.h^2*dW;
                 Wold  = Wtemp;

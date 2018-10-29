@@ -90,7 +90,7 @@ classdef batchNormLayer < abstractMeganetElement
         end
        
         
-        function [dY] = JYmv(this,dY,theta,Y,~)
+        function dY = JYmv(this,dY,theta,Y,~)
             Y  = reshape(Y, this.nData(1), this.nData(2), this.nData(3),[]);
             dY = reshape(dY, this.nData(1), this.nData(2), this.nData(3),[]);
             s2 = split(this,theta);
@@ -104,7 +104,7 @@ classdef batchNormLayer < abstractMeganetElement
             dY = dY.*s2;
         end
         
-        function FdY = JYTmv(this,FdY,~,theta,Y,~)
+        function FdY = JYTmv(this,FdY,theta,Y,~)
            % scaling
            s2 = split(this,theta);
            FdY = FdY.*s2;

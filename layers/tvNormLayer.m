@@ -143,7 +143,7 @@ classdef tvNormLayer < abstractMeganetElement
         end
        
         
-        function [dY] = JYmv(this,dY,theta,Y,~) % TODO double check this
+        function dY = JYmv(this,dY,theta,Y,~) % TODO double check this
             
             den = sqrt(sum(Y.^2,3)+this.eps);
             dY = dY./den  - (Y.* (sum(Y.*dY,3) ./(den.^3))) ;

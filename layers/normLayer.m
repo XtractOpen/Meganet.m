@@ -84,11 +84,11 @@ classdef normLayer < abstractMeganetElement
         end
         
         
-        function [dZ] = Jthetamv(this,dtheta,theta,Y,dA)
+        function dZ = Jthetamv(this,dtheta,theta,Y,dA)
             dZ = 0*Y;
         end
         
-        function [dZ] = JYmv(this,dY,theta,Y,dA)
+        function dZ = JYmv(this,dY,theta,Y,dA)
             %
             % Z(Y) = (Y- Av*Y)./sqrt((Y-Av*Y).^2 + eps)
             %
@@ -116,7 +116,7 @@ classdef normLayer < abstractMeganetElement
             dZ = FdY./den  - ( Fy.* (compMean(this,Fy.*FdY) ./(den.^3))) ;
         end
         
-        function [dZ] = Jmv(this,~,dY,theta,Y,dA)
+        function dZ = Jmv(this,~,dY,theta,Y,dA)
             if numel(dY)==1 && dY==0
                 dZ = 0*Y;
             else

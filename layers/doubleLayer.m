@@ -241,11 +241,11 @@ classdef doubleLayer < abstractMeganetElement
         end
         
         % ----------- Jacobian matvecs -----------
-        function [dZ] = Jthetamv(this,dtheta,theta,Y,dA)
+        function dZ = Jthetamv(this,dtheta,theta,Y,dA)
             dZ = Jmv(this,dtheta,[],theta,Y,dA);
         end
         
-        function [dZ] = JYmv(this,dY,theta,Y,dA)
+        function dZ = JYmv(this,dY,theta,Y,dA)
             nex = numel(dY)/numelFeatIn(this);
             if not(isempty(dY)) && (not(isscalar(dY) && dY==0))
                 % load temps and recompute activations
@@ -265,7 +265,7 @@ classdef doubleLayer < abstractMeganetElement
             end
         end
         
-        function [dZ] = Jmv(this,dtheta,dY,theta,Y,dA)
+        function dZ = Jmv(this,dtheta,dY,theta,Y,dA)
             nex = numel(Y)/numelFeatIn(this);
             Y  = reshape(Y,[],nex);
             
@@ -326,7 +326,7 @@ classdef doubleLayer < abstractMeganetElement
             dth = [dth1(:); dth2(:); dth3(:); dth4(:); dth5(:);dth6(:);dth7(:)];
         end
         
-        function dY = JYTmv(this,Z,~,theta,Y,dA)
+        function dY = JYTmv(this,Z,theta,Y,dA)
             [th1, th2,th3,th4,~,th6,th7] = this.split(theta);
             nex = numel(Z)/numelFeatOut(this);
             Z   = reshape(Z,[],nex);
@@ -338,11 +338,11 @@ classdef doubleLayer < abstractMeganetElement
             
             dA2Z = dA2.*Z;
             if not(isempty(this.nLayer2))
-               dA2Z = JYTmv(this.nLayer2,dA2Z,[],th7,K2Z,tmpNL2);
+               dA2Z = JYTmv(this.nLayer2,dA2Z,th7,K2Z,tmpNL2);
             end
             dA1Z = (dA1.*(K2Op'*dA2Z));
             if not(isempty(this.nLayer1))
-                dA1Z = JYTmv(this.nLayer1,dA1Z,[],th6,K1Y,tmpNL1);
+                dA1Z = JYTmv(this.nLayer1,dA1Z,th6,K1Y,tmpNL1);
             end
             dY  = K1Op'*dA1Z;
         end

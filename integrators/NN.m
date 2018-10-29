@@ -159,7 +159,7 @@ classdef NN < abstractMeganetElement
             for i=nt:-1:1
                 Yi = tmp{i,1};
                 ni = nTheta(this.layers{i});
-                W  = JYTmv(this.layers{i}, W,[],theta(end-cnt-ni+1:end-cnt),...
+                W  = JYTmv(this.layers{i}, W,theta(end-cnt-ni+1:end-cnt),...
                     Yi,tmp{i,2});
                 cnt = cnt+ni;
             end
