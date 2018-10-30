@@ -5,10 +5,18 @@ classdef doubleSymLayerTest < layerTest
     methods (TestClassSetup)
         function addTrafos(testCase)
             ks    = cell(0,1);
-%             ks{end+1} = doubleSymLayer(dense([14 14]),'Bin',randn(14,3));
-%             ks{end+1} = doubleSymLayer(dense([14 14]),'Bin',randn(14,3),'storeInterm',1);
-%             tvN   = getTVNormLayer([12 14 15]);
-             ks{end+1} = doubleSymLayer(convFFT([12 14],[3 3 8 15]));
+            ks{end+1} = doubleSymLayer(dense([14 14]),'Bin',randn(14,3));
+            ks{end+1} = doubleSymLayer(dense([14 14]),'Bin',randn(14,3),'storeInterm',1);
+
+            nImg = [4 8];
+            sK   = [3 3 4 4];
+            tvN   = tvNormLayer([nImg sK(4)]);
+            Bin  = opCNNBias([nImg sK(end)]);
+            Bout = opCNNBias([nImg sK(end)]);
+            ks{end+1} = doubleSymLayer(convFFT(nImg,sK));
+            ks{end+1} = doubleSymLayer(convFFT(nImg,sK),'nLayer',tvN,'Bin',Bin,'Bout',Bout,'isWeight',0);
+             
+             
 %             ks{end+1} = doubleSymLayer(dense([4*8 4]),'Bin',randn(4*8,3),'nLayer1',tvN,'storeInterm',1);
 %             ks{end+1} = doubleSymLayer(dense([4*8 4*8]),'Bin',randn(4*8,3),'nLayer1',tvN,'nLayer2',tvN,'storeInterm',1);
 %             tvNt  = getTVNormLayer([4 8 14],'isWeight',1);

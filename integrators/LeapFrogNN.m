@@ -159,7 +159,8 @@ classdef LeapFrogNN < abstractMeganetElement
             dtheta = 0*theta;
             Wold   = 0;
             for i=this.nt:-1:1
-                [dmbi,dW] = JTmv(this.layer,W,[],theta(:,i),tmp{i,1},tmp{i,2});
+%                 [dmbi,dW] = JTmv(this.layer,W,[],theta(:,i),tmp{i,1},tmp{i,2});
+                [dmbi,dW] = JTmv(this.layer,W,theta(:,i),tmp{i,1},tmp{i,2});
                 dtheta(:,i)  = this.h^2*dmbi;
                 Wtemp = W;
                 W     = 2*W - Wold + this.h^2*dW;

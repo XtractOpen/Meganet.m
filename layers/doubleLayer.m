@@ -279,11 +279,11 @@ classdef doubleLayer < abstractMeganetElement
                 dK1dY = Jmv(this.normLayer1,dth6,dK1dY,th6,K1Y,tmpNL1);
             end
             if not(isempty(this.Bin1))
-                d1  = dA1.*(dK1dY + this.Bin1*dth3);
-                dK2Z = dK2Op*A1 + K2Op*d1;
+                d1 = dA1.*(dK1dY + this.Bin1*dth3);
             else
-                dK2Z = dK2Op*A1;
+                d1 = dA1 .* dK1dY;
             end
+            dK2Z = dK2Op*A1 + K2Op*d1;
             
             if not(isempty(this.normLayer2))
                 dK2Z = Jmv(this.normLayer2,dth7,dK2Z,th7,K2Z,tmpNL2);
@@ -306,7 +306,7 @@ classdef doubleLayer < abstractMeganetElement
             if not(isempty(this.Bout))
                 dth5 = vec(sum(this.Bout'*W,nd));
             end
-            [th1, th2,~,~,~,th6,th7] = this.split(theta);
+            [th1,th2,~,~,~,th6,th7] = this.split(theta);
             
             [A1,dA1,A2,dA2,K1Y,K2Z,tmpNL1,tmpNL2] = getTempsForSens(this,theta,Y,dA);
 
@@ -334,8 +334,6 @@ classdef doubleLayer < abstractMeganetElement
         
         function dY = JYTmv(this,Z,theta,Y,dA)
             [th1, th2,th3,th4,~,th6,th7] = this.split(theta);
-%             nex = numel(Z)/numelFeatOut(this);
-%             Z   = reshape(Z,[],nex);
             
             [A1,dA1,A2,dA2,K1Y,K2Z,tmpNL1,tmpNL2] = getTempsForSens(this,theta,Y,dA);
 
@@ -353,12 +351,10 @@ classdef doubleLayer < abstractMeganetElement
             dY  = K1Op'*dA1Z;
         end
         
-        function [dth,dY] = JTmv(this,Z,~,theta,Y,tmp,doDerivative)
+        function [dth,dY] = JTmv(this,Z,theta,Y,tmp,doDerivative)
             if not(exist('doDerivative','var')) || isempty(doDerivative)
                doDerivative =[1;0]; 
             end
-%             nex       = numel(Y)/numelFeatIn(this);
-%             Z         = reshape(Z,[],nex);
             
             dY = [];
             

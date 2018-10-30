@@ -8,12 +8,16 @@ classdef doubleLayerTest < layerTest
             nImg = [4 8];
             sK   = [3 3 4 4];
             tvN   = tvNormLayer([nImg sK(4)]);
+            ks{end+1} = doubleLayer(convFFT(nImg,sK),convFFT(nImg,sK));
             ks{end+1} = doubleLayer(convFFT(nImg,sK),convFFT(nImg,sK),'normLayer1',tvN,'normLayer2',tvN);
             ks{end+1} = doubleLayer(convFFT(nImg,sK),convFFT(nImg,sK),'normLayer1',tvN,'normLayer2',tvN,'storeInterm',1);
             
             Bin1 = opCNNBias([nImg sK(end)]);
             Bin2 = opCNNBias([nImg sK(end)]);
             Bout = opCNNBias([nImg sK(end)]);
+            ks{end+1} = doubleLayer(convFFT(nImg,sK),convFFT(nImg,sK),'Bin1',Bin1);
+            ks{end+1} = doubleLayer(convFFT(nImg,sK),convFFT(nImg,sK),'Bin2',Bin2,'Bout',Bout);
+            ks{end+1} = doubleLayer(convFFT(nImg,sK),convFFT(nImg,sK),'Bin1',Bin1,'Bin2',Bin2,'Bout',Bout);
             ks{end+1} = doubleLayer(convFFT(nImg,sK),convFFT(nImg,sK),'normLayer1',tvN,'normLayer2',tvN,'Bin1',Bin1,'Bin2',Bin2,'Bout',Bout);
             ks{end+1} = doubleLayer(convFFT(nImg,sK),convFFT(nImg,sK),'normLayer1',tvN,'normLayer2',tvN,'Bin1',Bin1,'Bin2',Bin2,'Bout',Bout,'storeInterm',1);
             

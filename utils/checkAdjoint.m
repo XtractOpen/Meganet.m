@@ -15,7 +15,7 @@ if not(exist('precision','var')) || isempty(precision)
 end
 
 if isa(A,'LinearOperator')
-    v = randn([A.n,1]); % TODO: issues when last dim is 1 bc matlab squeezes
+    v = randn([A.n,1]);
 else
     v = randn(size(A,2),1);
 end
@@ -24,7 +24,8 @@ end
 Av = A*v;
 w  = randn(size(Av),'like',Av);
 
-t1 = vec(v)'*vec(A'*w);
+Aw = vec(A'*w); % TODO: losing last dimension of w here
+t1 = vec(v)'*Aw;
 t2 = vec(w)'*vec(Av);
 err = abs(t1-t2)/(abs(t1)+(t1==0));
 

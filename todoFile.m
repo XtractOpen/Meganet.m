@@ -1,35 +1,36 @@
 %% all fail
 
-
-runtests('instNormLayerTest') % ... dims don't match, Array dimensions must match for binary array op.
-runtests('linearNegLayerTest') % ... dims don't match
-
+runtests('instNormLayerTest') % ... instNormLayer doesn't exist
+runtests('linearNegLayerTest') % ...linearNegLayer doesn't exist
 runtests('convCuDNN2DTest') % - no mexcuda running
+%%
 EParabolic_STL10(5000,32,3)
 
 %% partial pass
-runtests('normLayerTest') % ... dims
 %%
-runtests('batchNormLayerTest') % .... dimension issues
-%%
-runtests('tvNormLayerTest') %  ... Array dimensions must match for binary array op.
-%%
-runtests('doubleLayerTest') % ...math error
-%%
-runtests('doubleSymLayerTest') % ... dims don't match
+
+
+runtests('MegaNetTest'); %  (4P,2F)...dense layers testVecInput issues
+
+
 
 %% all pass
 runtests('NNTest') % just warnings from precision mismatches
-runtests('affineScalingLayerTest')
-runtests('singleLayerTest')
 
-runtests('MegaNetTest'); %  (4P,2F)...dense layers testVecInput issues
+runtests('singleLayerTest')
+runtests('normLayerTest')
+runtests('batchNormLayerTest')
+runtests('tvNormLayerTest') 
+runtests('doubleSymLayerTest')
+runtests('doubleLayerTest')
+runtests('affineScalingLayerTest')
+runtests('ResNNTest');
+runtests('LeapFrogNNTest');
+
 runtests('convMCNTest');  % .... problem remains with padding
 runtests('connectorTest');
 runtests('DoubleHamiltonianNNTest');
 runtests('IntegratorTest');
-runtests('LeapFrogNNTest');
-runtests('ResNNTest');
 runtests('ConvFFTTest');
 runtests('denseTest');
 runtests('kernelTest');

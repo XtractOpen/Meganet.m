@@ -72,16 +72,19 @@ classdef doubleSymLayer < abstractMeganetElement
         function [th1,th2,th3,th4,th5] = split(this,theta)
             th1 = theta(1:nTheta(this.K));
             cnt = numel(th1);
-            th2 = theta(cnt+(1:sizeLastDim(this.Bin)));
-            cnt = cnt + numel(th2);
-            th3 = theta(cnt+sizeLastDim(this.Bin)+(1:sizeLastDim(this.Bout)));
-            cnt = cnt + numel(th3);
-            th4 = [];
+            th2=[]; th3=[]; th4=[]; th5=[];
+            if not(isempty(this.Bin))
+                th2 = theta(cnt+(1:sizeLastDim(this.Bin)));
+                cnt = cnt + numel(th2);
+            end
+            if not(isempty(this.Bout))
+                th3 = theta(cnt+(1:sizeLastDim(this.Bout)));
+                cnt = cnt + numel(th3);
+            end
             if not(isempty(this.nLayer1))
                 th4 = theta(cnt+(1:nTheta(this.nLayer1)));
                 cnt = cnt + numel(th4);
             end
-            th5 = [];
             if not(isempty(this.nLayer2))
                 th5 = theta(cnt+1:end);
             end
@@ -112,7 +115,7 @@ classdef doubleSymLayer < abstractMeganetElement
                 Z = forwardProp(this.nLayer2,th5,Z);
             end
             if not(isempty(th3))
-                Z      = Z + this.Bout*th3;
+                Z = Z + this.Bout*th3;
             end
         end
 
@@ -204,13 +207,17 @@ classdef doubleSymLayer < abstractMeganetElement
             if not(isempty(this.nLayer1))
                 dY = Jmv(this.nLayer1,dth4,dY,th4,KY,tmpNL1);
             end
-            dY     = dY + this.Bin*dth2;
+            if not(isempty(this.Bin))
+                dY     = dY + this.Bin*dth2;
+            end
             
             dY = -(Kop'*(dA.*dY) + dKop'*A);
             if not(isempty(this.nLayer2))
                 dY = Jmv(this.nLayer2,dth5,dY,th5,KZ,tmpNL2);
             end
-            dY = dY + this.Bout*dth3;
+            if not(isempty(this.Bout))
+                dY = dY + this.Bout*dth3;
+            end
         end
         
         function dZ = JYmv(this,dY,theta,Y,KY)
@@ -265,21 +272,22 @@ classdef doubleSymLayer < abstractMeganetElement
         function dtheta = JthetaTmv(this,Z,theta,Y,KY)
             [th1, ~,~,th4,th5]  = split(this,theta);
             [A,dA,KY,KZ,tmpNL1,tmpNL2] = getTempsForSens(this,theta,Y,KY);
-            
+            nd = ndims(Y);
             Kop       = getOp(this.K,th1);
             
-            dth3      = vec(sum(this.Bout'*Z,2));
+            dth2=[]; dth3=[]; dth4=[]; dth5=[];
+            if not(isempty(this.Bout))
+                dth3      = vec(sum(this.Bout'*Z,nd));
+            end
             if not(isempty(this.nLayer2))
                 [dth5,Z] = JTmv(this.nLayer2,Z,[],th5,KZ,tmpNL2);
-            else
-                dth5 = [];
             end
             dAZ       = dA.*(Kop*Z);
-            dth2      = vec(sum(this.Bin'*dAZ,2));
+            if not(isempty(this.Bin))
+                dth2      = vec(sum(this.Bin'*dAZ,nd));
+            end
             if not(isempty(this.nLayer1))
                 [dth4,dAZ] = JTmv(this.nLayer1,dAZ,[],th4,KY,tmpNL1);
-            else
-                dth4 = [];
             end
             dth1      = JthetaTmv(this.K,dAZ,[],Y);
             dth1      = dth1 + JthetaTmv(this.K,A,[],Z); % TODO: is last arg really Z?
@@ -306,25 +314,27 @@ classdef doubleSymLayer < abstractMeganetElement
             if not(exist('doDerivative','var')) || isempty(doDerivative)
                 doDerivative =[1;0];
             end
+            nd = ndims(Y);
             [th1, ~,~,th4,th5]  = split(this,theta);
             [A,dA,KY,KZ,tmpNL1,tmpNL2] = getTempsForSens(this,theta,Y,KY);
             
             dY = [];
             Kop       = getOp(this.K,th1);
             
-            dth3      = vec(sum(this.Bout'*Z,2));
+            dth2=[]; dth3=[]; dth4=[]; dth5=[];
+            if not(isempty(this.Bout))
+                dth3 = vec(sum(this.Bout'*Z,nd));
+            end
             if not(isempty(this.nLayer2))
                 [dth5,Z] = JTmv(this.nLayer2,Z,[],th5,KZ,tmpNL2);
-            else
-                dth5 = [];
             end
             
             dAZ       = dA.*(Kop*Z);
-            dth2      = vec(sum(this.Bin'*dAZ,2));
+            if not(isempty(this.Bin))
+                dth2      = vec(sum(this.Bin'*dAZ,nd));
+            end
             if not(isempty(this.nLayer1))
                 [dth4,dAZ] = JTmv(this.nLayer1,dAZ,[],th4,KY,tmpNL1);
-            else
-                dth4 = [];
             end
             dth1      = JthetaTmv(this.K,dAZ,[],Y);
             

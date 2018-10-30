@@ -132,7 +132,7 @@ classdef ResNN < abstractMeganetElement
             dtheta = 0*theta;
             for i=this.nt:-1:1
                 Yi = tmp{i,1};
-                [dthetai,dW] = JTmv(this.layer,W,[],theta(:,i),Yi,tmp{i,2});
+                [dthetai,dW] = JTmv(this.layer,W,theta(:,i),Yi,tmp{i,2});
                 dtheta(:,i)  = this.h*dthetai;
                 W = W + this.h*dW;
             end

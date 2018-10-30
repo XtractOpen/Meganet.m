@@ -140,12 +140,15 @@ classdef convFFT < convKernel
         
         function dtheta = JthetaTmv(this,Z,~,Y)
             %  derivative of Z*(A(theta)*Y) w.r.t. theta
-            nex    =  numel(Y)/numelFeatIn(this);
+            % nex    =  numel(Y)/numelFeatIn(this);
             
             dth1    = zeros([this.sK(1)*this.sK(2),this.sK(3:4)],'like',Y);
-            Y     = permute(reshape(Y,[nImgIn(this) nex ]),[1 2 4 3]);
-            Yh    = reshape(fft2(Y),prod(this.nImg(1:2)),nex*this.sK(3));
-            Zh    = permute(ifft2(reshape(Z,[nImgOut(this) nex])),[1 2 4 3]);
+%             Y     = permute(reshape(Y,[nImgIn(this) nex ]),[1 2 4 3]);
+            Y     = permute(Y,[1 2 4 3]);
+%             Yh    = reshape(fft2(Y),prod(this.nImg(1:2)),nex*this.sK(3));
+            Yh    = reshape(fft2(Y),prod(this.nImg(1:2)),[]);
+%             Zh    = permute(ifft2(reshape(Z,[nImgOut(this) nex])),[1 2 4 3]);
+            Zh    = permute(ifft2(Z),[1 2 4 3]);
             Zh     = reshape(Zh,[], this.sK(4));
             
             for k=1:prod(this.sK(1:2)) % loop over kernel components

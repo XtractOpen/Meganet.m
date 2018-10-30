@@ -165,7 +165,7 @@ classdef Meganet < abstractMeganetElement
         
         % ----------- Jacobian' matvecs -----------
         function W = JYTmv(this,~,theta,Y,tmp)
-            nex = numel(Y)/numelFeatIn(this);
+            
             nBlocks  = numel(this.blocks);
             
             cnt = 0; W = [];
