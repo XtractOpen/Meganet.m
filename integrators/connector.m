@@ -47,8 +47,6 @@ classdef connector < abstractMeganetElement
         
         % -------- forwardProp forward problem -------
         function [Y,tmp] = forwardProp(this,~,Y0)
-%             nex = numel(Y0)/sizeFeatIn(this);
-%             Y0  = reshape(Y0,[],nex);
             Y = this.K*Y0 + this.b;
             tmp = [];
         end

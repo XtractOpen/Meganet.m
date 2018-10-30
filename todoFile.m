@@ -1,10 +1,9 @@
 %% all fail
 
-runtests('doubleLayerTest') % ... dims don't match, dense on conv layer
-runtests('doubleSymLayerTest') % ... dims don't match
+
 runtests('instNormLayerTest') % ... dims don't match, Array dimensions must match for binary array op.
 runtests('linearNegLayerTest') % ... dims don't match
-runtests('singleLayerTest') % ... dims
+
 runtests('convCuDNN2DTest') % - no mexcuda running
 EParabolic_STL10(5000,32,3)
 
@@ -14,10 +13,15 @@ runtests('normLayerTest') % ... dims
 runtests('batchNormLayerTest') % .... dimension issues
 %%
 runtests('tvNormLayerTest') %  ... Array dimensions must match for binary array op.
+%%
+runtests('doubleLayerTest') % ...math error
+%%
+runtests('doubleSymLayerTest') % ... dims don't match
 
 %% all pass
 runtests('NNTest') % just warnings from precision mismatches
 runtests('affineScalingLayerTest')
+runtests('singleLayerTest')
 
 runtests('MegaNetTest'); %  (4P,2F)...dense layers testVecInput issues
 runtests('convMCNTest');  % .... problem remains with padding
