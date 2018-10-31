@@ -4,15 +4,10 @@ runtests('instNormLayerTest') % ... instNormLayer doesn't exist
 runtests('linearNegLayerTest') % ...linearNegLayer doesn't exist
 runtests('convCuDNN2DTest') % - no mexcuda running
 %%
-EParabolic_STL10(5000,32,3)
+EParabolic_STL10(5000,32,3) % --- last block creation issues
 
 %% partial pass
-%%
-
-
-runtests('MegaNetTest'); %  (4P,2F)...dense layers testVecInput issues
-
-
+runtests('MegaNetTest'); %  (1F)...adjoint is not matching...math error, maybe because I took out Wdata
 
 %% all pass
 runtests('NNTest') % just warnings from precision mismatches

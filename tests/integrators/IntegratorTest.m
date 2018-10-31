@@ -57,6 +57,7 @@ classdef IntegratorTest < matlab.unittest.TestCase
             for k=1:numel(testCase.integrators)
                 ks = testCase.integrators{k};
                 
+                rng(1)
                 th0 = randn(nTheta(ks),1);
                 Y  = randn([sizeFeatIn(ks),10]);
                 [Y,th0] = gpuVar(ks.useGPU,ks.precision,Y,th0);

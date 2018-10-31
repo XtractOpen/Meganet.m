@@ -164,11 +164,11 @@ classdef Meganet < abstractMeganetElement
         end
         
         % ----------- Jacobian' matvecs -----------
-        function W = JYTmv(this,~,theta,Y,tmp)
+        function W = JYTmv(this,W,theta,Y,tmp)
             
             nBlocks  = numel(this.blocks);
             
-            cnt = 0; W = [];
+            cnt = 0; % W = [];
             for k=nBlocks:-1:1
                 nk = nTheta(this.blocks{k});
                 W = JYTmv(this.blocks{k},W,theta(end-cnt-nk+1:end-cnt),tmp{k}{1,1},...
@@ -182,7 +182,6 @@ classdef Meganet < abstractMeganetElement
             if not(exist('doDerivative','var')) || isempty(doDerivative) 
                doDerivative =[1;0]; 
             end
-            
             % nex = numel(Y)/numelFeatIn(this);
             if isempty(W)
                 W=0;
