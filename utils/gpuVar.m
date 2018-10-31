@@ -29,9 +29,7 @@ for k=1:nv
             vark.precision = 'single';
         end
     end
-    if useGPU   %%%%TODO needs to be removed
-       useGPU = 0; 
-    end
+
     
     if not(isempty(useGPU)) && useGPU && not(isa(vark,'gpuArray'))
         if isnumeric(vark)
