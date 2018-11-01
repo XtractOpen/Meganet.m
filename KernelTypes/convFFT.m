@@ -108,14 +108,11 @@ classdef convFFT < convKernel
                 AY(:,:,k,:)  = sum(T,3);
             end
             Y = real(fft2(AY));
-            
-            % Y  = reshape(AY,[],nex);
         end
         
         function ATY = ATmv(this,theta,Z)
             nex =  numel(Z)/prod(nImgOut(this));
-            % nex = sizeLastDim(Z); % fails when nex=1
-            ATY = zeros([nImgIn(this) nex],'like',Z); %start with transpose
+            ATY = zeros([nImgIn(this) nex],'like',Z); % start with transpose
             theta    = reshape(theta, [prod(this.sK(1:2)),this.sK(3:4)]);
             
             Yh = fft2(reshape(Z,[this.nImgOut nex]));
@@ -129,7 +126,6 @@ classdef convFFT < convKernel
                 ATY(:,:,k,:) = sum(T,3);
             end
             ATY = real(ifft2(ATY));
-%             ATY = reshape(ATY,[],nex);
         end
         
         function dY = Jthetamv(this,dtheta,~,Y,~)
@@ -139,15 +135,10 @@ classdef convFFT < convKernel
         end
         
         function dtheta = JthetaTmv(this,Z,~,Y)
-            %  derivative of Z*(A(theta)*Y) w.r.t. theta
-            % nex    =  numel(Y)/numelFeatIn(this);
             
             dth1    = zeros([this.sK(1)*this.sK(2),this.sK(3:4)],'like',Y);
-%             Y     = permute(reshape(Y,[nImgIn(this) nex ]),[1 2 4 3]);
             Y     = permute(Y,[1 2 4 3]);
-%             Yh    = reshape(fft2(Y),prod(this.nImg(1:2)),nex*this.sK(3));
             Yh    = reshape(fft2(Y),prod(this.nImg(1:2)),[]);
-%             Zh    = permute(ifft2(reshape(Z,[nImgOut(this) nex])),[1 2 4 3]);
             Zh    = permute(ifft2(Z),[1 2 4 3]);
             Zh     = reshape(Zh,[], this.sK(4));
             

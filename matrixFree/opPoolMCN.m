@@ -37,19 +37,14 @@ classdef opPoolMCN < LinearOperator
         
         function Z = applyPool(this,Y)
             % apply average pooling to data Y
-            nex = numel(Y)/prod(this.n);
-            Y   = reshape(Y,[this.nImg nex]);
             Z   = vl_nnpool(Y,this.pool, 'stride',this.stride,'method','avg','pad',this.pad);
-            Z   = reshape(Z,[],nex);
         end
         
         function Y = applyPoolTranspose(this,Z)
             % apply transpose of average pooling operator to Z
             nex = numel(Z)/prod(this.m);
-            Z   = reshape(Z,[this.nImg(1:2)./this.pool this.nImg(3) nex]);
             Yd  = zeros([this.nImg nex],'like',Z);
             Y   = vl_nnpool(Yd,this.pool, Z,'stride',this.stride,'method','avg','pad',this.pad);
-            Y   = reshape(Y,[],nex);
         end
     end
 end

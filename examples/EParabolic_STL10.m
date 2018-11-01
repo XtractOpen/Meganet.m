@@ -57,7 +57,7 @@ h  = 1*[1;1;1];
 blocks    = cell(0,1); RegOps = cell(0,1);
 
 %% Block to open the network
-nL = nLayer([prod(nImg(1:2)) nf(1) miniBatchSize],'isWeight',1);
+nL = nLayer([nImg(1:2) nf(1) miniBatchSize],'isWeight',1);
 blocks{end+1} = NN({singleLayer(conv(nImg,[3 3 cin nf(1)]),'activation', act1,'nLayer',nL)},'useGPU',useGPU,'precision',precision);
 RegOps{end+1} = opEye(nTheta(blocks{end}));
 %% UNIT
@@ -66,14 +66,14 @@ for k=1:numel(h)
     % implicit layer
     K = conv(nImgc,[3 3 nf(k) nf(k)]);
     
-    nL = nLayer([prod(nImgc(1:2)) nf(k) miniBatchSize],'isWeight',1);
+    nL = nLayer([nImgc(1:2) nf(k) miniBatchSize],'isWeight',1);
     layer = doubleSymLayer(K,'activation',act,'nLayer',nL);
     blocks{end+1} = ResNN(layer,nt(k),h(k),'useGPU',useGPU,'precision',precision);
     regD = gpuVar(useGPU,precision,repmat([ones(nTheta(K),1); zeros(nTheta(nL),1)],nt(k),1));
     RegOps{end+1} = opDiag(regD);
     % Connector block
         
-    nL = nLayer([prod(nImgc(1:2)) nf(k+1) miniBatchSize], 'isWeight',1);
+    nL = nLayer([nImgc(1:2) nf(k+1) miniBatchSize], 'isWeight',1);
     Kc = conv(nImgc,[1,1,nf(k),nf(k+1)]);
     blocks{end+1} = NN({singleLayer(Kc,'activation',actc,'nLayer',nL)},'useGPU',useGPU,'precision',precision);
     regD = gpuVar(useGPU,precision,[ones(nTheta(Kc),1); zeros(nTheta(nL),1)]);
@@ -86,12 +86,21 @@ for k=1:numel(h)
 end
 
 %% Connector block
-% B = gpuVar(useGPU,precision,kron(eye(nf(k+1)),ones(prod(nImgc),1)));
-B = kron(eye(nf(k+1)),ones(prod(nImgc),1));
-B = reshape(B', [nImgc nf(k+1) nf(k+1)]);
-B = gpuVar(useGPU,precision,B);
-blocks{end+1} = connector( LinearOperator(B/prod(nImgc),[nImgc nf(k+1)],nf(k+1)) );
-RegOps{end+1} = opEye(nTheta(blocks{end}));
+% Bop = opCNNBias([nImgc nf(k+1) nf(k+1)]);
+% blocks{end+1} = connector(Bop);
+
+
+% % B = gpuVar(useGPU,precision,kron(eye(nf(k+1)),ones(prod(nImgc),1)));
+% B = kron(eye(nf(k+1)),ones(prod(nImgc),1));
+% B = reshape(B', [nImgc nf(k+1) nf(k+1)]);
+% B = gpuVar(useGPU,precision,B);
+% % blocks{end+1} = connector( LinearOperator(B/prod(nImgc),[nImgc nf(k+1)],nf(k+1)) );
+% B = B/prod(nImgc);
+% Bx = @(x)  reshape(  reshape(B,[],size(x,1))  *x , [nImgc nf(k+1) size(x,2)] );
+% BTx = @(x) reshape(  reshape(B,size(x,1),[])' *x , [nf(k+1) size(x,2)] );
+% linOp =  LinearOperator( [nImgc nf(k+1)] , nf(k+1) , Bx , BTx );
+% blocks{end+1} = connector( linOp );
+% RegOps{end+1} = opEye(nTheta(blocks{end}));
 
 %% Put it all together
 net   = Meganet(blocks);

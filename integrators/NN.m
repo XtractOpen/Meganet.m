@@ -166,7 +166,7 @@ classdef NN < abstractMeganetElement
         end
             
         function [dtheta,W] = JTmv(this,W,theta,Y,tmp,doDerivative)
-            if not(exist('doDerivative','var')) || isempty(doDerivative); 
+            if not(exist('doDerivative','var')) || isempty(doDerivative) 
                doDerivative =[1;0]; 
             end
           

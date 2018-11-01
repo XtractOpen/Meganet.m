@@ -15,7 +15,7 @@ classdef opCNNBias < LinearOperator
             this.n = nImg(end);
             szBias = ones(size(nImg));
             szBias(end) = this.n;
-            this.Amv  = @(x) reshape(x,szBias);
+            this.Amv  = @(x) reshape(x,szBias); 
             this.ATmv = @(x) applyTranspose(this,x);
         end
         

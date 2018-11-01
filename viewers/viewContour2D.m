@@ -21,7 +21,7 @@ if prod(sizeFeatIn(net)) > 2
 end
     
 if not(isempty(theta))
-    [~,Y] = forwardProp(net,theta,Y);
+    [Y,tmp] = forwardProp(net,theta,Y);
 end
 [Cp] = getLabels(pLoss,W,Y);
 [C,ca] = contourf(xa,ya,reshape((1:size(Cp,1))*Cp,N,N));

@@ -23,7 +23,15 @@ classdef convMCN < convKernel
                 this.runMinimalExample;
                 return;
             end
-            this.pad    = floor((this.sK(1)-1)/2);
+            pad =[];
+            for k=3:2:length(varargin)     % repeat so that MCN can get the pad
+                eval([ varargin{k},'=varargin{',int2str(k+1),'};']);
+            end
+            if not(isempty(pad))
+                this.pad = pad;
+            else
+                this.pad = floor((this.sK(1)-1)/2);
+            end
         end
         
 
@@ -49,12 +57,10 @@ classdef convMCN < convKernel
         end
         
         function [Y,tmp] = Amv(this,theta,Y)
-            tmp   = []; % no need to store any intermediates
-            % nex = sizeLastDim(Y);
-            
             % compute convolution
-            K   = reshape(theta(:),this.sK);
-            Y   = vl_nnconv(Y,K,[],'pad',this.pad,'stride',this.stride);
+%             Y = reshape(Y,[nImg this.sK(3)]);
+            K = reshape(theta(:),this.sK);
+            Y = vl_nnconv(Y,K,[],'pad',this.pad,'stride',this.stride);
         end
 
         

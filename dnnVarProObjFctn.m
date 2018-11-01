@@ -73,7 +73,7 @@ classdef dnnVarProObjFctn < objFctn
             W      = solve(this.optClass,fctn,zeros(size(C,1)*(size(YN,1)+1),1,'like',theta));
             [F,hisLoss,~,~,dYF,d2YF] = getMisfit(this.pLoss,W,YN,C);
             if compGrad
-                dJ = J'*dYF;
+                dJ = J'*dYF; % TODO check dimensions, dropping nex
             end
             if compHess
                 HKbmv = @(x) J'*(d2YF*(J*x));

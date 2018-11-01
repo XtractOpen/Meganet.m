@@ -3,6 +3,7 @@
 *.idx1-ubyte
 *.idx3-ubyte
 *.mat
+*.txt
 MeganetBinariesTitan
 *.tar.gz
 drivers
@@ -11,3 +12,4 @@ data/cifar-10-batches-mat/
 *.m~
 pax_global_header
 MeganetAddOns
+startMeganet.m

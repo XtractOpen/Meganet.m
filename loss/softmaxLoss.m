@@ -32,7 +32,8 @@ classdef softmaxLoss
             % Y = reshape(Y,[],size(Y,ndims(Y))); % reshape to be a matrix (nFeat,nEx)
             
             szY  = size(Y);
-            nex  = szY(2);
+            nex  = szY(end);
+            Y = reshape(Y,[],nex);
             if this.addBias==1
                 Y   = [Y; ones(1,nex)];
             end
@@ -52,7 +53,7 @@ classdef softmaxLoss
 
             
             if (doDW) && (nargout>=2)
-               dF   = -C + S./sum(S,1); %S./sum(S,2));
+               dF   = -C + S./sum(S,1); % S./sum(S,2));
                dWF  = vec(dF*(Y'/nex));
             end
             if (doDW) && (nargout>=3)
@@ -66,13 +67,13 @@ classdef softmaxLoss
                 if this.addBias==1
                     W = W(:,1:end-1);
                 end
-                dYF  =   vec(W'*dF)/nex;
+                dYF  =   reshape(W'*dF,szY)/nex;
             end
             if doDY && nargout>=5
-                WI     = @(T) W*T;  %kron(W,speye(size(Y,1)));
+                WI     = @(T) W*T;  % kron(W,speye(size(Y,1)));
                 WIT    = @(T) W'*T;
                 matY   = @(Y) reshape(Y,szY);
-                d2YFmv = @(T) vec(WIT(((d2F(WI(matY(T/nex)))))));
+                d2YFmv = @(T) WIT(d2F(WI(matY(T/nex))));
     
                 d2YF = LinearOperator(prod(szY),prod(szY),d2YFmv,d2YFmv);
             end
@@ -126,12 +127,15 @@ classdef softmaxLoss
                 S = W;
                 nex = size(S,2);
             else
-                nex = size(Y,2);
+                szY  = size(Y);
+                nex  = szY(end);
+                Y = reshape(Y,[],nex);
                 if this.addBias==1
-                    Y     = [Y; ones(1,nex)];
+                    Y   = [Y; ones(1,nex)];
                 end
-                nf = size(Y,1);
-                W      = reshape(W,[],nf);
+                nf  = size(Y,1);
+                W    = reshape(W,[],nf);
+            
                 WY     = W*Y;
                 WY     = WY - max(WY,[],1);
                 S      = exp(WY);

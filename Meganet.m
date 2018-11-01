@@ -151,8 +151,8 @@ classdef Meganet < abstractMeganetElement
         end
         
         function dY = Jmv(this,dtheta,dY,theta,~,tmp)
-            nex = numel(dY)/numelFeatIn(this);
-            dY  = reshape(dY,[],nex);
+            % nex = numel(dY)/numelFeatIn(this);
+            % dY  = reshape(dY,[],nex);
             nBlocks = numel(this.blocks);
             cnt = 0;
             for k=1:nBlocks
@@ -193,7 +193,11 @@ classdef Meganet < abstractMeganetElement
             cnt = 0;
             for k=nBlocks:-1:1
                 nk = nTheta(this.blocks{k});
-                [dThetak,W] = JTmv(this.blocks{k},W,theta(end-cnt-nk+1:end-cnt),tmp{k}{1,1},tmp{k});
+                if isempty(tmp{k})
+                   [dThetak,W] = JTmv(this.blocks{k},W,theta(end-cnt-nk+1:end-cnt),[],tmp{k});
+                else
+                   [dThetak,W] = JTmv(this.blocks{k},W,theta(end-cnt-nk+1:end-cnt),tmp{k}{1,1},tmp{k});
+                end
                 dtheta(end-cnt-nk+1:end-cnt) = dThetak;
                 cnt = cnt+nk;
             end

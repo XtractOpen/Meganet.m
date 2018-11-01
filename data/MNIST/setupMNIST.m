@@ -18,7 +18,7 @@ if not(exist('nVal','var')) || isempty(nVal)
     nVal = round(nTrain/5);
 end
 
-images = reshape ( loadMNISTImages('train-images.idx3-ubyte') , 28,28,[] );
+images = reshape ( loadMNISTImages('train-images.idx3-ubyte') , 28,28,1,[] );
 labels = loadMNISTLabels('train-labels.idx1-ubyte');
 
 % get class probability matrix
@@ -32,19 +32,19 @@ idTrain = idx(1:nTrain);
 idVal   = idx(nTrain+(1:nVal));
 
 % Scale images between [-0.5 0.5]
-Ytrain = images(:,:,idTrain);
+Ytrain = images(:,:,:,idTrain);
 Ctrain = C(:,idTrain);
 Ytrain = Ytrain/max(abs(Ytrain(:))) - 0.5;
 [~,k] = sort((1:10)*Ctrain);
-Ytrain = Ytrain(:,:,k);
+Ytrain = Ytrain(:,:,:,k);
 Ctrain = Ctrain(:,k);
 
 if nargout>2
-    Yval = images(:,:,idVal);
+    Yval = images(:,:,:,idVal);
     Cval = C(:,idVal);
     Yval = Yval/max(abs(Yval(:))) - 0.5;
     [~,k] = sort((1:10)*Cval);
-    Yval = Yval(:,:,k);
+    Yval = Yval(:,:,:,k);
     Cval = Cval(:,k);
 end
 
