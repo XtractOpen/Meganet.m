@@ -5,6 +5,7 @@ classdef dense
     %
     %   Y(theta,Y0)  = reshape(theta,nK) * Y0 
     %
+    %   nK is (num output features)-by-(num input features)
     
     properties
         nK

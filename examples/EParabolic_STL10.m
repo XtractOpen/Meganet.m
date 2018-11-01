@@ -42,8 +42,8 @@ else
 end
 
 %% setup network
-% nLayer = @getTVNormLayer
-nLayer = @getBatchNormLayer;
+% normLayer = @getTVNormLayer
+normLayer = @getBatchNormLayer;
 
 miniBatchSize = 50;
 act1 = @reluActivation;
@@ -57,8 +57,8 @@ h  = 1*[1;1;1];
 blocks    = cell(0,1); RegOps = cell(0,1);
 
 %% Block to open the network
-nL = nLayer([nImg(1:2) nf(1) miniBatchSize],'isWeight',1);
-blocks{end+1} = NN({singleLayer(conv(nImg,[3 3 cin nf(1)]),'activation', act1,'nLayer',nL)},'useGPU',useGPU,'precision',precision);
+nL = normLayer([nImg(1:2) nf(1) miniBatchSize],'isWeight',1);
+blocks{end+1} = NN({singleLayer(conv(nImg,[3 3 cin nf(1)]),'activation', act1,'normLayer',nL)},'useGPU',useGPU,'precision',precision);
 RegOps{end+1} = opEye(nTheta(blocks{end}));
 %% UNIT
 for k=1:numel(h)
@@ -66,16 +66,16 @@ for k=1:numel(h)
     % implicit layer
     K = conv(nImgc,[3 3 nf(k) nf(k)]);
     
-    nL = nLayer([nImgc(1:2) nf(k) miniBatchSize],'isWeight',1);
-    layer = doubleSymLayer(K,'activation',act,'nLayer',nL);
+    nL = normLayer([nImgc(1:2) nf(k) miniBatchSize],'isWeight',1);
+    layer = doubleSymLayer(K,'activation',act,'normLayer',nL);
     blocks{end+1} = ResNN(layer,nt(k),h(k),'useGPU',useGPU,'precision',precision);
     regD = gpuVar(useGPU,precision,repmat([ones(nTheta(K),1); zeros(nTheta(nL),1)],nt(k),1));
     RegOps{end+1} = opDiag(regD);
     % Connector block
         
-    nL = nLayer([nImgc(1:2) nf(k+1) miniBatchSize], 'isWeight',1);
+    nL = normLayer([nImgc(1:2) nf(k+1) miniBatchSize], 'isWeight',1);
     Kc = conv(nImgc,[1,1,nf(k),nf(k+1)]);
-    blocks{end+1} = NN({singleLayer(Kc,'activation',actc,'nLayer',nL)},'useGPU',useGPU,'precision',precision);
+    blocks{end+1} = NN({singleLayer(Kc,'activation',actc,'normLayer',nL)},'useGPU',useGPU,'precision',precision);
     regD = gpuVar(useGPU,precision,[ones(nTheta(Kc),1); zeros(nTheta(nL),1)]);
     RegOps{end+1} = opDiag(regD);
     

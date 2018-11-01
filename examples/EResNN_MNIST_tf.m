@@ -52,11 +52,11 @@ switch dynamic
         blocks{end+1} = ResNN(layer,nt,h);
     case 'doubleLayer'
         K     = convOp(nImg,[3 3 nc nc]);
-        layer = doubleLayer(K,K,'Bin1',B,'activation1', act,'activation2',@identityActivation,'nLayer1',nL);
+        layer = doubleLayer(K,K,'Bin1',B,'activation1', act,'activation2',@identityActivation,'normLayer1',nL);
         blocks{end+1} = ResNN(layer,nt,h);
     case 'parabolic'
         K     = convOp(nImg,[3 3 nc nc]);
-        layer = doubleSymLayer(K,'Bin1',B,'activation1', act,'activation2',@identityActivation,'nLayer1',nL);
+        layer = doubleSymLayer(K,'Bin1',B,'activation1', act,'activation2',@identityActivation,'normLayer1',nL);
         blocks{end+1} = ResNN(layer,nt,h);
 end
 RegOps{end+1} = opTimeDer(nTheta(blocks{end}),nt,h,useGPU,precision);

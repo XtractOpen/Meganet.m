@@ -47,7 +47,7 @@ classdef tvNormLayer < abstractMeganetElement
             dy    = [0 1 0; 0 -1 0; 0 0 0];
             theta = [dx(:); dy(:)];
             nL    = feval(mfilename,[nImg 2]);
-            layer = doubleSymLayer(K,'nLayer1', nL, 'activation',@identityActivation);
+            layer = doubleSymLayer(K,'normLayer1', nL, 'activation',@identityActivation);
             nt = 100; h = 0.2;
             net   = ResNN(layer,nt,h);
             

@@ -29,6 +29,17 @@ for k=1:nv
             vark.precision = 'single';
         end
     end
+    
+    if useGPU  % check if GPU exists, run on CPU if it does not
+        try
+            gpuDevice();
+        catch E
+            useGPU = 0;
+            disp(['GPU error caught. Changing to using CPU because of '...
+             'the following error:']);
+            disp(E.identifier);
+        end
+    end
 
     
     if not(isempty(useGPU)) && useGPU && not(isa(vark,'gpuArray'))

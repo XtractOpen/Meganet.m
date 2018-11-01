@@ -8,22 +8,22 @@ classdef singleLayerTest < layerTest
             nImg = [4 8];
             sK   = [3 3 4 8];
             tvN   = tvNormLayer([nImg sK(4)]);
-             ks{end+1} = singleLayer(convFFT(nImg,sK),'nLayer',tvN,'isWeight',0);
-             ks{end+1} = singleLayer(convFFT(nImg,sK),'nLayer',tvN,'isWeight',0,'storeInterm',1);
+             ks{end+1} = singleLayer(convFFT(nImg,sK),'normLayer',tvN,'isWeight',0);
+             ks{end+1} = singleLayer(convFFT(nImg,sK),'normLayer',tvN,'isWeight',0,'storeInterm',1);
             
              Bin  = opCNNBias([nImg sK(end)]);
              Bout = opCNNBias([nImg sK(end)]);
-             ks{end+1} = singleLayer(convFFT(nImg,sK),'nLayer',tvN,'Bin',Bin,'Bout',Bout,'isWeight',0);
-             ks{end+1} = singleLayer(convFFT(nImg,sK),'nLayer',tvN,'Bin',Bin,'Bout',Bout,'isWeight',0,'storeInterm',1);
+             ks{end+1} = singleLayer(convFFT(nImg,sK),'normLayer',tvN,'Bin',Bin,'Bout',Bout,'isWeight',0);
+             ks{end+1} = singleLayer(convFFT(nImg,sK),'normLayer',tvN,'Bin',Bin,'Bout',Bout,'isWeight',0,'storeInterm',1);
             
              
              tvN.isWeight = 1;
-             ks{end+1} = singleLayer(convFFT(nImg,sK),'nLayer',tvN,'isWeight',0);
-             ks{end+1} = singleLayer(convFFT(nImg,sK),'nLayer',tvN,'isWeight',0,'storeInterm',1);
+             ks{end+1} = singleLayer(convFFT(nImg,sK),'normLayer',tvN,'isWeight',0);
+             ks{end+1} = singleLayer(convFFT(nImg,sK),'normLayer',tvN,'isWeight',0,'storeInterm',1);
             
              tvN.isWeight = 1;
-             ks{end+1} = singleLayer(convFFT(nImg,sK),'nLayer',tvN,'isWeight',0);
-             ks{end+1} = singleLayer(convFFT(nImg,sK),'nLayer',tvN,'isWeight',0,'storeInterm',1);
+             ks{end+1} = singleLayer(convFFT(nImg,sK),'normLayer',tvN,'isWeight',0);
+             ks{end+1} = singleLayer(convFFT(nImg,sK),'normLayer',tvN,'isWeight',0,'storeInterm',1);
             
              
              ks{end+1} = singleLayer(dense([24 14]),'Bin',rand(24,3));

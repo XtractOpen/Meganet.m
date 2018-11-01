@@ -13,8 +13,8 @@ classdef doubleSymLayer < abstractMeganetElement
     properties
         activation     % activation function
         K              % Kernel model, e.g., convMod
-        nLayer1        % inner normalization layer
-        nLayer2        % outer normalization layer
+        normLayer1        % inner normalization layer
+        normLayer2        % outer normalization layer
         Bin            % Bias inside the nonlinearity
         Bout           % bias outside the nonlinearity
         useGPU
@@ -31,8 +31,8 @@ classdef doubleSymLayer < abstractMeganetElement
             precision = [];
             Bout      = [];
             Bin       = [];
-            nLayer1    = [];
-            nLayer2    = [];
+            normLayer1    = [];
+            normLayer2    = [];
             activation = @tanhActivation;
             storeInterm=0;
             for k=1:2:length(varargin)     % overwrites default parameter
@@ -54,15 +54,15 @@ classdef doubleSymLayer < abstractMeganetElement
             if not(exist('Bout','var')) || isempty(Bout)
                 Bout = zeros([sizeFeatIn(K),0]);
             end
-            if not(isempty(nLayer1)) && any(sizeFeatIn(nLayer1) ~= sizeFeatOut(this.K))
+            if not(isempty(normLayer1)) && any(sizeFeatIn(normLayer1) ~= sizeFeatOut(this.K))
                 error('input dimension of normalization layer must match output dimension of K')
             end
-            this.nLayer1 = nLayer1;
+            this.normLayer1 = normLayer1;
             
-            if not(isempty(nLayer2)) && any(sizeFeatIn(nLayer2) ~= sizeFeatIn(this.K))
+            if not(isempty(normLayer2)) && any(sizeFeatIn(normLayer2) ~= sizeFeatIn(this.K))
                 error('input dimension of normalization layer must match output dimension of K')
             end
-            this.nLayer2 = nLayer2;
+            this.normLayer2 = normLayer2;
             
             this.storeInterm=storeInterm;
             
@@ -81,11 +81,11 @@ classdef doubleSymLayer < abstractMeganetElement
                 th3 = theta(cnt+(1:sizeLastDim(this.Bout)));
                 cnt = cnt + numel(th3);
             end
-            if not(isempty(this.nLayer1))
-                th4 = theta(cnt+(1:nTheta(this.nLayer1)));
+            if not(isempty(this.normLayer1))
+                th4 = theta(cnt+(1:nTheta(this.normLayer1)));
                 cnt = cnt + numel(th4);
             end
-            if not(isempty(this.nLayer2))
+            if not(isempty(this.normLayer2))
                 th5 = theta(cnt+1:end);
             end
         end
@@ -100,19 +100,19 @@ classdef doubleSymLayer < abstractMeganetElement
             if this.storeInterm
                 tmp{1}    = Y;
             end
-            if not(isempty(this.nLayer1))
-                Y = forwardProp(this.nLayer1,th4,Y);
+            if not(isempty(this.normLayer1))
+                Y = forwardProp(this.normLayer1,th4,Y);
             end
             if not(isempty(th2))
                 Y     = Y + this.Bin*th2;
             end
             Z      = this.activation(Y,'doDerivative',storedAct);
             Z      = -(Kop'*Z);
-            if not(isempty(this.nLayer2))
+            if not(isempty(this.normLayer2))
                 if this.storeInterm
                     tmp{2} = Z;
                 end
-                Z = forwardProp(this.nLayer2,th5,Z);
+                Z = forwardProp(this.normLayer2,th5,Z);
             end
             if not(isempty(th3))
                 Z = Z + this.Bout*th3;
@@ -142,8 +142,8 @@ classdef doubleSymLayer < abstractMeganetElement
                 KY = tmp{1};
             end
             
-            if not(isempty(this.nLayer1))
-                [KYn,tmpNL1] = forwardProp(this.nLayer1,th4,KY);
+            if not(isempty(this.normLayer1))
+                [KYn,tmpNL1] = forwardProp(this.normLayer1,th4,KY);
             else
                 KYn = KY;
             end
@@ -151,24 +151,24 @@ classdef doubleSymLayer < abstractMeganetElement
                 KYn = KYn + this.Bin*th2;
             end
             [A,dA] = this.activation( KYn );
-            if not(isempty(this.nLayer2))
+            if not(isempty(this.normLayer2))
                 if not(this.storeInterm)
                     KZ = - (getOp(this.K,th1)*A);
                 else
                     KZ = tmp{2};
                 end
-                [~,tmpNL2] = forwardProp(this.nLayer2,th5,KZ);
+                [~,tmpNL2] = forwardProp(this.normLayer2,th5,KZ);
             end
                 
         end
         
         function n = nTheta(this)
             n = nTheta(this.K) + sizeLastDim(this.Bin)+ sizeLastDim(this.Bout); 
-            if not(isempty(this.nLayer1))
-                n = n + nTheta(this.nLayer1);
+            if not(isempty(this.normLayer1))
+                n = n + nTheta(this.normLayer1);
             end
-            if not(isempty(this.nLayer2))
-                n = n + nTheta(this.nLayer2);
+            if not(isempty(this.normLayer2))
+                n = n + nTheta(this.normLayer2);
             end
         end
         
@@ -185,11 +185,11 @@ classdef doubleSymLayer < abstractMeganetElement
             theta = [vec(initTheta(this.K)); ...
                      0.0*ones( sizeLastDim(this.Bin)  , 1) ;...
                      0.0*ones( sizeLastDim(this.Bout) , 1) ];
-           if not(isempty(this.nLayer1))
-               theta = [theta; initTheta(this.nLayer1)];
+           if not(isempty(this.normLayer1))
+               theta = [theta; initTheta(this.normLayer1)];
            end
-           if not(isempty(this.nLayer2))
-               theta = [theta; initTheta(this.nLayer2)];
+           if not(isempty(this.normLayer2))
+               theta = [theta; initTheta(this.normLayer2)];
            end
           
         end
@@ -204,16 +204,16 @@ classdef doubleSymLayer < abstractMeganetElement
             Kop    = getOp(this.K,th1);
             dKop   = getOp(this.K,dth1);
             dY     = dKop*Y;
-            if not(isempty(this.nLayer1))
-                dY = Jmv(this.nLayer1,dth4,dY,th4,KY,tmpNL1);
+            if not(isempty(this.normLayer1))
+                dY = Jmv(this.normLayer1,dth4,dY,th4,KY,tmpNL1);
             end
             if not(isempty(this.Bin))
                 dY     = dY + this.Bin*dth2;
             end
             
             dY = -(Kop'*(dA.*dY) + dKop'*A);
-            if not(isempty(this.nLayer2))
-                dY = Jmv(this.nLayer2,dth5,dY,th5,KZ,tmpNL2);
+            if not(isempty(this.normLayer2))
+                dY = Jmv(this.normLayer2,dth5,dY,th5,KZ,tmpNL2);
             end
             if not(isempty(this.Bout))
                 dY = dY + this.Bout*dth3;
@@ -229,12 +229,12 @@ classdef doubleSymLayer < abstractMeganetElement
             
             Kop = getOp(this.K,th1);
             dY = Kop*dY;
-            if not(isempty(this.nLayer1))
-                dY = JYmv(this.nLayer1,dY,th4,KY,tmpNL1);
+            if not(isempty(this.normLayer1))
+                dY = JYmv(this.normLayer1,dY,th4,KY,tmpNL1);
             end
             dZ = -(Kop'*(dA.*dY));
-            if not(isempty(this.nLayer2))
-                dZ = Jmv(this.nLayer2,[],dZ,th5,KZ,tmpNL2);
+            if not(isempty(this.normLayer2))
+                dZ = Jmv(this.normLayer2,[],dZ,th5,KZ,tmpNL2);
             end
         end
         
@@ -252,16 +252,16 @@ classdef doubleSymLayer < abstractMeganetElement
                 KdY = 0;
             end
             dY = dKop*Y+KdY;
-            if not(isempty(this.nLayer1))
-                dY = Jmv(this.nLayer1,dth4,dY,th4,KY,tmpNL1);
+            if not(isempty(this.normLayer1))
+                dY = Jmv(this.normLayer1,dth4,dY,th4,KY,tmpNL1);
             end
             if not(isempty(this.Bin))
                 dY     = dY + this.Bin*dth2;
             end
             
             dY = -(Kop'*(dA.*dY) + dKop'*A);
-            if not(isempty(this.nLayer2))
-                dY = Jmv(this.nLayer2,dth5,dY,th5,KZ,tmpNL2);
+            if not(isempty(this.normLayer2))
+                dY = Jmv(this.normLayer2,dth5,dY,th5,KZ,tmpNL2);
             end
             if not(isempty(this.Bout))
                 dY = dY + this.Bout*dth3;
@@ -279,15 +279,15 @@ classdef doubleSymLayer < abstractMeganetElement
             if not(isempty(this.Bout))
                 dth3      = vec(sum(this.Bout'*Z,nd));
             end
-            if not(isempty(this.nLayer2))
-                [dth5,Z] = JTmv(this.nLayer2,Z,[],th5,KZ,tmpNL2);
+            if not(isempty(this.normLayer2))
+                [dth5,Z] = JTmv(this.normLayer2,Z,[],th5,KZ,tmpNL2);
             end
             dAZ       = dA.*(Kop*Z);
             if not(isempty(this.Bin))
                 dth2      = vec(sum(this.Bin'*dAZ,nd));
             end
-            if not(isempty(this.nLayer1))
-                [dth4,dAZ] = JTmv(this.nLayer1,dAZ,[],th4,KY,tmpNL1);
+            if not(isempty(this.normLayer1))
+                [dth4,dAZ] = JTmv(this.normLayer1,dAZ,[],th4,KY,tmpNL1);
             end
             dth1      = JthetaTmv(this.K,dAZ,[],Y);
             dth1      = dth1 + JthetaTmv(this.K,A,[],Z); % TODO: is last arg really Z?
@@ -300,12 +300,12 @@ classdef doubleSymLayer < abstractMeganetElement
             
             Kop       = getOp(this.K,th1);
             
-            if not(isempty(this.nLayer2))
-                Z = JYTmv(this.nLayer2,Z,th5,KZ,tmpNL2);
+            if not(isempty(this.normLayer2))
+                Z = JYTmv(this.normLayer2,Z,th5,KZ,tmpNL2);
             end
             dAZ       = dA.*(Kop*Z);
-            if not(isempty(this.nLayer1))
-                dAZ = JYTmv(this.nLayer1,dAZ,th4,KY,tmpNL1);
+            if not(isempty(this.normLayer1))
+                dAZ = JYTmv(this.normLayer1,dAZ,th4,KY,tmpNL1);
             end
             dY  = -(Kop'*dAZ);
         end
@@ -325,16 +325,16 @@ classdef doubleSymLayer < abstractMeganetElement
             if not(isempty(this.Bout))
                 dth3 = vec(sum(this.Bout'*Z,nd));
             end
-            if not(isempty(this.nLayer2))
-                [dth5,Z] = JTmv(this.nLayer2,Z,[],th5,KZ,tmpNL2);
+            if not(isempty(this.normLayer2))
+                [dth5,Z] = JTmv(this.normLayer2,Z,[],th5,KZ,tmpNL2);
             end
             
             dAZ       = dA.*(Kop*Z);
             if not(isempty(this.Bin))
                 dth2      = vec(sum(this.Bin'*dAZ,nd));
             end
-            if not(isempty(this.nLayer1))
-                [dth4,dAZ] = JTmv(this.nLayer1,dAZ,[],th4,KY,tmpNL1);
+            if not(isempty(this.normLayer1))
+                [dth4,dAZ] = JTmv(this.normLayer1,dAZ,[],th4,KY,tmpNL1);
             end
             dth1      = JthetaTmv(this.K,dAZ,[],Y);
             

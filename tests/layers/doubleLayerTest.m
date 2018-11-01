@@ -21,6 +21,17 @@ classdef doubleLayerTest < layerTest
             ks{end+1} = doubleLayer(convFFT(nImg,sK),convFFT(nImg,sK),'normLayer1',tvN,'normLayer2',tvN,'Bin1',Bin1,'Bin2',Bin2,'Bout',Bout);
             ks{end+1} = doubleLayer(convFFT(nImg,sK),convFFT(nImg,sK),'normLayer1',tvN,'normLayer2',tvN,'Bin1',Bin1,'Bin2',Bin2,'Bout',Bout,'storeInterm',1);
             
+            ks{end+1} = doubleLayer(dense([24 14]),dense([5 24]),'Bin2',randn(5,2));
+            ks{end+1} = doubleLayer(dense([24 14]),dense([5 24]),'Bin2',randn(5,2),'storeInterm',1);
+            ks{end+1} = doubleLayer(dense([24 14]),dense([5 24]),'Bin1',eye(24));
+            ks{end+1} = doubleLayer(dense([24 14]),dense([5 24]),'Bin1',eye(24),'storeInterm',1);
+            ks{end+1} = doubleLayer(dense([24 14]),dense([5 24]),'storeInterm',1);
+            ks{end+1} = doubleLayer(dense([24 14]),dense([5 24]));
+            
+            ks{end+1} = doubleLayer(dense([24 14]),dense([5 24]),'Bin1',randn(24,3),'Bin2',randn(5,2),'Bout',randn(5,3));
+            ks{end+1} = doubleLayer(dense([24 14]),dense([5 24]),'Bin1',randn(24,3),'Bin2',randn(5,2),'Bout',randn(5,3),'storeInterm',1);
+            
+            
             testCase.layers = ks;
             
             
@@ -38,8 +49,6 @@ classdef doubleLayerTest < layerTest
 %             tvNt  = getTVNormLayer([2 7 14],'isWeight',0);
 %             ks{end+1} = doubleLayer(dense([14 14]),dense([14 14]),'normLayer1',tvNt,'normLayer2',tvNt);
 %             ks{end+1} = doubleLayer(dense([14 14]),dense([14 14]),'normLayer1',tvNt,'normLayer2',tvNt,'storeInterm',1);
-%             ks{end+1} = doubleLayer(dense([24 14]),dense([5 24]),'Bin1',randn(24,3),'Bin2',randn(5,2),'Bout',randn(5,3));
-%             ks{end+1} = doubleLayer(dense([24 14]),dense([5 24]),'Bin1',randn(24,3),'Bin2',randn(5,2),'Bout',randn(5,3),'storeInterm',1);
 %             ks{end+1} = doubleLayer(convFFT([12 8], [3 3 2 5]),dense([100,12*8*5]));
 %             ks{end+1} = doubleLayer(convFFT([12 8], [3 3 2 5]),dense([100,12*8*5]),'storeInterm',1);
 %             ks{end+1} = doubleLayer(dense([24 14]),dense([24 24]),'useGPU',0,'precision','single');

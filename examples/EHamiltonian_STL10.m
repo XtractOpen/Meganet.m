@@ -38,8 +38,8 @@ end
 
 %% setup network
 doNorm = 1;
-% nLayer = @getTVNormLayer
-nLayer = @getBatchNormLayer;
+% normLayer = @getTVNormLayer
+normLayer = @getBatchNormLayer;
 
 miniBatchSize = 50;
 act1 = @reluActivation;
@@ -53,25 +53,25 @@ h  = 1*[1;1;1];
 blocks    = cell(0,1); RegOps = cell(0,1);
 
 %% Block to open the network
-nL = nLayer([prod(nImg(1:2)) nf(1) miniBatchSize],'isWeight',1);
-blocks{end+1} = NN({singleLayer(conv(nImg,[3 3 cin nf(1)]),'activation', act1,'nLayer',nL)},'useGPU',useGPU,'precision',precision);
+nL = normLayer([prod(nImg(1:2)) nf(1) miniBatchSize],'isWeight',1);
+blocks{end+1} = NN({singleLayer(conv(nImg,[3 3 cin nf(1)]),'activation', act1,'normLayer',nL)},'useGPU',useGPU,'precision',precision);
 RegOps{end+1} = opEye(nTheta(blocks{end}));
 %% UNIT
 for k=1:numel(h)
     nImgc = nImg/(2^(k-1));
     % Hamiltonian network
     K = conv(nImgc,[3 3 nf(k)/2 nf(k)/2]);
-    nL = nLayer([prod(nImgc(1:2)) nf(k)/2 miniBatchSize],'isWeight',1);
-    layer = doubleSymLayer(K,'activation',act,'nLayer',nL);
+    nL = normLayer([prod(nImgc(1:2)) nf(k)/2 miniBatchSize],'isWeight',1);
+    layer = doubleSymLayer(K,'activation',act,'normLayer',nL);
     blocks{end+1} = DoubleHamiltonianNN(layer,layer,nt(k),h(k),'useGPU',useGPU,'precision',precision);
 %     regD = gpuVar(useGPU,precision,repmat([ones(nTheta(K),1); zeros(nTheta(nL),1)],nt(k),1));
 %     RegOps{end+1} = opDiag(regD);
     RegOps{end+1} = opEye(nTheta(blocks{end}));
     % Connector block
         
-    nL = nLayer([prod(nImgc(1:2)) nf(k+1) miniBatchSize], 'isWeight',1);
+    nL = normLayer([prod(nImgc(1:2)) nf(k+1) miniBatchSize], 'isWeight',1);
     Kc = conv(nImgc,[1,1,nf(k),nf(k+1)]);
-    blocks{end+1} = NN({singleLayer(Kc,'activation',actc,'nLayer',nL)},'useGPU',useGPU,'precision',precision);
+    blocks{end+1} = NN({singleLayer(Kc,'activation',actc,'normLayer',nL)},'useGPU',useGPU,'precision',precision);
     regD = gpuVar(useGPU,precision,[ones(nTheta(Kc),1); zeros(nTheta(nL),1)]);
     RegOps{end+1} = opDiag(regD);
     
