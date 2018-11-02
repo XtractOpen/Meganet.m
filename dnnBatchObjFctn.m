@@ -89,6 +89,8 @@ classdef dnnBatchObjFctn < objFctn
             %            theta and W)
             %   PC     - preconditioner
             
+            
+            
             if not(exist('idx','var')) || isempty(idx)
                 % use only examples specified in idx in the loss
                 Y = this.Y;
@@ -109,6 +111,8 @@ classdef dnnBatchObjFctn < objFctn
             
             [theta,W] = split(this,thetaW);
             this.batchIds  = randperm(nex);
+            
+
                         
             % compute loss
             F = 0.0; hisLoss = [];
@@ -123,18 +127,25 @@ classdef dnnBatchObjFctn < objFctn
                     Ck = C;
                 end
                 
+                nBatchEx = sizeLastDim(Yk); % last batch may not be full
+                
                 if compGrad
                     [YNk,tmp]          = forwardProp(this.net,theta,Yk); % forward propagation
                     J = getJthetaOp(this.net,theta,Yk,tmp);
+                    szYNk  = size(YNk);
+                    YNk = reshape(YNk,[],nBatchEx); % loss expects 2D input
                     [Fk,hisLk,dWFk,d2WFk,dYF,d2YF] = getMisfit(this.pLoss,W,YNk,Ck);
+                    dYF = reshape(dYF,szYNk);
                 else
                     [YNk]        = forwardProp(this.net,theta,Yk); % forward propagation
+                    szYNk  = size(YNk);
+                    YNk = reshape(YNk,[],nBatchEx);
                     [Fk,hisLk]  = getMisfit(this.pLoss,W,YNk,Ck);
                 end
                 F    = F    + numel(idk)*Fk;
                 hisLoss  = [hisLoss;hisLk];
                 if compGrad
-                    dthFk = J'*dYF;
+                    dthFk = J'*dYF; % TODO: check dims, dropping nEx?
                     dJth  = dJth + numel(idk)*dthFk;
                     dJW   = dJW  + numel(idk)*dWFk;
                     if compHess
@@ -146,13 +157,13 @@ classdef dnnBatchObjFctn < objFctn
                     end
                 end
             end
-            F    = F/nex;
+            F    = F/nBatchEx;
             Jc   = F;
             if compGrad
-                dJth = dJth/nex;
-                dJW  = dJW/nex;
+                dJth = dJth/nBatchEx;
+                dJW  = dJW/nBatchEx;
                 if compHess
-                    HW   = HW*(1/nex);
+                    HW   = HW*(1/nBatchEx);
                     Hthmv = @(x) J'*(d2YF*(J*x));
                     Hth   = LinearOperator(numel(theta),numel(theta),Hthmv,Hthmv);
                 end

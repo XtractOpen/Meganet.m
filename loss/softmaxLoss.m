@@ -21,6 +21,27 @@ classdef softmaxLoss
         
         
         function [F,para,dWF,d2WF,dYF,d2YF] = getMisfit(this,W,Y,C,varargin)
+        % [F,para,dWF,d2WF,dYF,d2YF] = getMisfit(this,W,Y,C,varargin)
+        %
+        % Input:
+        %  
+        %   W - vector containing the weights (nWeights-by-1)
+        %   Y - 2D matrix, features (nFeatures-by-nExamples)
+        %   C - 2D matrix, ground truth classes (nClasses-by-nExamples)
+        %
+        % Optional Input:
+        %
+        %   set via varargin
+        %
+        % Output:
+        %
+        %  F    - loss (average per example)
+        %  para - vector of 3 values: unaveraged loss, nExamples, error
+        %  dWF  - gradient of F wrt W (nWeights-by-1)
+        %  d2WF - Hessian of F wrt W  (LinearOperator, nWeights-by-nWeights)
+        %  dYF  - gradient of F wrt Y (nFeatures*nExamples-by-1)
+        %  d2YF - Hessian of F wrt Y  (LinearOperator, nFeat*nEx-by-nFeat*nEx)
+            
             doDY = (nargout>3);
             doDW = (nargout>1);
             for k=1:2:length(varargin)     % overwrites default parameter
@@ -28,21 +49,24 @@ classdef softmaxLoss
             end
             dWF = []; d2WF = []; dYF =[]; d2YF = [];
             
-            % colons = repmat( {':'} , 1 , ndims(Y) - 1 );
-            % Y = reshape(Y,[],size(Y,ndims(Y))); % reshape to be a matrix (nFeat,nEx)
-            
+            % check dimensions here and print error message
             szY  = size(Y);
-            nex  = szY(end);
-            Y = reshape(Y,[],nex);
-            if this.addBias==1
-                Y   = [Y; ones(1,nex)];
+            nex = szY(2);
+
+            try
+                if this.addBias==1
+                    Y   = [Y; ones(1,nex)];
+                end
+                szW  = [size(C,1),size(Y,1)];
+                W    = reshape(W,szW);
+                WY   = W*Y;
+            catch err
+                error(['\nError. \nW and Y are expected to be 2-D matrices prior to W*Y.\n', ...
+                    'dims of W: [%s]  and dims of Y: [%s] provided.'], num2str(size(W)), num2str(size(Y)) );
+                % rethrow(err);
             end
-            szW  = [size(C,1),size(Y,1)];
             
-            W    = reshape(W,szW);
-            WY   = W*Y;
             WY   = WY - max(WY,[],1);
-            
             S    = exp(WY);
             
             Cp   = getLabels(this,S);
@@ -52,8 +76,8 @@ classdef softmaxLoss
             F    = F/nex;
 
             
-            if (doDW) && (nargout>=2)
-               dF   = -C + S./sum(S,1); % S./sum(S,2));
+        if (doDW) && (nargout>=2)
+               dF   = -C + S./sum(S,1); %S./sum(S,2));
                dWF  = vec(dF*(Y'/nex));
             end
             if (doDW) && (nargout>=3)
@@ -67,13 +91,13 @@ classdef softmaxLoss
                 if this.addBias==1
                     W = W(:,1:end-1);
                 end
-                dYF  =   reshape(W'*dF,szY)/nex;
+                dYF  =   vec(W'*dF)/nex;
             end
             if doDY && nargout>=5
-                WI     = @(T) W*T;  % kron(W,speye(size(Y,1)));
+                WI     = @(T) W*T;  %kron(W,speye(size(Y,1)));
                 WIT    = @(T) W'*T;
                 matY   = @(Y) reshape(Y,szY);
-                d2YFmv = @(T) WIT(d2F(WI(matY(T/nex))));
+                d2YFmv = @(T) vec(WIT(((d2F(WI(matY(T/nex)))))));
     
                 d2YF = LinearOperator(prod(szY),prod(szY),d2YFmv,d2YFmv);
             end
