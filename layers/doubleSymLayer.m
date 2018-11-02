@@ -280,14 +280,14 @@ classdef doubleSymLayer < abstractMeganetElement
                 dth3      = vec(sum(this.Bout'*Z,nd));
             end
             if not(isempty(this.normLayer2))
-                [dth5,Z] = JTmv(this.normLayer2,Z,[],th5,KZ,tmpNL2);
+                [dth5,Z] = JTmv(this.normLayer2,Z,th5,KZ,tmpNL2);
             end
             dAZ       = dA.*(Kop*Z);
             if not(isempty(this.Bin))
                 dth2      = vec(sum(this.Bin'*dAZ,nd));
             end
             if not(isempty(this.normLayer1))
-                [dth4,dAZ] = JTmv(this.normLayer1,dAZ,[],th4,KY,tmpNL1);
+                [dth4,dAZ] = JTmv(this.normLayer1,dAZ,th4,KY,tmpNL1);
             end
             dth1      = JthetaTmv(this.K,dAZ,[],Y);
             dth1      = dth1 + JthetaTmv(this.K,A,[],Z); % TODO: is last arg really Z?
@@ -326,7 +326,7 @@ classdef doubleSymLayer < abstractMeganetElement
                 dth3 = vec(sum(this.Bout'*Z,nd));
             end
             if not(isempty(this.normLayer2))
-                [dth5,Z] = JTmv(this.normLayer2,Z,[],th5,KZ,tmpNL2);
+                [dth5,Z] = JTmv(this.normLayer2,Z,th5,KZ,tmpNL2);
             end
             
             dAZ       = dA.*(Kop*Z);
@@ -334,7 +334,7 @@ classdef doubleSymLayer < abstractMeganetElement
                 dth2      = vec(sum(this.Bin'*dAZ,nd));
             end
             if not(isempty(this.normLayer1))
-                [dth4,dAZ] = JTmv(this.normLayer1,dAZ,[],th4,KY,tmpNL1);
+                [dth4,dAZ] = JTmv(this.normLayer1,dAZ,th4,KY,tmpNL1);
             end
             dth1      = JthetaTmv(this.K,dAZ,[],Y);
             
