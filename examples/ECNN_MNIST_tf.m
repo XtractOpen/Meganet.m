@@ -35,6 +35,10 @@ blocks{end+1} = connector(poolOp([nImg 32],2));
 blocks{end+1} = NN({singleLayer(convOp(nImg/2,[5 5 32 64]),'activation', act)});
 
 blocks{end+1} = connector(poolOp([nImg/2 64],2));
+
+Bop = opCNNavg([nImg/4 64]);
+blocks{end+1} = connector(Bop);
+
 net    = Meganet(blocks);
 
 % setup loss function for training and validation set

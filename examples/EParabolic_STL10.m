@@ -86,8 +86,8 @@ for k=1:numel(h)
 end
 
 %% Connector block
-% Bop = opCNNBias([nImgc nf(k+1) nf(k+1)]);
-% blocks{end+1} = connector(Bop);
+Bop = opCNNavg([nImgc nf(k+1) nf(k+1)]);
+blocks{end+1} = connector(Bop);
 
 
 % % B = gpuVar(useGPU,precision,kron(eye(nf(k+1)),ones(prod(nImgc),1)));
