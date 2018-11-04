@@ -7,7 +7,7 @@ classdef batchNormLayer < abstractMeganetElement
     % variables.
     properties
         nData       % describe size of data, at least first two dim must be correct.
-        isWeight    % transformation type
+        isWeight    % boolean, 1 if trainable weights for an affine transformation are provided.
         useGPU      % flag for GPU computing 
         precision   % flag for precision 
         eps
@@ -21,6 +21,7 @@ classdef batchNormLayer < abstractMeganetElement
             useGPU     = 0;
             precision  = 'double';
             eps = 1e-4;
+            isWeight = 0;
             for k=1:2:length(varargin)     % overwrites default parameter
                     eval([varargin{k},'=varargin{',int2str(k+1),'};']);
             end
@@ -29,11 +30,16 @@ classdef batchNormLayer < abstractMeganetElement
             this.precision = precision;
             this.nData = nData;
             this.eps = eps;
+            this.isWeight=isWeight;
         end
-        function [s2,b2] = split(this,theta)
-            s2 = reshape(theta(1:this.nData(3)),1,1,this.nData(3),1);
-            cnt = numel(s2);
-            b2 = reshape(theta(cnt+(1:this.nData(3))),1,1,this.nData(3),1);
+        function [s,b] = split(this,theta)
+            if this.isWeight
+                s = reshape(theta(1:this.nData(3)),1,1,this.nData(3),1);
+                cnt = numel(s);
+                b = reshape(theta(cnt+(1:this.nData(3))),1,1,this.nData(3),1);
+            else
+                s = []; b = [];
+            end
         end
         
         function [Y,dA] = forwardProp(this,theta,Y,varargin)
@@ -41,15 +47,17 @@ classdef batchNormLayer < abstractMeganetElement
            Y  = Y-mean(Y,4);
            Y  = Y./sqrt(mean(Y.^2,4)+this.eps);
            
-           % scaling
-           [s2,b2] = split(this,theta);           
-           Y = Y.*s2;
-           Y = Y + b2;
+           if this.isWeight
+               % affine scaling along channels
+               [s,b] = split(this,theta);
+               Y = Y.*s;
+               Y = Y + b;
+           end
         end
         
         
         function n = nTheta(this)
-            n = 2*this.nData(3);
+            n = this.isWeight*2*this.nData(3);
         end
         
         function n = sizeFeatIn(this)
@@ -68,56 +76,65 @@ classdef batchNormLayer < abstractMeganetElement
         
         
         function [dY] = Jthetamv(this,dtheta,theta,Y,~)
-           [ds2,db2] = split(this,dtheta);
-           
-           % normalization
-           Y  = Y-mean(Y,4);
-           Y  = Y./sqrt(mean(Y.^2,4)+this.eps);
-           
-           % scaling
-           dY = Y.*ds2;
-           dY = dY + db2;
+            if this.isWeight
+                % compute derivative when affine scaling layer is present
+                Y  = Y-mean(Y,4);
+                Y  = Y./sqrt(mean(Y.^2,4)+this.eps);
+                
+                % scaling
+                [ds,db] = split(this,dtheta);
+                dY = Y.*ds;
+                dY = dY + db;
+            else
+                dY = 0*Y;
+            end
         end
         
         function dtheta = JthetaTmv(this,Z,theta,Y,~)
-            % normalization
-           Y  = Y-mean(Y,4);
-           Y  = Y./sqrt(mean(Y.^2,4)+this.eps);
-           
-            W = Y.*Z;
-            dtheta     = vec(sum(sum(sum(W,1),2),4));
-            dtheta = [dtheta; vec(sum(sum(sum(Z,1),2),4))];
+            if this.isWeight
+                % compute derivative when affine scaling layer is present
+                Y  = Y-mean(Y,4);
+                Y  = Y./sqrt(mean(Y.^2,4)+this.eps);
+                
+                W = Y.*Z;
+                dtheta     = vec(sum(sum(sum(W,1),2),4));
+                dtheta = [dtheta; vec(sum(sum(sum(Z,1),2),4))];
+            else
+                dtheta = [];
+            end
         end
-       
+        
         
         function dY = JYmv(this,dY,theta,Y,~)
-            Y  = reshape(Y, this.nData(1), this.nData(2), this.nData(3),[]);
-            dY = reshape(dY, this.nData(1), this.nData(2), this.nData(3),[]);
-            s2 = split(this,theta);
             
             Fy  = Y-mean(Y,4);
             FdY = dY-mean(dY,4);
             den = sqrt(mean(Fy.^2,4)+this.eps);
             
             dY = FdY./den  - (Fy.* (mean(Fy.*FdY,4) ./(den.^3))) ;
-            % scaling
-            dY = dY.*s2;
+            if this.isWeight
+                % affine scaling
+                s = split(this,theta);
+                dY = dY.*s;
+            end
         end
         
-        function FdY = JYTmv(this,FdY,theta,Y,~)
-           % scaling
-           s2 = split(this,theta);
-           FdY = FdY.*s2;
+        function dY = JYTmv(this,dY,theta,Y,~)
+           if this.isWeight
+                % affine scaling
+                s = split(this,theta);
+                dY = dY.*s;
+            end
            
            % normalization
            Fy  = Y-mean(Y,4);
-           FdY = FdY-mean(FdY,4);
+           dY = dY-mean(dY,4);
            den = sqrt(mean(Fy.^2,4)+this.eps);
            
-           tt = mean(Fy.*FdY,4) ./(den.^3);
-           FdY = FdY./den;
+           tt = mean(Fy.*dY,4) ./(den.^3);
+           dY = dY./den;
            clear den;
-           FdY = FdY - Fy.*tt;
+           dY = dY - Fy.*tt;
         end
         
         

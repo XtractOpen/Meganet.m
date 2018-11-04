@@ -43,10 +43,10 @@ classdef doubleLayerTest < layerTest
 %             ks    = cell(0,1);
 %             TT = dense([14 14]);
 %             ks{end+1} = doubleLayer(TT,TT);
-%             tvNt  = getTVNormLayer([2 7 14],'isWeight',1);
+%             tvNt  = tvNormLayer([2 7 14],'isWeight',1);
 %             ks{end+1} = doubleLayer(dense([14 14]),dense([14 14]),'normLayer1',tvNt,'normLayer2',tvNt);
 %             ks{end+1} = doubleLayer(dense([14 14]),dense([14 14]),'normLayer1',tvNt,'normLayer2',tvNt,'storeInterm',1);
-%             tvNt  = getTVNormLayer([2 7 14],'isWeight',0);
+%             tvNt  = tvNormLayer([2 7 14],'isWeight',0);
 %             ks{end+1} = doubleLayer(dense([14 14]),dense([14 14]),'normLayer1',tvNt,'normLayer2',tvNt);
 %             ks{end+1} = doubleLayer(dense([14 14]),dense([14 14]),'normLayer1',tvNt,'normLayer2',tvNt,'storeInterm',1);
 %             ks{end+1} = doubleLayer(convFFT([12 8], [3 3 2 5]),dense([100,12*8*5]));

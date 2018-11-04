@@ -1,8 +1,6 @@
 %% all fail
 
-runtests('instNormLayerTest') % ... instNormLayer doesn't exist
 runtests('linearNegLayerTest') % ...linearNegLayer doesn't exist
-runtests('convCuDNN2DTest') % - no mexcuda running
 %%
 EParabolic_STL10(5000,32,3) 
 
@@ -14,6 +12,8 @@ EParabolic_STL10(5000,32,3)
 
 %% all pass
 runtests('NNTest') % just warnings from precision mismatches
+runtests('instNormLayerTest') 
+runtests('convCuDNN2DTest') % - no mexcuda running
 
 runtests('MegaNetTest');
 runtests('singleLayerTest') % testGetJYOp tempermental

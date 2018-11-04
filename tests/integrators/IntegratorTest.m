@@ -31,7 +31,7 @@ classdef IntegratorTest < matlab.unittest.TestCase
               Y0  = randn([sizeFeatIn(ks),10]);
               [Y0,th0] = gpuVar(ks.useGPU,ks.precision,Y0,th0);
               f = @(Y) linearizeY(ks,th0,Y);
-              isOK = checkJacobian(f,Y0,'out',1,...
+              isOK = checkJacobian(f,Y0,'out',0,...
                                 'useGPU',ks.useGPU,'precision',ks.precision);
               testCase.verifyTrue(isOK);
            end
