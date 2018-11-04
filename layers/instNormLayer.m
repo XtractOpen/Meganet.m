@@ -1,22 +1,19 @@
-classdef tvNormLayer < abstractMeganetElement
-    % classdef tvNormLayer < abstractMeganetElement
+classdef instNormLayer < abstractMeganetElement
+    % classdef instNormLayer < abstractMeganetElement
     %
-    % tailored implementation of total variation normalization layer applicable to CNNs. 
+    % instance normalization layer applicable to CNNs.
     %
-    % The idea is to normalize pixel-wise by the length of the feature
-    % vector, i.e.,
-    %
-    %  Z = diag( sqrt( sum(Y.^2,3)+eps)) Y
+    % The idea is to normalize the mean and standard deviation of each channel
     %
     properties
         nData       % describe size of data, at least first three dim must be correct.
         isWeight    % boolean, 1 if trainable weights for an affine transformation are provided.
-        useGPU      % flag for GPU computing 
-        precision   % flag for precision 
+        useGPU      % flag for GPU computing
+        precision   % flag for precision
         eps
     end
     methods
-        function this = tvNormLayer(nData,varargin)
+        function this = instNormLayer(nData,varargin)
             if nargin==0
                 help(mfilename)
                 this.runMinimalExample
@@ -27,7 +24,7 @@ classdef tvNormLayer < abstractMeganetElement
             eps = 1e-4;
             isWeight = 0;
             for k=1:2:length(varargin)     % overwrites default parameter
-                    eval([varargin{k},'=varargin{',int2str(k+1),'};']);
+                eval([varargin{k},'=varargin{',int2str(k+1),'};']);
             end
             
             this.useGPU = useGPU;
@@ -56,7 +53,7 @@ classdef tvNormLayer < abstractMeganetElement
             
             figure(1); clf;
             subplot(2,2,1);
-            imagesc(Y); 
+            imagesc(Y);
             title('input image')
             
             subplot(2,2,2);
@@ -64,13 +61,13 @@ classdef tvNormLayer < abstractMeganetElement
             title('tv denoised image')
             
             subplot(2,2,3);
-            surf(Y,'EdgeColor','none'); 
+            surf(Y,'EdgeColor','none');
             title('input image, surf plot')
             
             subplot(2,2,4);
             surf(YN,'EdgeColor','none');
-            title('tv denoised image, surf plot')
-                
+            title('denoised image, surf plot')
+            
         end
         
         function [s,b] = split(this,theta)
@@ -84,16 +81,20 @@ classdef tvNormLayer < abstractMeganetElement
         end
         
         function [Y,dA] = forwardProp(this,theta,Y,varargin)
-           dA = [];
-           % normalization
-           Y  = Y./sqrt(sum(Y.^2,3)+this.eps);
-           
-           if this.isWeight
-               % affine scaling along channels
-               [s,b] = split(this,theta);           
-               Y = Y.*s;
-               Y = Y + b;
-           end
+            dA = [];
+            % normalization
+            szY = [this.nData, size(Y,4)];
+            Y   = reshape(Y,[],szY(3),szY(4));
+            Y  = Y-mean(Y,1);
+            Y  = Y./sqrt(mean(Y.^2,1)+this.eps);
+            Y   = reshape(Y,szY);
+            
+            if this.isWeight
+                % affine scaling along channels
+                [s,b] = split(this,theta);
+                Y = Y.*s;
+                Y = Y + b;
+            end
         end
         
         
@@ -117,22 +118,31 @@ classdef tvNormLayer < abstractMeganetElement
         
         
         function [dY] = Jthetamv(this,dtheta,theta,Y,~)
-           
-           if this.isWeight
-               % compute derivative when affine scaling layer is present
-               dY  = Y./sqrt(sum(Y.^2,3)+this.eps);
-               [ds,db] = split(this,dtheta);
-               dY = dY.*ds;
-               dY = dY + db;
-           else
-               dY = 0*Y;
-           end
+            if this.isWeight
+                % compute derivative when affine scaling layer is present
+                szY = [this.nData, size(Y,4)];
+                Y   = reshape(Y,[],szY(3),szY(4));
+                Y  = Y-mean(Y,1);
+                Y  = Y./sqrt(mean(Y.^2,1)+this.eps);
+                Y   = reshape(Y,szY);
+                
+                % scaling
+                [ds,db] = split(this,dtheta);
+                dY = Y.*ds;
+                dY = dY + db;
+            else
+                dY = 0*Y;
+            end
         end
         
         function dtheta = JthetaTmv(this,Z,theta,Y,~)
             if this.isWeight
                 % compute derivative when affine scaling layer is present
-                Y  = Y./sqrt(sum(Y.^2,3)+this.eps);
+                szY = [this.nData, size(Y,4)];
+                Y   = reshape(Y,[],szY(3),szY(4));
+                Y  = Y-mean(Y,1);
+                Y  = Y./sqrt(mean(Y.^2,1)+this.eps);
+                Y   = reshape(Y,szY);
                 
                 W = Y.*Z;
                 dtheta     = vec(sum(sum(sum(W,1),2),4));
@@ -141,12 +151,18 @@ classdef tvNormLayer < abstractMeganetElement
                 dtheta = [];
             end
         end
-       
+        
         
         function dY = JYmv(this,dY,theta,Y,~)
             
-            den = sqrt(sum(Y.^2,3)+this.eps);
-            dY = dY./den  - (Y.* (sum(Y.*dY,3) ./(den.^3))) ;
+            szY = [this.nData, size(Y,4)];
+            Y   = reshape(Y,[],szY(3),szY(4));
+            dY  = reshape(dY,[],szY(3),szY(4));
+            Fy  = Y-mean(Y,1);
+            FdY = dY-mean(dY,1);
+            den = sqrt(mean(Fy.^2,1)+this.eps);
+            dY  = FdY./den  - (Fy.* (mean(Fy.*FdY,1) ./(den.^3))) ;
+            dY  = reshape(dY,szY);
             
             if this.isWeight
                 % affine scaling
@@ -163,15 +179,23 @@ classdef tvNormLayer < abstractMeganetElement
                 dY = dY.*s;
             end
             
-           % normalization
-           den = sqrt(sum(Y.^2,3)+this.eps);
-           
-           tt = sum(Y.*dY,3) ./(den.^3);
-           dY = dY./den  - Y.*tt;
+            % normalization
+            szY = [this.nData, size(Y,4)];
+            Y   = reshape(Y,[],szY(3),szY(4));
+            dY  = reshape(dY,[],szY(3),szY(4));
+            Fy  = Y-mean(Y,1);
+            dY = dY-mean(dY,1);
+            den = sqrt(mean(Fy.^2,1)+this.eps);
+            
+            tt = mean(Fy.*dY,1) ./(den.^3);
+            dY = dY./den;
+            clear den;
+            dY = dY - Fy.*tt;
+            dY  = reshape(dY,szY);
         end
         
         
-        % ------- functions for handling GPU computing and precision ---- 
+        % ------- functions for handling GPU computing and precision ----
         function this = set.useGPU(this,value)
             if (value~=0) && (value~=1)
                 error('useGPU must be 0 or 1.')

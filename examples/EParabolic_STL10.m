@@ -14,26 +14,34 @@
 %      Reversible Architectures for Arbitrarily Deep Residual Neural Networks,
 %      AAAI Conference on Artificial Intelligence 2018
 %
-%
 % Inputs:
 %
-%     ntrain - number of examples used in training (max  = 5000)
-%     nval   - number of examples used for validation (max = 5000-ntrain)
-%     nf0    - width of first ResNN layer (others will be multiple of this)
-%     nt     - number of time steps in ResNNs
-%     opt    - optimizer
+%     ntrain    - number of examples used in training (max  = 5000)
+%     nval      - number of examples used for validation (max = 5000-ntrain)
+%     nf0       - width of first ResNN layer (others will be multiple of this)
+%     nt        - number of time steps in ResNNs
+%     useGPU    - flag for GPU computing, default = 0
+%     precision - flag for precision, default = 'single'
+%     opt       - optimizer
+%     resFile   - filename for results, set to [] to de-activate
 %
-% Examples: 
+% Output: 
+% 
+%     xc        - weights at last iteration
+%     His       - convergence history
+%     xOpt      - weights with best validation accuracy
+%
+% Examples:
 %
 %     EParabolic_STL10();                             runs minimal example
 %     EParabolic_STL10(4000,1000,32,3,opt);           better architecure
 % =========================================================================
 
-function EParabolic_STL10(ntrain,nval,nf0,nt,opt)
+function [xc,His,xOpt] = EParabolic_STL10(ntrain,nval,nf0,nt,useGPU,precision,opt,resFile)
 
 if nargin==0
     opt = sgd('learningRate',1e-1,'maxEpochs',4,'out',1,'miniBatch',100);
-    feval(mfilename,100,100,32,3,opt);
+    feval(mfilename,100,100,16,3,1,'single',opt,[]);
     return
 end
 
@@ -52,6 +60,19 @@ end
 if not(exist('nt','var')) || isempty(nt)
     nt = 3;
 end
+
+if not(exist('useGPU','var')) || isempty(useGPU)
+    useGPU = 0;
+end
+
+if not(exist('precision','var')) || isempty(precision)
+    precision = 'single';
+end
+
+if not(exist('resFile','var'))
+    resFile = sprintf('%s-%s',datestr(now,'YYYY-mm-dd-HH-MM-ss'), mfilename);
+end
+
 
 if not(exist('opt','var')) || isempty(opt)
     opt = sgd();
@@ -78,12 +99,7 @@ Ctrain = C(:,idtrain);
 Yval   = Y0(:,:,:,idval);
 Cval   = C(:,idval);
 
-% choose file for results and specify whether or not to retrain
-resFile = sprintf('%s-%s',datestr(now,'YYYY-mm-dd-HH-MM-ss'), mfilename);
 
-% set GPU flag and precision
-useGPU = 0;
-precision='single';
 
 [Ytrain,Ctrain,Yval,Cval] = gpuVar(useGPU,precision,Ytrain,Ctrain,Yval,Cval);
 
@@ -97,16 +113,16 @@ end
 
 %% setup network
 % normLayer = @getTVNormLayer
-normLayer = @getBatchNormLayer;
+normLayer = @batchNormLayer;
 
-miniBatchSize = 50;
+miniBatchSize = 125;
 act1 = @reluActivation;
 actc = @reluActivation;
 act  = @reluActivation;
 
-nf  = nf0*[1;2;4;4];
-nt  = nt*[1;1;1];
-h  = 1*[1;1;1];
+nf  = nf0*[1;4;8;16;16];
+nt  = nt*[1;1;1;1];
+h  = [1;1;1;1];
 
 blocks    = cell(0,1); RegOps = cell(0,1);
 
@@ -120,18 +136,22 @@ for k=1:numel(h)
     % implicit layer
     K = conv(nImgc,[3 3 nf(k) nf(k)]);
     
-    nL = normLayer([nImgc(1:2) nf(k) miniBatchSize],'isWeight',1);
+%     nL = normLayer([nImgc(1:2) nf(k) miniBatchSize],'isWeight',1);
+    nL = tvNormLayer([nImgc(1:2) nf(k) miniBatchSize],'isWeight',1);
     layer = doubleSymLayer(K,'activation',act,'normLayer1',nL);
     blocks{end+1} = ResNN(layer,nt(k),h(k),'useGPU',useGPU,'precision',precision);
     regD = gpuVar(useGPU,precision,repmat([ones(nTheta(K),1); zeros(nTheta(nL),1)],nt(k),1));
     RegOps{end+1} = opDiag(regD);
     % Connector block
-        
-    nL = normLayer([nImgc(1:2) nf(k+1) miniBatchSize], 'isWeight',1);
-    Kc = conv(nImgc,[1,1,nf(k),nf(k+1)]);
-    blocks{end+1} = NN({singleLayer(Kc,'activation',actc,'normLayer',nL)},'useGPU',useGPU,'precision',precision);
-    regD = gpuVar(useGPU,precision,[ones(nTheta(Kc),1); zeros(nTheta(nL),1)]);
-    RegOps{end+1} = opDiag(regD);
+    
+%     if nf(k+1)~=nf(k)
+        % number of channels change
+        nL = normLayer([nImgc(1:2) nf(k+1) miniBatchSize], 'isWeight',1);
+        Kc = conv(nImgc,[1,1,nf(k),nf(k+1)]);
+        blocks{end+1} = NN({singleLayer(Kc,'activation',actc,'normLayer',nL)},'useGPU',useGPU,'precision',precision);
+        regD = gpuVar(useGPU,precision,[ones(nTheta(Kc),1); zeros(nTheta(nL),1)]);
+        RegOps{end+1} = opDiag(regD);
+%     end
     
     if k<numel(h)
         % average pooling, downsample by factor of 2
@@ -141,7 +161,7 @@ for k=1:numel(h)
         % average across all pixels in channel
         blocks{end+1} = connector(opPoolMCN([nImgc nf(k+1)],nImgc(1:2)));
         RegOps{end+1} = opEye(nTheta(blocks{end}));
-    end        
+    end
 end
 %% Put it all together
 net   = Meganet(blocks);
@@ -167,19 +187,31 @@ pRegKb = tikhonovReg(RegOpTh,4e-4,[],'useGPU',useGPU,'precision',precision);
 %% Prepare optimization
 fctn = dnnBatchObjFctn(net,pRegKb,pLoss,pRegW,Ytrain,Ctrain,'batchSize',miniBatchSize,'useGPU',useGPU,'precision',precision);
 fval = dnnBatchObjFctn(net,[],pLoss,[],Yval,Cval,'batchSize',miniBatchSize,'useGPU',useGPU,'precision',precision);
-
 %% do learning
 x0 = [theta(:);W(:)];
 
-dFile = [resFile '.txt'];
-if exist(dFile,'file'); delete(dFile); end
-diary(dFile);
-diary on
+if not(isempty(resFile))
+    dFile = [resFile '.txt'];
+    if exist(dFile,'file'); delete(dFile); end
+    diary(dFile);
+    diary on
+end
+% print some status
+fprintf('------- %s ----------\n',mfilename);
+fprintf('no. of examples (train / val) :      %d / %d\n',sizeLastDim(Ytrain),sizeLastDim(Yval))
+fprintf('no. of time steps:                   [%s]\n', sprintf('%d ',nt));
+fprintf('time step size (h):                  [%s]\n', sprintf('%1.2f ',h));
+fprintf('no. of channels:                     [%s]\n', sprintf('%d ',nf));
+fprintf('resfile:                              %s \n', resFile);
+fprintf('start:                                %s \n', datestr(now,'YYYY-mm-dd HH:MM:ss'))
 tic;
 [xc,His,xOpt] = solve(opt,fctn,x0,fval);
 time = toc,
 xc = gather(xc);
 xOpt = gather(xOpt);
-save([dFile '.mat'],'xc','xOpt', 'net', 'ntrain','nval','nf0','nt','opt', 'nf','idtrain','idval', 'His', 'time');
-diary off
+if not(isempty(resFile))
+    save([dFile '.mat'],'xc','xOpt', 'net', 'ntrain','nval','nf0','nt','opt', ...
+        'nf','idtrain','idval', 'His', 'time','useGPU','precision');    
+    diary off
+end
 
