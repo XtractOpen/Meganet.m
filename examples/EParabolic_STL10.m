@@ -4,6 +4,9 @@
 %
 % References:
 %
+% Ruthotto L, Haber E: Deep Neural Networks motivated by PDEs,
+%           arXiv:1804.04272 [cs.LG], 2018
+%
 % Haber E, Ruthotto L: Stable Architectures for Deep Neural Networks,
 %      Inverse Problems, 2017
 %
@@ -11,27 +14,78 @@
 %      Reversible Architectures for Arbitrarily Deep Residual Neural Networks,
 %      AAAI Conference on Artificial Intelligence 2018
 %
-% EParabolic_STL10(5000,32,3)
 %
+% Inputs:
+%
+%     ntrain - number of examples used in training (max  = 5000)
+%     nval   - number of examples used for validation (max = 5000-ntrain)
+%     nf0    - width of first ResNN layer (others will be multiple of this)
+%     nt     - number of time steps in ResNNs
+%     opt    - optimizer
+%
+% Examples: 
+%
+%     EParabolic_STL10();                             runs minimal example
+%     EParabolic_STL10(4000,1000,32,3,opt);           better architecure
 % =========================================================================
-function EParabolic_STL10(nex,nf0,nt)
 
-[Y0,C,Ytest,Ctest] = setupSTL(nex,8000);
+function EParabolic_STL10(ntrain,nval,nf0,nt,opt)
+
+if nargin==0
+    opt = sgd('learningRate',1e-1,'maxEpochs',4,'out',1,'miniBatch',100);
+    feval(mfilename,100,100,32,3,opt);
+    return
+end
+
+% set default options
+if not(exist('ntrain','var')) || isempty(ntrain)
+    ntrain = 4000;
+end
+if not(exist('nval','var')) || isempty(nval)
+    ntrain = 1000;
+end
+
+if not(exist('nf0','var')) || isempty(nf0)
+    ntrain = 32;
+end
+
+if not(exist('nt','var')) || isempty(nt)
+    nt = 3;
+end
+
+if not(exist('opt','var')) || isempty(opt)
+    opt = sgd();
+    opt.nesterov     = false;
+    opt.ADAM         = false;
+    opt.miniBatch    = miniBatchSize;
+    opt.out          = 1;
+    lr     =[0.1*ones(50,1); 0.01*ones(20,1); 0.001*ones(20,1); 0.0001*ones(10,1)];
+    opt.learningRate     = @(epoch) lr(epoch);
+    opt.maxEpochs    = numel(lr);
+end
+
 %%
+[Y0,C] = setupSTL(ntrain+nval,0);
 nImg = [size(Y0,1) size(Y0,2)];
 cin = size(Y0,3);
-% nImg = [96 96];
-% cin = 3;
 
-%%
+
+% split into training and validation
+id = randperm(ntrain+nval); idtrain = id(1:ntrain); idval = id(ntrain+(1:nval));
+
+Ytrain = Y0(:,:,:,idtrain);
+Ctrain = C(:,idtrain);
+Yval   = Y0(:,:,:,idval);
+Cval   = C(:,idval);
+
 % choose file for results and specify whether or not to retrain
-resFile = sprintf('%s-nex-%d-nf0-%d-nt-%d',mfilename,nex,nf0,nt);
+resFile = sprintf('%s-%s',datestr(now,'YYYY-mm-dd-HH-MM-ss'), mfilename);
 
 % set GPU flag and precision
 useGPU = 0;
 precision='single';
 
-[Y0,C,Ytest,Ctest] = gpuVar(useGPU,precision,Y0,C,Ytest,Ctest);
+[Ytrain,Ctrain,Yval,Cval] = gpuVar(useGPU,precision,Ytrain,Ctrain,Yval,Cval);
 
 %% choose convolution
 if useGPU
@@ -67,7 +121,7 @@ for k=1:numel(h)
     K = conv(nImgc,[3 3 nf(k) nf(k)]);
     
     nL = normLayer([nImgc(1:2) nf(k) miniBatchSize],'isWeight',1);
-    layer = doubleSymLayer(K,'activation',act,'normLayer',nL);
+    layer = doubleSymLayer(K,'activation',act,'normLayer1',nL);
     blocks{end+1} = ResNN(layer,nt(k),h(k),'useGPU',useGPU,'precision',precision);
     regD = gpuVar(useGPU,precision,repmat([ones(nTheta(K),1); zeros(nTheta(nL),1)],nt(k),1));
     RegOps{end+1} = opDiag(regD);
@@ -80,27 +134,15 @@ for k=1:numel(h)
     RegOps{end+1} = opDiag(regD);
     
     if k<numel(h)
+        % average pooling, downsample by factor of 2
         blocks{end+1} = connector(opPoolMCN([nImgc nf(k+1)],2));
         RegOps{end+1} = opEye(nTheta(blocks{end}));
-    end
+    else
+        % average across all pixels in channel
+        blocks{end+1} = connector(opPoolMCN([nImgc nf(k+1)],nImgc(1:2)));
+        RegOps{end+1} = opEye(nTheta(blocks{end}));
+    end        
 end
-
-%% Connector block
-Bop = opCNNavg([nImgc nf(k+1) nf(k+1)]);
-blocks{end+1} = connector(Bop);
-
-
-% % B = gpuVar(useGPU,precision,kron(eye(nf(k+1)),ones(prod(nImgc),1)));
-% B = kron(eye(nf(k+1)),ones(prod(nImgc),1));
-% B = reshape(B', [nImgc nf(k+1) nf(k+1)]);
-% B = gpuVar(useGPU,precision,B);
-% % blocks{end+1} = connector( LinearOperator(B/prod(nImgc),[nImgc nf(k+1)],nf(k+1)) );
-% B = B/prod(nImgc);
-% Bx = @(x)  reshape(  reshape(B,[],size(x,1))  *x , [nImgc nf(k+1) size(x,2)] );
-% BTx = @(x) reshape(  reshape(B,size(x,1),[])' *x , [nf(k+1) size(x,2)] );
-% linOp =  LinearOperator( [nImgc nf(k+1)] , nf(k+1) , Bx , BTx );
-% blocks{end+1} = connector( linOp );
-% RegOps{end+1} = opEye(nTheta(blocks{end}));
 
 %% Put it all together
 net   = Meganet(blocks);
@@ -124,20 +166,10 @@ pRegW  = tikhonovReg(RegOpW,4e-4,[],'useGPU',useGPU,'precision',precision);
 pRegKb = tikhonovReg(RegOpTh,4e-4,[],'useGPU',useGPU,'precision',precision);
 
 %% Prepare optimization
-fctn = dnnBatchObjFctn(net,pRegKb,pLoss,pRegW,Y0,C,'batchSize',miniBatchSize,'useGPU',useGPU,'precision',precision);
-fval = dnnBatchObjFctn(net,[],pLoss,[],Ytest,Ctest,'batchSize',miniBatchSize,'useGPU',useGPU,'precision',precision);
-% fval = [];
-%%
-opt = sgd();
-opt.nesterov     = false;
-opt.ADAM         = false;
-opt.miniBatch    = miniBatchSize;
-opt.out          = 1;
+fctn = dnnBatchObjFctn(net,pRegKb,pLoss,pRegW,Ytrain,Ctrain,'batchSize',miniBatchSize,'useGPU',useGPU,'precision',precision);
+fval = dnnBatchObjFctn(net,[],pLoss,[],Yval,Cval,'batchSize',miniBatchSize,'useGPU',useGPU,'precision',precision);
 
 %% do learning
-lr     =[0.1*ones(50,1); 0.01*ones(20,1); 0.001*ones(20,1); 0.0001*ones(10,1)];
-opt.learningRate     = @(epoch) lr(epoch);
-opt.maxEpochs    = numel(lr);
 x0 = [theta(:);W(:)];
 
 dFile = [resFile '.txt'];
@@ -145,8 +177,10 @@ if exist(dFile,'file'); delete(dFile); end
 diary(dFile);
 diary on
 tic;
-[xOpt,His] = solve(opt,fctn,x0,fval);
+[xc,His,xOpt] = solve(opt,fctn,x0,fval);
 time = toc,
-save([dFile '.mat'], 'net', 'nex', 'nf', 'nt', 'His', 'time');
+xc = gather(xc);
+xOpt = gather(xOpt);
+save([dFile '.mat'],'xc','xOpt', 'net', 'ntrain','nval','nf0','nt','opt', 'nf','idtrain','idval', 'His', 'time');
 diary off
 

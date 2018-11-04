@@ -14,7 +14,7 @@ classdef doubleSymLayerTest < layerTest
             Bin  = opCNNBias([nImg sK(end)]);
             Bout = opCNNBias([nImg sK(end)]);
             ks{end+1} = doubleSymLayer(convFFT(nImg,sK));
-            ks{end+1} = doubleSymLayer(convFFT(nImg,sK),'normLayer',tvN,'Bin',Bin,'Bout',Bout,'isWeight',0);
+            ks{end+1} = doubleSymLayer(convFFT(nImg,sK),'normLayer1',tvN,'Bin',Bin,'Bout',Bout,'isWeight',0);
              
              
 %             ks{end+1} = doubleSymLayer(dense([4*8 4]),'Bin',randn(4*8,3),'normLayer1',tvN,'storeInterm',1);
