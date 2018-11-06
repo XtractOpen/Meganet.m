@@ -133,25 +133,22 @@ RegOps{end+1} = opEye(nTheta(blocks{end}));
 %% UNIT
 for k=1:numel(h)
     nImgc = nImg/(2^(k-1));
-    % implicit layer
+
+    % PDE block
     K = conv(nImgc,[3 3 nf(k) nf(k)]);
-    
-%     nL = normLayer([nImgc(1:2) nf(k) miniBatchSize],'isWeight',1);
     nL = tvNormLayer([nImgc(1:2) nf(k) miniBatchSize],'isWeight',1);
     layer = doubleSymLayer(K,'activation',act,'normLayer1',nL);
     blocks{end+1} = ResNN(layer,nt(k),h(k),'useGPU',useGPU,'precision',precision);
     regD = gpuVar(useGPU,precision,repmat([ones(nTheta(K),1); zeros(nTheta(nL),1)],nt(k),1));
     RegOps{end+1} = opDiag(regD);
-    % Connector block
     
-%     if nf(k+1)~=nf(k)
-        % number of channels change
-        nL = normLayer([nImgc(1:2) nf(k+1) miniBatchSize], 'isWeight',1);
-        Kc = conv(nImgc,[1,1,nf(k),nf(k+1)]);
-        blocks{end+1} = NN({singleLayer(Kc,'activation',actc,'normLayer',nL)},'useGPU',useGPU,'precision',precision);
-        regD = gpuVar(useGPU,precision,[ones(nTheta(Kc),1); zeros(nTheta(nL),1)]);
-        RegOps{end+1} = opDiag(regD);
-%     end
+    % Connector block
+    nL = normLayer([nImgc(1:2) nf(k+1) miniBatchSize], 'isWeight',1);
+    Kc = conv(nImgc,[1,1,nf(k),nf(k+1)]);
+    blocks{end+1} = NN({singleLayer(Kc,'activation',actc,'normLayer',nL)},'useGPU',useGPU,'precision',precision);
+    regD = gpuVar(useGPU,precision,[ones(nTheta(Kc),1); zeros(nTheta(nL),1)]);
+    RegOps{end+1} = opDiag(regD);
+    
     
     if k<numel(h)
         % average pooling, downsample by factor of 2
