@@ -44,7 +44,7 @@ classdef DoubleHamiltonianNN < abstractMeganetElement
             if any(sizeFeatOut(layer1)~=sizeFeatIn(layer2)) || any(sizeFeatIn(layer1)~=sizeFeatOut(layer2))
                 error('number of input and output features must agree');
             end
-            this.layer1 = layer1;
+            this.layer1   = layer1;
             this.layer2   = layer2;
             this.nt       = nt;
             this.h        = h;
@@ -54,7 +54,9 @@ classdef DoubleHamiltonianNN < abstractMeganetElement
             n = this.nt*(nTheta(this.layer1)+ nTheta(this.layer2));
         end
         function n = sizeFeatIn(this)
-            n = sizeFeatIn(this.layer1)+sizeFeatIn(this.layer2);
+            n = sizeFeatIn(this.layer1);
+            n1 = sizeFeatIn(this.layer2);
+            n(3) = n(3) + n1(3);
         end
         function n = sizeFeatOut(this)
             n = sizeFeatIn(this);
@@ -83,12 +85,13 @@ classdef DoubleHamiltonianNN < abstractMeganetElement
            th2 = x(nTheta(this.layer1)+1:end,:);
         end
         function [Y,Z] = splitData(this,X)
-           nex = numel(X)/numelFeatIn(this);
-           X   = reshape(X,[],nex);
-           Y   = X(1:prod(sizeFeatIn(this.layer1)),:);
-           Z   = X(prod(sizeFeatIn(this.layer1))+1:end,:);
+           Y = X(:,:,1:this.layer1.K.sK(3),:);
+           Z = X(:,:,this.layer1.K.sK(3)+1:end,:);
         end
-        % ------- forwardProp forward problems -----------
+        function X = unsplitData(this,Y,Z)
+            X = cat(3,Y,Z);
+        end
+       % ------- forwardProp forward problems -----------
         function [X,tmp] = forwardProp(this,theta,X0)
             
             [Y,Z] = splitData(this,X0);
@@ -105,7 +108,7 @@ classdef DoubleHamiltonianNN < abstractMeganetElement
                 [dY,tmp{i,4}] = forwardProp(this.layer2,th2(:,i),Z);
                 Y = Y + this.h*dY;
             end
-            X = [Y;Z];
+            X = unsplitData(this,Y,Z);
         end
         
         % -------- Jacobian matvecs ---------------
@@ -121,7 +124,7 @@ classdef DoubleHamiltonianNN < abstractMeganetElement
                 dZ = dZ - this.h*JYmv(this.layer1,dY,th1(:,i),tmp{i,1},tmp{i,3});
                 dY = dY + this.h*JYmv(this.layer2,dZ,th2(:,i),tmp{i,2},tmp{i,4});
             end
-            dX = [dY;dZ];
+            dX = unsplitData(this,dY,dZ);
         end
         
         function dX = Jmv(this,dtheta,dX,theta,~,tmp)
@@ -137,7 +140,7 @@ classdef DoubleHamiltonianNN < abstractMeganetElement
                  dZ = dZ - this.h*Jmv(this.layer1,dth1(:,i),dY,th1(:,i),tmp{i,1},tmp{i,3});
                  dY = dY + this.h*Jmv(this.layer2,dth2(:,i),dZ,th2(:,i),tmp{i,2},tmp{i,4});
             end
-            dX = [dY;dZ];
+            dX = unsplitData(this,dY,dZ);
         end
         
         % -------- Jacobian' matvecs ----------------
@@ -158,7 +161,7 @@ classdef DoubleHamiltonianNN < abstractMeganetElement
                 dWY = JYTmv(this.layer1,WZ,th1(:,i),tmp{i,1},tmp{i,3});
                 WY  = WY - this.h*dWY;
             end
-            W = [WY;WZ];
+            W = unsplitData(this,WY,WZ);
         end
         
         function [dtheta,W] = JTmv(this,W,theta,Y,tmp,doDerivative)
@@ -185,7 +188,8 @@ classdef DoubleHamiltonianNN < abstractMeganetElement
                 dth1(:,i) = -this.h*dt1;
             end
             dtheta = vec([dth1;dth2]);
-            W = [WY;WZ];
+            
+            W = unsplitData(this,WY,WZ);
             if nargout==1 && all(doDerivative==1)
                 dtheta=[dtheta; W(:)];
             end
