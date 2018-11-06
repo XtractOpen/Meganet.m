@@ -69,10 +69,13 @@ classdef dnnVarProBatchObjFctn < objFctn
             compHess = nargout>3;
             dJ = 0.0; H = []; PC = [];
             
-            nex = sizeLastDim(Y);
+            szY = size(Y);
+            nex = szY(end);
+            Y = reshape(Y,[],nex);
             nb  = nBatches(this,nex);
             % forward prop
-            YN = zeros(nDataOut(this.net),nex,'like',this.Y); % TODO : remove nDataOut
+            % YN = zeros(nDataOut(this.net),nex,'like',this.Y); % TODO : remove nDataOut
+            YN = zeros([sizeFeatOut(this.net) nex],'like',this.Y);
             for k=1:nb
                 if nb>1
                     idk = this.getBatchIds(k,nex);
@@ -82,7 +85,7 @@ classdef dnnVarProBatchObjFctn < objFctn
                 end
                 YNk = forwardProp(this.net,theta,Yk);
                 if nb>1
-                    YN(:,idk) = YNk;
+                    YN( colons{:} , idk ) = YNk;
                 else
                     YN=YNk;
                 end
@@ -104,11 +107,17 @@ classdef dnnVarProBatchObjFctn < objFctn
                     Ck = C;
                 end
                 
+                nBatchEx = numel(idk);
+                
                 if compGrad
                     [YNk,J]                  = linearizeTheta(this.net,theta,Yk); % forward propagation
+                    szYNk  = size(YNk);
+                    YNk = reshape(YNk,[],nBatchEx);
                     [Fk,hisLk,~,~,dYF,d2YF] = getMisfit(this.pLoss,W,YNk,Ck);
+                    dYF = reshape(dYF,szYNk);
                 else
                     [YNk]        = forwardProp(this.net,theta,Yk); % forward propagation
+                    YNk = reshape(YNk,[],nBatchEx);
                     [Fk,hisLk]   = getMisfit(this.pLoss,W,YNk,Ck);
                 end
                 F    = F    + numel(idk)*Fk;
@@ -278,9 +287,9 @@ classdef dnnVarProBatchObjFctn < objFctn
             
             blocks = cell(2,1);
             blocks{1} = NN({singleLayer(dense([2*nf nf]))});
+            blocks{2} = ResNN(doubleSymLayer(dense([2*nf 2*nf])),10,.1);
             net    = Meganet(blocks);
             nth    = nTheta(net);
-            blocks{2} = ResNN(doubleSymLayer(dense([2*nf 2*nf])),10,.1);
             theta  = randn(nth,1);
             
             Y = randn(nf,nex);

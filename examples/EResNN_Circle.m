@@ -1,4 +1,4 @@
-close all; clear all;
+clear all;
 
 [Ytrain,Ctrain,Yv,Cv] = setupBox('ntrain',1000,'nval',200);
 Ctrain = Ctrain(1,:); 

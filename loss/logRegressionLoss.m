@@ -56,7 +56,8 @@ classdef logRegressionLoss
             if (doDW) && (nargout>=3)
                 d2F  = 1./(2*cosh(S/2)).^2;
                 matW  = @(W) reshape(W,szW);
-                d2WFmv = @(U) vec((((d2F + this.theta).*(matW(U/nex)*Y)))*Y');
+                d2WFmv = @(U) Y*(((d2F + this.theta).*(matW(U/nex)*Y)))';
+%                 d2WFmv = @(U) (((d2F + this.theta).*(matW(U/nex)*Y)))*Y';
                 d2WF = LinearOperator(prod(szW),prod(szW),d2WFmv,d2WFmv);
             end
             if doDY && (nargout>=4)
@@ -70,7 +71,7 @@ classdef logRegressionLoss
                 WIT    = @(T) W'*T;
                 matY   = @(Y) reshape(Y,szY);
 %                  d2YFmv = @(T) vec(WIT(((d2F(WI(matY(T/nex)))))));
-                d2YFmv = @(T) vec(WIT((d2F + this.theta).*(WI(matY(T/nex)))));
+                d2YFmv = @(T) WIT((d2F + this.theta).*(WI(matY(T/nex))));
     
                 d2YF = LinearOperator(prod(szY),prod(szY),d2YFmv,d2YFmv);
             end

@@ -34,7 +34,7 @@
 % Examples:
 %
 %     EParabolic_STL10();                             runs minimal example
-%     EParabolic_STL10(4000,1000,32,3,opt);           better architecure
+%     EParabolic_STL10(4000,1000,32,3,1,'single',opt);           better architecure
 % =========================================================================
 
 function [xc,His,xOpt] = EParabolic_STL10(ntrain,nval,nf0,nt,useGPU,precision,opt,resFile)
@@ -78,7 +78,7 @@ if not(exist('opt','var')) || isempty(opt)
     opt = sgd();
     opt.nesterov     = false;
     opt.ADAM         = false;
-    opt.miniBatch    = miniBatchSize;
+    opt.miniBatch    = 128; % miniBatchSize;
     opt.out          = 1;
     lr     =[0.1*ones(50,1); 0.01*ones(20,1); 0.001*ones(20,1); 0.0001*ones(10,1)];
     opt.learningRate     = @(epoch) lr(epoch);

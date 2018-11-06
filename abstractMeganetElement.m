@@ -266,7 +266,7 @@ methods
         end
 
         function [Z,J] = linearizeTheta(this,theta,Y)
-            % function [K,J] = linearizeY(this,theta,Y)
+            % function [Z,J] = linearizeY(this,theta,Y)
             %
             % linearization with respect to theta, i.e., 
             %

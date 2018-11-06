@@ -55,7 +55,7 @@ classdef regressionLoss
             end
             if doDY && nargout>=6
                 matY   = @(Y) reshape(Y,szY);
-                d2YFmv = @(U) vec(W'*(W*matY(U/nex)));
+                d2YFmv = @(U) W'*(W*matY(U/nex));
                 d2YF = LinearOperator(prod(szY),prod(szY),d2YFmv,d2YFmv);                
             end
         end

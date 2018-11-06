@@ -97,7 +97,7 @@ classdef softmaxLoss
                 WI     = @(T) W*T;  %kron(W,speye(size(Y,1)));
                 WIT    = @(T) W'*T;
                 matY   = @(Y) reshape(Y,szY);
-                d2YFmv = @(T) vec(WIT(((d2F(WI(matY(T/nex)))))));
+                d2YFmv = @(T) WIT(((d2F(WI(matY(T/nex))))));
     
                 d2YF = LinearOperator(prod(szY),prod(szY),d2YFmv,d2YFmv);
             end

@@ -72,7 +72,13 @@ classdef dnnObjFctn < objFctn
             if compGrad
                 %                 [YN,Yall,dA]                   = fwd(this.net,Kb,this.Y);
                 [YN,J] = linearizeTheta(this.net,theta,Y);
+                
+                szYN  = size(YN);
+                nex = szYN(end);
+                YN = reshape(YN,[],nex); % loss expects 2D input
                 [F,hisLoss,dWF,d2WF,dYF,d2YF] = getMisfit(this.pLoss,W,YN,C);
+                dYF = reshape(dYF,szYN);
+                
                 dJth = J'*dYF;
                 dJW  = dWF;
                 Jc   = F;
@@ -83,6 +89,9 @@ classdef dnnObjFctn < objFctn
                 end
             else
                 [YN]                   = forwardProp(this.net,theta,Y);
+                szYN  = size(YN);
+                nex = szYN(end);
+                YN = reshape(YN,[],nex); % loss expects 2D input
                 [F,hisLoss] = getMisfit(this.pLoss,W,YN,C);
                 Jc = F;
             end

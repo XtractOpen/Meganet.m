@@ -138,7 +138,6 @@ classdef dnnBatchObjFctn < objFctn
                     dYF = reshape(dYF,szYNk);
                 else
                     [YNk]        = forwardProp(this.net,theta,Yk); % forward propagation
-                    szYNk  = size(YNk);
                     YNk = reshape(YNk,[],nBatchEx);
                     [Fk,hisLk]  = getMisfit(this.pLoss,W,YNk,Ck);
                 end
@@ -404,8 +403,8 @@ classdef dnnBatchObjFctn < objFctn
             fv1 = dnnObjFctn(net,[],pLoss,[],Yv,Cv);
             fv2 = dnnBatchObjFctn(net,[],pLoss,[],Yv,Cv);
             
-            % [Jc,para,dJ,H,PC] = fctn([Kb(:);W(:)]);
-            % checkDerivative(fctn,[Kb(:);W(:)])
+            [Jc,para,dJ,H,PC] = f2.eval([theta(:);W(:)],[]);
+            checkDerivative(f2,[theta(:);W(:)])
             
             opt =sd('out',1,'maxIter',20);
             [KbW1] = solve(opt,f1,[theta(:); W(:)],fv1);

@@ -1,13 +1,5 @@
 %% all fail
 
-runtests('linearNegLayerTest') % ...linearNegLayer doesn't exist
-%%
-EParabolic_STL10(5000,32,3) 
-
-% dnnVarProObjFctn
-% softmaxLoss
-
-
 %% partial pass
 
 %% all pass
@@ -40,7 +32,8 @@ tb = runtests('layerTest');
 %%
 ECNN_MNIST_tf
 EResNN_Peaks
+EResNN_Circle
+
 
 ECNN_CIFAR10_tf
-EResNN_Circle
 E_ResNN_MNIST
