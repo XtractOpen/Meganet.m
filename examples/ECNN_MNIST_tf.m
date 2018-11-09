@@ -9,6 +9,8 @@ clear all; clc;
 
 
 [Y0,C,Ytest,Ctest] = setupMNIST(2^10);
+Y0    = normalizeData(Y0,28*28);
+Ytest = normalizeData(Ytest,28*28);
 % nImg = [28 28];
 nImg = [size(Y0,1) size(Y0,2)];
 
