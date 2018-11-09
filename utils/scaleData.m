@@ -17,15 +17,19 @@ if nargin==0
     return
 end
 
+if not(exist('range','var')) || isempty(range)
+    range = [-1 1];
+end
+
 if not(exist('numelFeat','var')) || isempty(numelFeat)
     % same shift and scaling for all examples
-    Y = (range(2)-range(1))*Y/max(abs(Y(:)));
-    Y = Y + range(1);
+    Y = abs(range(2)-range(1))*Y/max(abs(Y(:)));
+    Y = Y + min(range);
 else
     szY = size(Y);
     Y   = reshape(Y,numelFeat,[]);
-    Y   = (range(2)-range(1))*(Y./max(abs(Y),[],1));
-    Y   = Y + range(1);
+    Y   = abs(range(2)-range(1))*(Y./max(abs(Y),[],1));
+    Y   = Y + min(range);
     Y   = reshape(Y,szY);
 end   
 

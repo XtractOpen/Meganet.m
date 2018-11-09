@@ -7,12 +7,20 @@
 % =========================================================================
 clear all; clc;
 
+nTrain = 2^10;
+nVal   = 2^5;
+[Y,C] = setupMNIST(nTrain+nVal);
+Y    = normalizeData(Y,28*28);
 
-[Y0,C,Ytest,Ctest] = setupMNIST(2^10);
-Y0    = normalizeData(Y0,28*28);
-Ytest = normalizeData(Ytest,28*28);
+% divide into training and validation data
+id = randperm(size(C,2));
+idt = id(1:nTrain);
+idv = id(nTrain+1:end);
+Yt  = Y(:,:,:,idt); Ct = C(:,idt);
+Yv  = Y(:,:,:,idv); Cv = C(:,idv);
+
 % nImg = [28 28];
-nImg = [size(Y0,1) size(Y0,2)];
+nImg = [size(Y,1) size(Y,2)];
 
 % choose file for results and specify whether or not to retrain
 resFile = sprintf('%s.mat',mfilename); 
@@ -22,7 +30,7 @@ doTrain = true;
 useGPU = 0; 
 precision='single';
 
-[Y0,C] = gpuVar(useGPU,precision,Y0,C);
+[Yt,Ct,Yv,Cv] = gpuVar(useGPU,precision,Yt,Ct,Yv,Cv);
 
 %% choose convolution
 convOp = getConvOp(useGPU);
@@ -44,8 +52,8 @@ net    = Meganet(blocks);
 pLoss  = softmaxLoss();
 pRegW  = [];
 pRegKb = [];
-fctn = dnnBatchObjFctn(net,pRegKb,pLoss,pRegW,Y0,C,'batchSize',256,'useGPU',useGPU,'precision',precision);
-fval = dnnBatchObjFctn(net,[],pLoss,[],Ytest,Ctest,'batchSize',256,'useGPU',useGPU,'precision',precision);
+fctn = dnnBatchObjFctn(net,pRegKb,pLoss,pRegW,Yt,Ct,'batchSize',256,'useGPU',useGPU,'precision',precision);
+fval = dnnBatchObjFctn(net,[],pLoss,[],Yv,Cv,'batchSize',256,'useGPU',useGPU,'precision',precision);
 
 
 if doTrain || not(exist(resFile,'file'))

@@ -41,7 +41,7 @@ function [xc,His,xOpt] = EParabolic_STL10(ntrain,nval,nf0,nt,useGPU,precision,op
 
 if nargin==0
     opt = sgd('learningRate',1e-1,'maxEpochs',4,'out',1,'miniBatch',100);
-    feval(mfilename,100,100,16,3,1,'single',opt,[]);
+    feval(mfilename,100,100,16,3,0,'single',opt,[]);
     return
 end
 
@@ -87,8 +87,9 @@ end
 
 %%
 [Y0,C] = setupSTL(ntrain+nval,0);
-nImg = [size(Y0,1) size(Y0,2)];
-cin = size(Y0,3);
+nImg   = [size(Y0,1) size(Y0,2)];
+cin    = size(Y0,3);
+Y0     = normalizeData(Y0,prod(nImg)*cin);
 
 
 % split into training and validation
