@@ -34,10 +34,7 @@ blocks{end+1} = NN({singleLayer(convOp(nImg,[5 5 1 32]),'activation', act)});
 blocks{end+1} = connector(poolOp([nImg 32],2));
 blocks{end+1} = NN({singleLayer(convOp(nImg/2,[5 5 32 64]),'activation', act)});
 
-blocks{end+1} = connector(poolOp([nImg/2 64],2));
-
-Bop = opCNNavg([nImg/4 64]);
-blocks{end+1} = connector(Bop);
+blocks{end+1} = connector(poolOp([nImg/2 64],nImg(1)/2));
 
 net    = Meganet(blocks);
 
@@ -51,17 +48,17 @@ fval = dnnBatchObjFctn(net,[],pLoss,[],Ytest,Ctest,'batchSize',256,'useGPU',useG
 
 if doTrain || not(exist(resFile,'file'))
 % initialize weights
-theta  = 1e-3*vec(randn(nTheta(net),1));
-W      = 1e-3*vec(randn(10,prod(sizeFeatOut(net))+1));
+theta  = 1e-2*vec(randn(nTheta(net),1));
+W      = 1e-2*vec(randn(10,prod(sizeFeatOut(net))+1));
 [theta,W] = gpuVar(fctn.useGPU,fctn.precision,theta,W);
 
 % setup optimization
 opt = sgd();
-opt.learningRate = @(epoch) 1e-3/sqrt(epoch);
+opt.learningRate = @(epoch) 1e-1/sqrt(epoch);
 opt.maxEpochs = 20;
 opt.nesterov = false;
 opt.ADAM=true;
-opt.miniBatch = 128;
+opt.miniBatch = 64;
 opt.momentum = 0.9;
 opt.out = 1;
 

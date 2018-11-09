@@ -78,7 +78,7 @@ if not(exist('opt','var')) || isempty(opt)
     opt = sgd();
     opt.nesterov     = false;
     opt.ADAM         = false;
-    opt.miniBatch    = miniBatchSize;
+    opt.miniBatch    = 125;
     opt.out          = 1;
     lr     =[0.1*ones(50,1); 0.01*ones(20,1); 0.001*ones(20,1); 0.0001*ones(10,1)];
     opt.learningRate     = @(epoch) lr(epoch);

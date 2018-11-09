@@ -33,7 +33,7 @@ hold off
 
 function runMinimalExample
 
-[Y,C] = setupBox;
+[Y,C] = setupPeaks;
 figure(1); clf;
 feval(mfilename,Y,C);
 title('labeled points');
