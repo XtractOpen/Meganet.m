@@ -121,7 +121,7 @@ act1 = @reluActivation;
 actc = @reluActivation;
 act  = @reluActivation;
 
-nf  = nf0*[1;4;8;16;16];
+nf  = nf0*[1;2;4;8;16];
 nt  = nt*[1;1;1;1];
 h  = [1;1;1;1];
 
