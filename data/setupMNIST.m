@@ -29,7 +29,7 @@ if not(exist('train-images.idx3-ubyte','file')) ||...
     warning('MNIST data cannot be found in MATLAB path')
     
     dataDir = [fileparts(which('Meganet.m')) filesep 'data' filesep 'MNIST'];
-    if not(exist('dataDir','dir'))
+    if not(exist(dataDir,'dir'))
         mkdir(dataDir);
     end
     

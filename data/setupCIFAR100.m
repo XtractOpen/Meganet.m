@@ -30,7 +30,7 @@ if not(exist('cifar100-train.mat','file')) || ...
     
     dataDir = [fileparts(which('Meganet.m')) filesep 'data'];
     cifarDir = [dataDir filesep 'CIFAR'];
-    if not(exist('cifarDir','dir'))
+    if not(exist(cifarDir,'dir'))
         mkdir(cifarDir);
     end
     

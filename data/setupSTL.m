@@ -26,7 +26,7 @@ if not(exist('stl10-train.mat','file')) || ...
     
     dataDir = [fileparts(which('Meganet.m')) filesep 'data'];
     stlDir = [dataDir filesep 'STL10'];
-    if not(exist('stlDir','dir'))
+    if not(exist(stlDir,'dir'))
         mkdir(stlDir);
     end
     
