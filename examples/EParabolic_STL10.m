@@ -210,7 +210,7 @@ xc = gather(xc);
 xOpt = gather(xOpt);
 if not(isempty(resFile))
     save([dFile '.mat'],'xc','xOpt', 'net', 'ntrain','nval','nf0','nt','opt', ...
-        'nf','idtrain','idval', 'His', 'time','useGPU','precision');    
+        'nf','idtrain','idval', 'His', 'time','useGPU','precision','pRegW','pRegKb');    
     diary off
 end
 

@@ -1,7 +1,7 @@
 classdef dnnBatchObjFctn < objFctn
     % classdef dnnBatchObjFctn < objFctn
     %
-    % objective function for deep neural networks 
+    % objective function for deep neural networks
     %
     %       J(theta,C) = loss(h(W*Y(theta)), C) + Rtheta(theta) + R(W)
     %
@@ -16,10 +16,11 @@ classdef dnnBatchObjFctn < objFctn
         net         % description of DNN to be trained
         pRegTheta   % regularizer for network parameters
         pLoss       % loss function
-        pRegW       % regularizer for classifier 
+        pRegW       % regularizer for classifier
         Y           % input features
         C           % labels
-        batchSize   % batch size, default=10 (choose according to available memory, choice might be different from the batch size of SGD)
+        batchSize   % batch size, default=10 (choose according to available memory,
+        % choice might be different from the batch size of SGD)
         batchIds    % indices of batches, chosen randomly in each evaulation
         useGPU      % flag for GPU computing
         precision   % flag for precision
@@ -29,8 +30,6 @@ classdef dnnBatchObjFctn < objFctn
         function this = dnnBatchObjFctn(net,pRegTheta,pLoss,pRegW,Y,C,varargin)
             % constructor, required inputs are a network, regularizers,
             % loss and examples.
-                       
-            
             if nargout==0 && nargin==0
                 this.runMinimalExample;
                 return;
@@ -85,35 +84,33 @@ classdef dnnBatchObjFctn < objFctn
             %            printing (see hisNames and hisVals for info and parsing)
             %   dJ     - gradient
             %   H      - approximate Hessian (Gauss Newton like
-            %            approximation for each block, ignore coupling between 
+            %            approximation for each block, ignore coupling between
             %            theta and W)
             %   PC     - preconditioner
             
             
             
             if not(exist('idx','var')) || isempty(idx)
-                % use only examples specified in idx in the loss
+                % use all examples
                 Y = this.Y;
                 C = this.C;
             else
-                % use all examples
+                % use only examples specified in idx in the loss
                 colons = repmat( {':'} , 1 , ndims(this.Y)-1 );
                 Y = this.Y( colons{:} ,idx);
                 C = this.C(:,idx);
             end
-                
+            
             compGrad = nargout>2;
             compHess = nargout>3;
             dJth = 0.0; dJW = 0.0; Hth = []; HW = []; PC = [];
             
-            nex = sizeLastDim(Y);   % number of examples to compute loss over 
+            nex = sizeLastDim(Y);   % number of examples to compute loss over
             nb  = nBatches(this,nex); % determine number of batches for the computation
             
             [theta,W] = split(this,thetaW);
             this.batchIds  = randperm(nex);
             
-
-                        
             % compute loss
             F = 0.0; hisLoss = [];
             for k=nb:-1:1
@@ -216,7 +213,7 @@ classdef dnnBatchObjFctn < objFctn
             % current weights
             %
             % Inputs:
-            % 
+            %
             %   thetaW - current weights
             %
             % Output:
@@ -242,7 +239,7 @@ classdef dnnBatchObjFctn < objFctn
                 end
                 [YNk]     = forwardProp(this.net,theta,Yk); % forward propagation
                 [Cp(:,idk),P(:,idk)] = getLabels(this.pLoss,W,YNk);
-            end      
+            end
         end
         
         function nb = nBatches(this,nex)
@@ -310,7 +307,7 @@ classdef dnnBatchObjFctn < objFctn
                 if not(isempty(this.pRegW)); this.pRegW.useGPU       = value; end
                 
                 [this.Y,this.C] = gpuVar(value,this.precision,...
-                                                         this.Y,this.C);
+                    this.Y,this.C);
             end
         end
         function this = set.precision(this,value)
@@ -324,30 +321,30 @@ classdef dnnBatchObjFctn < objFctn
                 if not(isempty(this.pRegW)); this.pRegW.precision       = value; end
                 
                 [this.Y,this.C] = gpuVar(this.useGPU,value,...
-                                                         this.Y,this.C);
+                    this.Y,this.C);
             end
         end
         function useGPU = get.useGPU(this)
-                useGPU = -ones(3,1);
-                
-                if not(isempty(this.net)) && not(isempty(this.net.useGPU))
-                    useGPU(1) = this.net.useGPU;
-                end
-                if not(isempty(this.pRegTheta)) && not(isempty(this.pRegTheta.useGPU))
-                    useGPU(2) = this.pRegTheta.useGPU;
-                end
-                if not(isempty(this.pRegW)) && not(isempty(this.pRegW.useGPU))
-                    useGPU(3) = this.pRegW.useGPU;
-                end
-                
-                useGPU = useGPU(useGPU>=0);
-                if all(useGPU==1)
-                    useGPU = 1;
-                elseif all(useGPU==0)
-                    useGPU = 0;
-                else
-                    error('useGPU flag must agree');
-                end
+            useGPU = -ones(3,1);
+            
+            if not(isempty(this.net)) && not(isempty(this.net.useGPU))
+                useGPU(1) = this.net.useGPU;
+            end
+            if not(isempty(this.pRegTheta)) && not(isempty(this.pRegTheta.useGPU))
+                useGPU(2) = this.pRegTheta.useGPU;
+            end
+            if not(isempty(this.pRegW)) && not(isempty(this.pRegW.useGPU))
+                useGPU(3) = this.pRegW.useGPU;
+            end
+            
+            useGPU = useGPU(useGPU>=0);
+            if all(useGPU==1)
+                useGPU = 1;
+            elseif all(useGPU==0)
+                useGPU = 0;
+            else
+                error('useGPU flag must agree');
+            end
         end
         function precision = get.precision(this)
             isSingle    = -ones(3,1);
@@ -358,7 +355,7 @@ classdef dnnBatchObjFctn < objFctn
             if not(isempty(this.pRegW)) &&  not(isempty(this.pRegW.precision))
                 isSingle(3) = strcmp(this.pRegW.precision,'single');
             end
-                isSingle = isSingle(isSingle>=0);
+            isSingle = isSingle(isSingle>=0);
             if all(isSingle==1)
                 precision = 'single';
             elseif all(isSingle==0)
@@ -366,9 +363,9 @@ classdef dnnBatchObjFctn < objFctn
             else
                 error('precision flag must agree');
             end
-
+            
         end
-
+        
         function runMinimalExample(~)
             
             nex    = 400; nf =2;
@@ -414,13 +411,3 @@ classdef dnnBatchObjFctn < objFctn
         end
     end
 end
-
-
-
-
-
-
-
-
-
-

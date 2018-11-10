@@ -1,15 +1,15 @@
 classdef l2Reg
-    % classdef l1Reg
+    % classdef l2Reg
     %
     % L2-L2 regularizer
     %
-    % R(x) =  0.5*a1* |B1*(x-xref)|^2 + 0.5*a2*|B2*(x-xref)|^2
+    % R(x) =  0.5*alpha(1)* |B1*(x-xref)|^2 + 0.5*alpha(2)*|B2*(x-xref)|^2
     properties
-        alpha
-        B1
-        B2
-        xref
-        useGPU
+        alpha    % regularization parameter, vector or scalar  
+        B1       % first regularization operator
+        B2       % second regularization operator, default B2=opEye
+        xref     % reference to center the regularizer
+        useGPU 
         precision
     end
     
@@ -23,7 +23,6 @@ classdef l2Reg
            useGPU = [];
            precision = [];
            B2 = opEye(size(B1,2));
-           eps = 1e-3;
            for k=1:2:length(varargin)     % overwrites default parameter
                 eval([varargin{k},'=varargin{',int2str(k+1),'};']);
            end
@@ -34,7 +33,6 @@ classdef l2Reg
                 this.precision = precision;
            end
            
-%            this.B = B.gpuVar(useGPU,precision);
            this.B1 = B1;
            this.B2 = B2;
            if not(exist('alpha','var')) || isempty(alpha)
@@ -58,12 +56,12 @@ classdef l2Reg
         function [Sc,para,dS,d2S] = regularizer(this,x)
             u = x-this.xref;
             
-            % l1- part
+            % first regularizer
             d2S1 = (this.B1'*this.B1)*this.alpha(1);
             dS1  = d2S1*u;
             S1   = .5*sum(vec(u'*dS1));
             
-            % quadratic part
+            % second regularizer
             d2S2 = (this.B2'*this.B2)*this.alpha(2);
             dS2 = d2S2*u;
             S2 = .5*sum(vec(u'*dS2));
