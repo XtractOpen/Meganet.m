@@ -69,11 +69,11 @@ classdef dnnVarProObjFctn < objFctn
             else
                 YN = forwardProp(this.net,theta,Y);
             end
-            fctn  = classObjFctn(this.pLoss,this.pRegW,YN,C);
-            W     = solve(this.optClass,fctn,zeros(size(C,1)*(size(YN,1)+1),1,'like',theta));
             szYN  = size(YN);
             nex = szYN(end);
             YN = reshape(YN,[],nex);
+            fctn  = classObjFctn(this.pLoss,this.pRegW,YN,C);
+            W     = solve(this.optClass,fctn,zeros(size(C,1)*(size(YN,1)+1),1,'like',theta));
             [F,hisLoss,~,~,dYF,d2YF] = getMisfit(this.pLoss,W,YN,C);
             dYF = reshape(dYF,szYN);
             if compGrad

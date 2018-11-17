@@ -71,11 +71,13 @@ classdef dnnVarProBatchObjFctn < objFctn
             
             szY = size(Y);
             nex = szY(end);
-            Y = reshape(Y,[],nex);
+            szYN  = [sizeFeatOut(this.net) nex];
+            
+%             Y = reshape(Y,[],nex);
             nb  = nBatches(this,nex);
             % forward prop
             % YN = zeros(nDataOut(this.net),nex,'like',this.Y); % TODO : remove nDataOut
-            YN = zeros([sizeFeatOut(this.net) nex],'like',this.Y);
+            YN = zeros(szYN,'like',this.Y);
             for k=1:nb
                 if nb>1
                     idk = this.getBatchIds(k,nex);
@@ -91,6 +93,8 @@ classdef dnnVarProBatchObjFctn < objFctn
                 end
             end
             %classify
+            YN = reshape(YN,[],nex);
+            
 %             [YN,J] = linearizeTheta(this.net,theta,this.Y); % forward propagation
             fctn   = classObjFctn(this.pLoss,this.pRegW,YN,C);
             W      = solve(this.optClass,fctn,zeros(size(C,1)*(size(YN,1)+1),1,'like',theta)); % TODO size(YN,1)
