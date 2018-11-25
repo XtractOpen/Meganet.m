@@ -36,6 +36,7 @@ classdef convCuDNN2D < convKernel
             end
             this.useGPU = 1;
             this.precision = 'single';
+            this.Q = gpuVar(1,'single',this.Q);
         end
         
 
