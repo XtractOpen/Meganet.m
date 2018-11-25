@@ -4,7 +4,7 @@ classdef convFFT < convKernel
     %
     % Transforms feature using affine linear mapping
     %
-    %     Y(theta,Y0) =  K(theta_1) * Y0 
+    %     Y(theta,Y0) =  K(Q*theta) * Y0 
     %
     %  where 
     % 
@@ -98,7 +98,7 @@ classdef convFFT < convKernel
             % compute convolution
             AY = zeros([nImgOut(this) nex],'like',Y); %start with transpose
             % theta reshaped to [nRows*nCols, nChanIn, nChanOut]
-            theta    = reshape(theta, [prod(this.sK(1:2)),this.sK(3:4)]);
+            theta    = reshape(this.Q*vec(theta), [prod(this.sK(1:2)),this.sK(3:4)]);
             Yh = ifft2(reshape(Y,[nImgIn(this) nex]));
             
             % for each one of the output channels,
@@ -113,7 +113,7 @@ classdef convFFT < convKernel
         function ATY = ATmv(this,theta,Z)
             nex =  numel(Z)/prod(nImgOut(this));
             ATY = zeros([nImgIn(this) nex],'like',Z); % start with transpose
-            theta    = reshape(theta, [prod(this.sK(1:2)),this.sK(3:4)]);
+            theta    = reshape(this.Q*vec(theta), [prod(this.sK(1:2)),this.sK(3:4)]);
             
             Yh = fft2(reshape(Z,[this.nImgOut nex]));
             for k=1:this.sK(3)
@@ -129,8 +129,6 @@ classdef convFFT < convKernel
         end
         
         function dY = Jthetamv(this,dtheta,~,Y,~)
-            nex  =  numel(Y)/numelFeatIn(this);
-            Y    = reshape(Y,[],nex);
             dY   = getOp(this,dtheta)*Y;
         end
         
@@ -147,11 +145,8 @@ classdef convFFT < convKernel
                 temp = reshape(temp,[],this.sK(3));
                 dth1(k,:,:) = conj(temp')*Zh;
             end
-            dtheta = real(reshape(dth1,this.sK));
+            dtheta = real(this.Q'*dth1(:));
         end
-    
-  
-        
     end
 end
 

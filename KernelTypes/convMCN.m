@@ -5,7 +5,7 @@ classdef convMCN < convKernel
     %
     % Transforms feature using affine linear mapping
     %
-    %      Y(theta,Y0) K(theta) * Y0 
+    %      Y(theta,Y0) K(Q*theta) * Y0 
     %
     %  where 
     % 
@@ -34,7 +34,6 @@ classdef convMCN < convKernel
             end
         end
         
-
         function runMinimalExample(~)
             nImg   = [16 18];
             sK     = [3 3,1,2];
@@ -59,25 +58,25 @@ classdef convMCN < convKernel
         function [Y,tmp] = Amv(this,theta,Y)
             % compute convolution
 %             Y = reshape(Y,[nImg this.sK(3)]);
-            K = reshape(theta(:),this.sK);
+            K = reshape(this.Q*theta(:),this.sK);
             Y = vl_nnconv(Y,K,[],'pad',this.pad,'stride',this.stride);
         end
 
         
         function dY = Jthetamv(this,dtheta,~,Y,~)
-            dY = getOp(this,dtheta(:))*Y;
+            dY = getOp(this,dtheta)*Y;
         end
         
         
         function dtheta = JthetaTmv(this,Z,~,Y,~)
             %  derivative of Z*(A(theta)*Y) w.r.t. theta
             [~,dtheta] = vl_nnconv(Y,zeros(this.sK,'like',Y), [],Z,'pad',this.pad,'stride',this.stride);
-            % dtheta = dtheta(:);
+            dtheta = this.Q'*dtheta(:);
         end
 
        function dY = ATmv(this,theta,Z)
             
-            theta = reshape(theta(:),this.sK);
+            theta = reshape(this.Q*theta(:),this.sK);
 
             crop = this.pad;
             if this.stride==2 && this.sK(1)==3

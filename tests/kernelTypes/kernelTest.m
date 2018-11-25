@@ -71,11 +71,7 @@ classdef kernelTest < matlab.unittest.TestCase
               ks = testCase.kernels{k};
               
               th  = initTheta(ks);
-              if isprop(ks,'sK')
-                dth = randn(ks.sK,'like', th); 
-              else
-                dth = randn(nTheta(ks),1,'like',th); % dense kernel has no sK
-              end
+              dth = randn(nTheta(ks),1,'like',th); % dense kernel has no sK
               nex = 1;
               Y  = randn([sizeFeatIn(ks),nex],'like',th)+nex;
               Z  = randn([sizeFeatOut(ks),nex],'like',th)-nex;
@@ -83,7 +79,7 @@ classdef kernelTest < matlab.unittest.TestCase
               [th,Y,Z] = gpuVar(ks.useGPU, ks.precision,th,Y,Z);
               
               t1 = sum(vec(Z.* Jthetamv(ks,dth,th,Y)));
-              t2 = sum(vec(dth.*JthetaTmv(ks,Z,th,Y)));
+              t2 = sum(vec(dth).*vec(JthetaTmv(ks,Z,th,Y)));
               testCase.verifyTrue(norm(t1-t2)/norm(t2) < 1e2*eps(gather(t1)));
            end
         end            

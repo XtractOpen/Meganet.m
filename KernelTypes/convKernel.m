@@ -5,7 +5,7 @@ classdef convKernel
     %
     % Transforms feature using affine linear mapping
     %
-    %     Y(theta,Y0)  = K(theta) * Y0
+    %     Y(theta,Y0)  = K(Q*theta) * Y0
     %
     %  where
     %
@@ -20,6 +20,7 @@ classdef convKernel
     properties
         nImg  % image size
         sK    % kernel size: [nxfilter,nyfilter,nInputChannels,nOutputChannels]
+        Q     % parametrization of kernel, default = identity
         stride
         useGPU
         precision
@@ -34,14 +35,19 @@ classdef convKernel
             stride = 1;
             useGPU = 0;
             precision = 'double';
+            Q = [];
             for k=1:2:length(varargin)     % overwrites default parameter
                 eval([ varargin{k},'=varargin{',int2str(k+1),'};']);
+            end
+            if isempty(Q)
+                Q = opEye(prod(sK));
             end
             this.nImg = nImg;
             this.sK   = sK;
             this.stride = stride;
             this.useGPU = useGPU;
             this.precision = precision;
+            this.Q = gpuVar(useGPU,precision,Q);
         end
         
         function n = sizeFeatIn(this)
@@ -69,7 +75,7 @@ classdef convKernel
         
         
         function theta = initTheta(this)
-            n = prod(this.sK([1,2,4]));
+            n = size(this.Q,2);
             sd = sqrt(2/n);
             theta = sd*randn(this.nTheta(),1);
             id1 = find(theta>2*sd);
@@ -170,7 +176,7 @@ classdef convKernel
         end
         
         function n = nTheta(this)
-            n = prod(this.sK);
+            n = size(this.Q,2);
         end
         
         function dY = Jthetamv(this,dtheta,~,Y,~)
