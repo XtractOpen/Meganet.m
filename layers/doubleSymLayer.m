@@ -69,11 +69,6 @@ classdef doubleSymLayer < abstractMeganetElement
             [this.Bin,this.Bout] = gpuVar(this.K.useGPU,this.K.precision,Bin,Bout);
         end
         
-        function layer = loadNet(this)
-            % load linear operators
-            layer = this;
-            layer.K = loadNet(layer.K);
-        end
         
         function [th1,th2,th3,th4,th5] = split(this,theta)
             th1 = theta(1:nTheta(this.K));

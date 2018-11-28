@@ -69,13 +69,6 @@ classdef NN < abstractMeganetElement
         end
         
         
-        function net = loadNet(this)
-            % load convolution operators
-            net = this;
-            for k=1:numel(net.layers)
-                net.layers{k} = loadNet(net.layers{k});
-            end
-        end
         
         function n = sizeFeatIn(this)
             n = sizeFeatIn(this.layers{1});

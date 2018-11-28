@@ -79,15 +79,6 @@ classdef Meganet < abstractMeganetElement
             net2 = Meganet(net2);
         end
         
-        function net = loadNet(this)
-            % load all blocks
-            net = this;
-            nBlocks   = numel(this.blocks);
-            for k=1:nBlocks
-                net.blocks{k} = loadNet(this.blocks{k});
-            end
-        end
-        
         function vars = split(this,var)
             nBlocks = numel(this.blocks);
             vars = cell(nBlocks,1);
