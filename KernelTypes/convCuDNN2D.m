@@ -65,6 +65,14 @@ classdef convCuDNN2D < convKernel
             title('output');
         end
         
+        function K = loadNet(this)
+            % load convolution operators
+            K = this;
+            K.session = convCuDNN2DSession();
+        end
+        
+        
+        
         function [Y,tmp] = Amv(this,theta,Y)
             tmp   = []; % no need to store any intermediates
             % compute convolution

@@ -71,6 +71,11 @@ methods
         n = [];
         error('children of abstractMeganetElement must provide method sizeFeatOut');
     end
+    function net = loadNet(this)
+            % by default, AbstractMeganetElements can be loaded from disk
+            net = this;
+    end
+        
     function n = numelFeatOut(this)
         % function n = numelFeatOut(this)
         %

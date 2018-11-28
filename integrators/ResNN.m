@@ -39,6 +39,13 @@ classdef ResNN < abstractMeganetElement
         function n = nTheta(this)
             n = this.nt*nTheta(this.layer);
         end
+        function net = loadNet(this)
+            % load layer
+            net = this;
+            net.layer = loadNet(this.layer);
+           
+        end
+        
         function n = sizeFeatIn(this)
             n = sizeFeatIn(this.layer);
         end
