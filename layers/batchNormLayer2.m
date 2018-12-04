@@ -1,10 +1,10 @@
-classdef batchNormLayer < abstractMeganetElement
-    % classdef batchNormLayer < abstractMeganetElement
+classdef batchNormLayer2 < abstractMeganetElement
+    % classdef batchNormLayer2 < abstractMeganetElement
     %
     % simple implementation of batch normalization layer. Here we normalize
     % the images using essentially
     %
-    % Z = (Y-mean(Y,4))./var(Y,4)
+    % Z = (Y-mean(Y,[1,2,4]))./var(Y,[1,2,4])
     % 
     % i.e., we compute the batch statistics across examples for every pixel
     % and channel. See batchNormLayer2 for another version that also
@@ -18,9 +18,10 @@ classdef batchNormLayer < abstractMeganetElement
         eps
     end
     methods
-        function this = batchNormLayer(nData,varargin)
+        function this = batchNormLayer2(nData,varargin)
             if nargin==0
                 help(mfilename)
+                this.runMinimalExample() 
                 return;
             end
             useGPU     = 0;
@@ -49,8 +50,8 @@ classdef batchNormLayer < abstractMeganetElement
         
         function [Y,dA] = forwardProp(this,theta,Y,varargin)
            dA = [];
-           Y  = Y-mean(Y,4);
-           Y  = Y./sqrt(mean(Y.^2,4)+this.eps);
+           Y  = Y-compMean(this,Y);
+           Y  = Y./sqrt(compMean(this,Y.^2)+this.eps);
            
            if this.isWeight
                % affine scaling along channels
@@ -79,12 +80,20 @@ classdef batchNormLayer < abstractMeganetElement
             theta = gpuVar(this.useGPU,this.precision,theta);
         end
         
+        function Ym = compMean(this,Y)
+           szY = size(Y);
+           Ym = reshape(Y,[],szY(3),szY(4));
+           Ym = mean(Ym,3);
+           Ym = mean(Ym,1);
+           Ym = reshape(Ym,1,1,szY(3),1);
+        end
+        
         
         function [dY] = Jthetamv(this,dtheta,theta,Y,~)
             if this.isWeight
                 % compute derivative when affine scaling layer is present
-                Y  = Y-mean(Y,4);
-                Y  = Y./sqrt(mean(Y.^2,4)+this.eps);
+                Y  = Y- compMean(this,Y);
+                Y  = Y./sqrt(compMean(this,Y.^2)+this.eps);
                 
                 % scaling
                 [ds,db] = split(this,dtheta);
@@ -98,8 +107,8 @@ classdef batchNormLayer < abstractMeganetElement
         function dtheta = JthetaTmv(this,Z,theta,Y,~)
             if this.isWeight
                 % compute derivative when affine scaling layer is present
-                Y  = Y-mean(Y,4);
-                Y  = Y./sqrt(mean(Y.^2,4)+this.eps);
+                Y  = Y-compMean(this,Y);
+                Y  = Y./sqrt(compMean(this,Y.^2)+this.eps);
                 
                 W = Y.*Z;
                 dtheta     = vec(sum(sum(sum(W,1),2),4));
@@ -112,11 +121,11 @@ classdef batchNormLayer < abstractMeganetElement
         
         function dY = JYmv(this,dY,theta,Y,~)
             
-            Fy  = Y-mean(Y,4);
-            FdY = dY-mean(dY,4);
-            den = sqrt(mean(Fy.^2,4)+this.eps);
+            Fy  = Y-compMean(this,Y);
+            dY = dY-compMean(this,dY);
+            den = sqrt(compMean(this,Fy.^2)+this.eps);
             
-            dY = FdY./den  - (Fy.* (mean(Fy.*FdY,4) ./(den.^3))) ;
+            dY = dY./den  - (Fy.* (compMean(this,Fy.*dY) ./(den.^3))) ;
             if this.isWeight
                 % affine scaling
                 s = split(this,theta);
@@ -132,14 +141,15 @@ classdef batchNormLayer < abstractMeganetElement
             end
            
            % normalization
-           Fy  = Y-mean(Y,4);
-           dY = dY-mean(dY,4);
-           den = sqrt(mean(Fy.^2,4)+this.eps);
-           
-           tt = mean(Fy.*dY,4) ./(den.^3);
-           dY = dY./den;
-           clear den;
-           dY = dY - Fy.*tt;
+           Fy  = Y-compMean(this,Y);
+           dY = dY-compMean(this,dY);
+           den = sqrt(compMean(this,Fy.^2)+this.eps);
+           dY = dY./den  - (Fy.* (compMean(this,Fy.*dY) ./(den.^3))) ;
+            
+%            tt = compMean(this,Fy.*dY) ./(den.^3);
+%            dY = dY./den;
+%            clear den;
+%            dY = dY - Fy.*tt;
         end
         
         
@@ -163,6 +173,40 @@ classdef batchNormLayer < abstractMeganetElement
         end
         function precision = get.precision(this)
             precision = this.precision;
+        end
+        function runMinimalExample(this)
+           nData = [32 48 4 50];
+           layer = feval(mfilename,nData,'isWeight',0);
+           
+            
+           Y = randn(nData);
+           dY = randn(size(Y));
+           th = initTheta(layer);
+           dth = 0* randn(size(th));
+           
+           [Z] = forwardProp(layer,th,Y,'doDerivative',true);
+           dZ  = layer.JYmv(dY,th,Y,[]);
+           W = randn(size(Y));
+           t1  = W(:)'*dZ(:);
+           
+           dWY = layer.JYTmv(W,th,Y,[]);
+%            t2 = dth(:)'*dWdtheta(:) + dY(:)'*dWY(:);
+            t2 =  dY(:)'*dWY(:);
+           fprintf('adjoint test: t1=%1.2e\tt2=%1.2e\trel.err=%1.2e\n',t1,t2,abs(t1-t2)/abs(t1));
+           
+            
+            for k=20:30
+                hh = 2^(-k);
+                Zt = layer.forwardProp(th+hh*dth(:),Y+hh*dY,'doDerivative',true);
+                
+                E0 = norm(Zt(:)-Z(:));
+                E1 = norm(Zt(:)-Z(:)-hh*dZ(:));
+                
+                fprintf('h=%1.2e\tE0=%1.2e\tE1=%1.2e\n',hh,E0,E1);
+            end
+                
+            
+           
         end
     end
 end
