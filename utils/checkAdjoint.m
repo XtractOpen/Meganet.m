@@ -24,7 +24,7 @@ end
 Av = A*v;
 w  = randn(size(Av),'like',Av);
 
-Aw = vec(A'*w); % TODO: losing last dimension of w here
+Aw = vec(A'*w); 
 t1 = vec(v)'*Aw;
 t2 = vec(w)'*vec(Av);
 err = abs(t1-t2)/(abs(t1)+(t1==0));

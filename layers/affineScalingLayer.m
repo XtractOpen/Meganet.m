@@ -101,11 +101,11 @@ classdef affineScalingLayer < abstractMeganetElement
         end
         
         function n = sizeFeatIn(this)
-            n = this.nData(1:2);  %%%%%% ARE these really the same? TODO
+            n = this.nData(1:2);  
         end
         
         function n = sizeFeatOut(this)
-            n = this.nData(1:2); %%%%%% ARE these really the same? TODO
+            n = this.nData(1:2);
         end
         
         function theta = initTheta(this)

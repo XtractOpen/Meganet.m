@@ -80,7 +80,7 @@ classdef singleLayer < abstractMeganetElement
             if not(isempty(th2))
                 Y = Y + this.Bin * th2;
             end
-            Y = this.activation(Y,'doDerivative',doDerivative); % TODO: is doDerivative necessary here?
+            Y = this.activation(Y);
             if not(isempty(th3))
                 Y = Y +this.Bout*th3;
             end

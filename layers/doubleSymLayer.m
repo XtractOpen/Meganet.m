@@ -294,7 +294,7 @@ classdef doubleSymLayer < abstractMeganetElement
                 [dth4,dAZ] = JTmv(this.normLayer1,dAZ,th4,KY,tmpNL1);
             end
             dth1      = JthetaTmv(this.K,dAZ,[],Y);
-            dth1      = dth1 + JthetaTmv(this.K,A,[],Z); % TODO: is last arg really Z?
+            dth1      = dth1 + JthetaTmv(this.K,A,[],Z);
             dtheta    = [-dth1(:); -dth2(:); dth3(:); -dth4(:);dth5(:)];
         end
         

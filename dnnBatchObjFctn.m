@@ -145,7 +145,7 @@ classdef dnnBatchObjFctn < objFctn
                 F    = F    + numel(idk)*Fk;
                 hisLoss  = [hisLoss;hisLk];
                 if compGrad
-                    dthFk = J'*dYF; % TODO: check dims, dropping nEx?
+                    dthFk = J'*dYF; 
                     dJth  = dJth + numel(idk)*dthFk;
                     dJW   = dJW  + numel(idk)*dWFk;
                     if compHess

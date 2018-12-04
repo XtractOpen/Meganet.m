@@ -71,22 +71,15 @@ classdef dense
         end
         
         function dY = Jthetamv(this,dtheta,~,Y,~)
-            nex    =  numel(Y)/numelFeatIn(this); % TODO: reshapes necessary?
-            Y      = reshape(Y,[],nex);
             dY = getOp(this,dtheta)*Y;
         end
         
         function J = getJthetamat(this,~,Y,~)
-            nex    =  numel(Y)/numelFeatIn(this);
-            Y      = reshape(Y,[],nex);
             J      = kron(Y',speye(this.nK(1)));
         end
         
        function dtheta = JthetaTmv(this,Z,~,Y,~)
             % Jacobian transpose matvec.
-            nex    =  numel(Y)/numelFeatIn(this);
-            Y      = reshape(Y,[],nex);
-            Z      = reshape(Z,[],nex);
             dtheta   = vec(Z*Y');
        end
         
