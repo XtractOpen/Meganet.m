@@ -92,8 +92,11 @@ classdef doubleSymLayer < abstractMeganetElement
         end
         
         function [Z,tmp] = forwardProp(this,theta,Y,varargin)
+            doDerivative = (nargout>1);
+            for k=1:2:length(varargin)     % overwrites default parameter
+                eval([varargin{k},'=varargin{',int2str(k+1),'};']);
+            end
             tmp =  cell(1,2);
-            storedAct  = (nargout>1);
             
             [th1,th2,th3,th4,th5] = split(this,theta);
             Kop    = getOp(this.K,th1);
@@ -107,7 +110,7 @@ classdef doubleSymLayer < abstractMeganetElement
             if not(isempty(th2))
                 Y     = Y + this.Bin*th2;
             end
-            Z      = this.activation(Y,'doDerivative',storedAct);
+            Z      = this.activation(Y,'doDerivative',doDerivative);
             Z      = -(Kop'*Z);
             if not(isempty(this.normLayer2))
                 if this.storeInterm

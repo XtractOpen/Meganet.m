@@ -161,11 +161,16 @@ classdef doubleLayer < abstractMeganetElement
         
         % ------- apply forward model ----------
         function [Y,tmp] = forwardProp(this,theta,Y,varargin)
+            doDerivative = (nargout>1);
+            for k=1:2:length(varargin)     % overwrites default parameter
+                eval([varargin{k},'=varargin{',int2str(k+1),'};']);
+            end
             
             tmp        = cell(1,2);
             [th1,th2,th3,th4,th5,th6,th7] = this.split(theta);
             K1Y         = getOp(this.K1,th1)* Y;
-            tmp{1} = K1Y;
+            if doDerivative, tmp{1} = K1Y; end
+            
             if not(isempty(this.normLayer1))
                 K1Y = forwardProp(this.normLayer1,th6,K1Y);
             end
@@ -174,7 +179,7 @@ classdef doubleLayer < abstractMeganetElement
             end
             Z1 = this.activation1(K1Y);
             K2Z        = getOp(this.K2, th2)* Z1;
-            tmp{2} = K2Z;
+            if doDerivative, tmp{2} = K2Z; end
             if not(isempty(this.normLayer2))
                 K2Z = forwardProp(this.normLayer2,th7,K2Z);
             end

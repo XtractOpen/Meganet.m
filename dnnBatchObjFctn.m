@@ -24,6 +24,7 @@ classdef dnnBatchObjFctn < objFctn
         batchIds    % indices of batches, chosen randomly in each evaulation
         useGPU      % flag for GPU computing
         precision   % flag for precision
+        dataAugment
     end
     
     methods
@@ -38,6 +39,7 @@ classdef dnnBatchObjFctn < objFctn
             batchIds  = randperm(sizeLastDim(Y));
             useGPU    = [];
             precision = [];
+            dataAugment = @(x) x;
             for k=1:2:length(varargin)     % overwrites default parameter
                 eval([varargin{k},'=varargin{',int2str(k+1),'};']);
             end
@@ -58,6 +60,7 @@ classdef dnnBatchObjFctn < objFctn
             this.C         = C;
             this.batchSize = batchSize;
             this.batchIds  = batchIds;
+            this.dataAugment = dataAugment;
         end
         function [theta,W] = split(this,thetaW)
             % split thetaW = [theta;W] into parts associated with network
@@ -100,6 +103,7 @@ classdef dnnBatchObjFctn < objFctn
                 Y = this.Y( colons{:} ,idx);
                 C = this.C(:,idx);
             end
+             Y = this.dataAugment(Y);
             
             compGrad = nargout>2;
             compHess = nargout>3;
@@ -233,7 +237,8 @@ classdef dnnBatchObjFctn < objFctn
             for k=nb:-1:1
                 idk = this.getBatchIds(k,nex);
                 if nb>1
-                    Yk  = this.Y(:,idk);
+                    colons = repmat( {':'} , 1 , ndims(this.Y)-1 );
+                    Yk  = this.Y( colons{:} , idk);
                 else
                     Yk = this.Y;
                 end

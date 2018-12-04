@@ -39,7 +39,6 @@ classdef ResNN < abstractMeganetElement
         function n = nTheta(this)
             n = this.nt*nTheta(this.layer);
         end
-        
         function n = sizeFeatIn(this)
             n = sizeFeatIn(this.layer);
         end
@@ -63,14 +62,19 @@ classdef ResNN < abstractMeganetElement
         
         
         % ------- forwardProp forward problems -----------
-        function [Y,tmp] = forwardProp(this,theta,Y)
+        function [Y,tmp] = forwardProp(this,theta,Y,varargin)
+            doDerivative = (nargout>1);
+            for k=1:2:length(varargin)     % overwrites default parameter
+                eval([varargin{k},'=varargin{',int2str(k+1),'};']);
+            end
+            
             if nargout>1;    tmp = cell(this.nt,2); end
             
             theta = reshape(theta,[],this.nt);
             
             for i=1:this.nt
-                if (nargout>1), tmp{i,1} = Y; end
-                [Z,tmp{i,2}] = forwardProp(this.layer,theta(:,i),Y);
+                if doDerivative, tmp{i,1} = Y; end
+                [Z,tmp{i,2}] = forwardProp(this.layer,theta(:,i),Y,'doDerivative',doDerivative);
                 Y =  Y + this.h * Z;
             end
         end

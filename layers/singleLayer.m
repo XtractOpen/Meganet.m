@@ -74,7 +74,7 @@ classdef singleLayer < abstractMeganetElement
                 KY    = Y;
             end
             if not(isempty(this.normLayer))
-                Y = forwardProp(this.normLayer,th4,Y);
+                Y = forwardProp(this.normLayer,th4,Y,'doDerivative',doDerivative);
             end
             
             if not(isempty(th2))
@@ -109,7 +109,7 @@ classdef singleLayer < abstractMeganetElement
            end
         end
         
-        function [dA,KY,tmpNL] = getTempsForSens(this,theta,Y,KY)
+        function [dA,KY] = getTempsForSens(this,theta,Y,KY)
             % re-computes temp variables needed for sensitivity computations
             %
             % Input:
@@ -120,16 +120,14 @@ classdef singleLayer < abstractMeganetElement
             % Output:
             %   dA    - derivative of activation
             %   KY    - K(theta)*Y
-            %   tmpNL - temp results of norm Layer
             
-            tmpNL =[];
             [th1, th2,~,th4]  = split(this,theta);
             
             if not(this.storeInterm)
                 KY = getOp(this.K,th1)*Y;
             end
             if not(isempty(this.normLayer))
-                [KYn,tmpNL] = forwardProp(this.normLayer,th4,KY);
+                KYn = forwardProp(this.normLayer,th4,KY);
             else
                 KYn = KY;
             end
@@ -142,12 +140,12 @@ classdef singleLayer < abstractMeganetElement
         function dZ = Jthetamv(this,dtheta,theta,Y,KY)
             [th1, ~,~,th4]  = split(this,theta);
             
-            [dA,KY,tmpNL] = getTempsForSens(this,theta,Y,KY);
+            [dA,KY] = getTempsForSens(this,theta,Y,KY);
             [dth1,dth2,dth3,dth4] = split(this,dtheta);
             
             dZ = Jthetamv(this.K,dth1,th1,Y);
             if not(isempty(this.normLayer))
-                dZ  = Jmv(this.normLayer,dth4,dZ,th4,KY,tmpNL);
+                dZ  = Jmv(this.normLayer,dth4,dZ,th4,KY);
             end
             
             if not(isempty(this.Bin))
@@ -162,12 +160,12 @@ classdef singleLayer < abstractMeganetElement
         
         function dZ = JYmv(this,dY,theta,Y,KY)
             [th1,~,~,th4]  = split(this,theta);
-            [dA,KY,tmpNL] = getTempsForSens(this,theta,Y,KY);
+            [dA,KY] = getTempsForSens(this,theta,Y,KY);
 
             Kop = getOp(this.K,th1);
             dZ = Kop*dY;
             if not(isempty(this.normLayer))
-                dZ = JYmv(this.normLayer,dZ,th4,KY,tmpNL);
+                dZ = JYmv(this.normLayer,dZ,th4,KY);
             end
             dZ = dA.*dZ;
         end
@@ -175,7 +173,7 @@ classdef singleLayer < abstractMeganetElement
         function dZ = Jmv(this,dtheta,dY,theta,Y,KY)
             [th1, ~,~,th4]  = split(this,theta);
                         
-            [dA,KY,tmpNL] = getTempsForSens(this,theta,Y,KY);
+            [dA,KY] = getTempsForSens(this,theta,Y,KY);
 
             
             [dth1,dth2,dth3,dth4]= split(this,dtheta);
@@ -187,7 +185,7 @@ classdef singleLayer < abstractMeganetElement
             end
             dZ = dZ + Jthetamv(this.K,dth1,th1,Y);
             if not(isempty(this.normLayer))
-                dZ = Jmv(this.normLayer,dth4,dZ,th4,KY,tmpNL);
+                dZ = Jmv(this.normLayer,dth4,dZ,th4,KY);
             end
             if not(isempty(this.Bin))
                 dZ = dZ +  this.Bin*dth2;
@@ -203,7 +201,7 @@ classdef singleLayer < abstractMeganetElement
                doDerivative =[1;0]; 
             end
             [th1, ~,~,th4]  = split(this,theta);
-            [dA,KY,tmpNL] = getTempsForSens(this,theta,Y,KY);
+            [dA,KY] = getTempsForSens(this,theta,Y,KY);
             nd = ndims(Y);
             
             dY = [];
@@ -230,7 +228,7 @@ classdef singleLayer < abstractMeganetElement
             end
             
             if not(isempty(this.normLayer))
-               [dth4,dAZ] = JTmv(this.normLayer,dAZ,th4,KY,tmpNL); 
+               [dth4,dAZ] = JTmv(this.normLayer,dAZ,th4,KY); 
             else
                dth4 = [];
             end
@@ -249,7 +247,7 @@ classdef singleLayer < abstractMeganetElement
         
         function dtheta = JthetaTmv(this,Z,theta,Y,KY)
             [~, ~,~,th4]  = split(this,theta);
-            [dA,KY,tmpNL] = getTempsForSens(this,theta,Y,KY);
+            [dA,KY] = getTempsForSens(this,theta,Y,KY);
             nd = ndims(Y);
             
             if not(isempty(this.Bout))
@@ -267,7 +265,7 @@ classdef singleLayer < abstractMeganetElement
             end
             
             if not(isempty(this.normLayer))
-               [dth4,dAZ] = JTmv(this.normLayer,dAZ,th4,KY,tmpNL); 
+               [dth4,dAZ] = JTmv(this.normLayer,dAZ,th4,KY); 
             else
                dth4 = [];
             end
@@ -278,7 +276,7 @@ classdef singleLayer < abstractMeganetElement
         
         function dY = JYTmv(this,Z,theta,Y,KY)
             [th1, ~,~,th4]  = split(this,theta);
-            [dA,KY,tmpNL] = getTempsForSens(this,theta,Y,KY);
+            [dA,KY] = getTempsForSens(this,theta,Y,KY);
 
             if all(Z(:)==0)
                 dY = 0*Y;
@@ -288,7 +286,7 @@ classdef singleLayer < abstractMeganetElement
             
             dAZ   = dA.*Z;
             if not(isempty(this.normLayer))
-                dAZ = JYTmv(this.normLayer,dAZ,th4,KY,tmpNL);
+                dAZ = JYTmv(this.normLayer,dAZ,th4,KY);
             end
             dY    = Kop'*dAZ;
         end

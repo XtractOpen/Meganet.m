@@ -79,15 +79,19 @@ classdef LeapFrogNN < abstractMeganetElement
         end
         
         % ------- forwardProp forward problems -----------
-        function [Y,tmp] = forwardProp(this,theta,Y)
+        function [Y,tmp] = forwardProp(this,theta,Y,varargin)
+            doDerivative = (nargout>1);
+            for k=1:2:length(varargin)     % overwrites default parameter
+                eval([varargin{k},'=varargin{',int2str(k+1),'};']);
+            end
             
-            if nargout>1;    tmp = cell(this.nt,2);  end
+            tmp = cell(this.nt,2);
             
             theta = reshape(theta,[],this.nt);
             Yold = 0;
             for i=1:this.nt
-                if nargout>1, tmp{i,1} = Y; end
-                [Z,tmp{i,2}] = forwardProp(this.layer,theta(:,i),Y);
+                if doDerivative, tmp{i,1} = Y; end
+                [Z,tmp{i,2}] = forwardProp(this.layer,theta(:,i),Y,'doDerivative');
                 Ytemp = Y;
                 Y =  2*Y - Yold + this.h^2 * Z;
                 Yold = Ytemp;

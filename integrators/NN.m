@@ -98,15 +98,20 @@ classdef NN < abstractMeganetElement
         end
         
         % --------- forward problem ----------
-        function [Y,tmp] = forwardProp(this,theta,Y)
+        function [Y,tmp] = forwardProp(this,theta,Y,varargin)
+            doDerivative = (nargout>1);
+            for k=1:2:length(varargin)     % overwrites default parameter
+                eval([varargin{k},'=varargin{',int2str(k+1),'};']);
+            end
+            
             nt = numel(this.layers);
             
-            if nargout>1;    tmp = cell(nt,2); end
+            if doDerivative;    tmp = cell(nt,2); end
             cnt = 0;
             for i=1:nt
                 ni = nTheta(this.layers{i});
-                if (nargout>1), tmp{i,1} = Y; end
-                [Y,tmp{i,2}] = this.layers{i}.forwardProp(theta(cnt+(1:ni)),Y);
+                if doDerivative, tmp{i,1} = Y; end
+                [Y,tmp{i,2}] = this.layers{i}.forwardProp(theta(cnt+(1:ni)),Y,'doDerivative',doDerivative);
                 cnt = cnt + ni;
             end
         end

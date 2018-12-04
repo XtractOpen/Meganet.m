@@ -92,20 +92,24 @@ classdef DoubleHamiltonianNN < abstractMeganetElement
             X = cat(3,Y,Z);
         end
        % ------- forwardProp forward problems -----------
-        function [X,tmp] = forwardProp(this,theta,X0)
+        function [X,tmp] = forwardProp(this,theta,X0,varargin)
+            doDerivative = (nargout>1);
+            for k=1:2:length(varargin)     % overwrites default parameter
+                eval([varargin{k},'=varargin{',int2str(k+1),'};']);
+            end
             
             [Y,Z] = splitData(this,X0);
-            if nargout>1;    tmp = cell(this.nt,4);  end
+            tmp = cell(this.nt,4);
             [th1,th2] = split(this,theta);
             
             for i=1:this.nt
                 if nargout>1, tmp{i,1} = Y; tmp{i,2} = Z; end
                 
-                [dZ,tmp{i,3}] = forwardProp(this.layer1,th1(:,i),Y);
+                [dZ,tmp{i,3}] = forwardProp(this.layer1,th1(:,i),Y,'doDerivative',doDerivative);
                 Z = Z - this.h*dZ;
                 if nargout>1;   tmp{i,2} = Z; end
                 
-                [dY,tmp{i,4}] = forwardProp(this.layer2,th2(:,i),Z);
+                [dY,tmp{i,4}] = forwardProp(this.layer2,th2(:,i),Z,'doDerivative',doDerivative);
                 Y = Y + this.h*dY;
             end
             X = unsplitData(this,Y,Z);

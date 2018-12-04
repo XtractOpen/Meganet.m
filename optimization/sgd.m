@@ -45,9 +45,9 @@ classdef sgd < optimizer
             frmt = {'%-12d','%-12.2e','%-12.2e','%-12.2e'};
         end
         
-        function [xc,His,xOptVal,xOptLoss] = solve(this,fctn,xc,fval)
+        function [xc,His,xOptAcc,xOptLoss] = solve(this,fctn,xc,fval)
             if not(exist('fval','var')); fval = []; end;
-            xOptVal = [];  % iterate with optimal validation accuracy
+            xOptAcc = [];  % iterate with optimal validation accuracy
             xOptLoss = []; % iterate with optimal validation loss
             [str,frmt] = hisNames(this);
             
@@ -119,7 +119,7 @@ classdef sgd < optimizer
                     [Fval,pVal] = fval(xc,[]); % evaluate loss for validation data
                     valAcc = obj2His(pVal);
                     if (nargout>2) && (valAcc(2)>optValAcc)
-                        xOptVal = gather(xc);
+                        xOptAcc = gather(xc);
                         optValAcc = valAcc(2);
                     end
                     if (nargout>3) && (valAcc(1)<optValLoss)

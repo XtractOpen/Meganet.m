@@ -104,13 +104,18 @@ classdef Meganet < abstractMeganetElement
         end
         
         % ---------- apply forward problem ------------
-        function [Y,tmp] = forwardProp(this,theta,Y0)
+        function [Y,tmp] = forwardProp(this,theta,Y0,varargin)
+            doDerivative = (nargout>1);
+            for k=1:2:length(varargin)     % overwrites default parameter
+                eval([varargin{k},'=varargin{',int2str(k+1),'};']);
+            end
+            
             nBlocks = numel(this.blocks);
             Y  = Y0;
             tmp = cell(nBlocks,1);
             thetas = split(this,theta);
             for k=1:nBlocks
-                [Y,tmp{k}] = forwardProp(this.blocks{k},thetas{k},Y);
+                [Y,tmp{k}] = forwardProp(this.blocks{k},thetas{k},Y,'doDerivative',doDerivative);
             end
         end
         

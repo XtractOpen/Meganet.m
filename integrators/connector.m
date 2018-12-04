@@ -46,7 +46,7 @@ classdef connector < abstractMeganetElement
         end
         
         % -------- forwardProp forward problem -------
-        function [Y,tmp] = forwardProp(this,~,Y0)
+        function [Y,tmp] = forwardProp(this,~,Y0,varargin)
             Y = this.K*Y0 + this.b;
             tmp = [];
         end
