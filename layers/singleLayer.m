@@ -127,7 +127,7 @@ classdef singleLayer < abstractMeganetElement
                 KY = getOp(this.K,th1)*Y;
             end
             if not(isempty(this.normLayer))
-                KYn = forwardProp(this.normLayer,th4,KY);
+                KYn = forwardProp(this.normLayer,th4,KY,'doDerivative',1);
             else
                 KYn = KY;
             end
