@@ -91,7 +91,7 @@ classdef LeapFrogNN < abstractMeganetElement
             Yold = 0;
             for i=1:this.nt
                 if doDerivative, tmp{i,1} = Y; end
-                [Z,tmp{i,2}] = forwardProp(this.layer,theta(:,i),Y,'doDerivative');
+                [Z,tmp{i,2}] = forwardProp(this.layer,theta(:,i),Y,'doDerivative',doDerivative);
                 Ytemp = Y;
                 Y =  2*Y - Yold + this.h^2 * Z;
                 Yold = Ytemp;
