@@ -45,7 +45,13 @@ classdef sgd < optimizer
             frmt = {'%-12d','%-12.2e','%-12.2e','%-12.2e'};
         end
         
-        function [xc,His,xOptAcc,xOptLoss] = solve(this,fctn,xc,fval)
+        function [xc,His,xOptAcc,xOptLoss] = solve(this,fctn,xc,fval,varargin)
+            optValAcc    = 0;
+            optValLoss   = Inf;
+            for k=1:2:length(varargin)     % overwrites default parameter
+                eval([varargin{k},'=varargin{',int2str(k+1),'};']);
+            end
+            
             if not(exist('fval','var')); fval = []; end;
             xOptAcc = [];  % iterate with optimal validation accuracy
             xOptLoss = []; % iterate with optimal validation loss
@@ -57,8 +63,6 @@ classdef sgd < optimizer
             [fval,obj2Fctn,obj2Names,obj2Frmt,obj2His] = parseObjFctn(this,fval);
             str = [str,obj2Names{:}]; frmt = [frmt,obj2Frmt{:}];
             doVal     = not(isempty(obj2Fctn));
-            optValAcc    = 0;
-            optValLoss   = Inf;
             
             % evaluate training and validation
             

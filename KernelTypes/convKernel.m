@@ -1,4 +1,4 @@
-classdef convKernel
+classdef convKernel  < handle
     % classdef convKernel < handle
     %
     % Superclass for convolution kernels
@@ -150,20 +150,22 @@ classdef convKernel
         end
         
         % ------ handling GPU and precision -------
-        function this = set.useGPU(this,value)
-            if (value~=0) && (value~=1)
-                error('useGPU must be 0 or 1.')
-            else
-                this.useGPU = value;
-                this = gpuVar(this,this.useGPU,this.precision);
+        function set.useGPU(this,value)
+            switch value
+                case {1,0}
+                    this.useGPU  = value;
+                    [this.Q] = gpuVar(value,this.precision,this.Q);
+                otherwise
+                    error('useGPU must be 0 or 1.')
             end
+
         end
-        function this = set.precision(this,value)
+        function set.precision(this,value)
             if not(strcmp(value,'single') || strcmp(value,'double'))
                 error('precision must be single or double.')
             else
                 this.precision = value;
-                this = gpuVar(this,this.useGPU,this.precision);
+                [this.Q] = gpuVar(this.useGPU,value,this.Q);
             end
         end
         

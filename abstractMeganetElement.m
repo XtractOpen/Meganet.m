@@ -402,10 +402,7 @@ methods
             ATmv   = @(x) JTmv(this,x,theta,Y,tmp,[1;1]);
             J      = LinearOperator(m,nth+nY,Amv,ATmv);
         end
-
-        
     end
-    
 end
 
 

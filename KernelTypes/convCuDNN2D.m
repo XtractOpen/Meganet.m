@@ -22,19 +22,23 @@ classdef convCuDNN2D < convKernel
     end
     
     methods
-        function this = convCuDNN2D(session,varargin)
+        function this = convCuDNN2D(varargin)
             this@convKernel(varargin{:});
+            session = [];
+            for k=1:2:length(varargin)     % overwrites default parameter
+               eval([varargin{k},'=varargin{',int2str(k+1),'};']);
+            end
+            
             if nargout==0 && nargin==0
                 this.runMinimalExample;
                 return;
             end
-            if isa(session,'convCuDNN2DSession')||isempty(session)
+            if isa(session,'convCuDNN2DSession') || isempty(session)
                 this.session = session;
             else
                 warning('convCuDNN2D: session is not a convCuDNN2DSession and not an empty array.');
                 this.session = [];
             end
-            this.useGPU = 1;
             this.precision = 'single';
             this.Q = gpuVar(1,'single',this.Q);
         end
@@ -45,7 +49,7 @@ classdef convCuDNN2D < convKernel
             sK     = [3 3,1,2];
             s = convCuDNN2DSession();
 
-            kernel = feval(mfilename,s,nImg,sK,'stride',1);
+            kernel = feval(mfilename,nImg,sK,'stride',1,'session',s);
             kernel.stride = 1;
             
             theta = gpuArray(single(rand(sK))); 
@@ -123,6 +127,7 @@ classdef convCuDNN2D < convKernel
 %             Z = vl_nnconvt(Z,K,[],'crop',crop,'upsample',this.stride);
 %             dY = reshape(dY,[],nex);
        end
+
     end
 end
 

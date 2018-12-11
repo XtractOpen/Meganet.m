@@ -339,6 +339,9 @@ classdef singleLayer < abstractMeganetElement
                 this.K.useGPU  = value;
                 this.Bin  = gpuVar(this.useGPU, this.precision, this.Bin);
                 this.Bout  = gpuVar(this.useGPU, this.precision, this.Bout);
+                if not(isempty(this.normLayer))
+                    this.normLayer.useGPU = value;
+                end
             end
         end
         function this = set.precision(this,value)
@@ -348,6 +351,9 @@ classdef singleLayer < abstractMeganetElement
                 this.K.precision = value;
                 this.Bin  = gpuVar(this.useGPU, this.precision, this.Bin);
                 this.Bout = gpuVar(this.useGPU, this.precision, this.Bout);
+                if not(isempty(this.normLayer))
+                    this.normLayer.precision = value;
+                end
             end
         end
         function useGPU = get.useGPU(this)

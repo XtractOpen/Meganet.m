@@ -420,7 +420,7 @@ classdef doubleLayer < abstractMeganetElement
         end
         
         % ------- functions for handling GPU computing and precision ---- 
-        function this = set.useGPU(this,value)
+        function set.useGPU(this,value)
             if (value~=0) && (value~=1)
                 error('useGPU must be 0 or 1.')
             else
@@ -429,9 +429,16 @@ classdef doubleLayer < abstractMeganetElement
                 this.Bin1  = gpuVar(this.useGPU, this.precision, this.Bin1);
                 this.Bin2  = gpuVar(this.useGPU, this.precision, this.Bin2);
                 this.Bout  = gpuVar(this.useGPU, this.precision, this.Bout);
+                if not(isempty(this.normLayer1))
+                    this.normLayer1.useGPU = value;
+                end
+                if not(isempty(this.normLayer2))
+                    this.normLayer2.useGPU = value;
+                end
+                
             end
         end
-        function this = set.precision(this,value)
+        function set.precision(this,value)
             if not(strcmp(value,'single') || strcmp(value,'double'))
                 error('precision must be single or double.')
             else
@@ -440,6 +447,13 @@ classdef doubleLayer < abstractMeganetElement
                 this.Bin1  = gpuVar(this.useGPU, value, this.Bin1);
                 this.Bin2  = gpuVar(this.useGPU, value, this.Bin2);
                 this.Bout  = gpuVar(this.useGPU, value, this.Bout);
+                if not(isempty(this.normLayer1))
+                    this.normLayer1.precision = value;
+                end
+                if not(isempty(this.normLayer2))
+                    this.normLayer2.precision = value;
+                end
+
             end
         end
         function useGPU = get.useGPU(this)

@@ -144,14 +144,14 @@ classdef batchNormLayer < abstractMeganetElement
         
         
         % ------- functions for handling GPU computing and precision ---- 
-        function this = set.useGPU(this,value)
+        function set.useGPU(this,value)
             if (value~=0) && (value~=1)
                 error('useGPU must be 0 or 1.')
             else
                 this.useGPU  = value;
             end
         end
-        function this = set.precision(this,value)
+        function set.precision(this,value)
             if not(strcmp(value,'single') || strcmp(value,'double'))
                 error('precision must be single or double.')
             else

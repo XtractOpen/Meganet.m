@@ -401,6 +401,13 @@ classdef doubleSymLayer < abstractMeganetElement
             else
                 this.K.useGPU  = value;
                 [this.Bin,this.Bout] = gpuVar(value,this.precision,this.Bin,this.Bout);
+                if not(isempty(this.normLayer1))
+                    this.normLayer1.useGPU = value;
+                end
+                if not(isempty(this.normLayer2))
+                    this.normLayer2.useGPU = value;
+                end
+                
             end
         end
         function this = set.precision(this,value)
@@ -409,6 +416,13 @@ classdef doubleSymLayer < abstractMeganetElement
             else
                 this.K.precision = value;
                 [this.Bin,this.Bout] = gpuVar(this.useGPU,value,this.Bin,this.Bout);
+                if not(isempty(this.normLayer1))
+                    this.normLayer1.precision = value;
+                end
+                if not(isempty(this.normLayer2))
+                    this.normLayer2.precision = value;
+                end
+                
             end
         end
         function useGPU = get.useGPU(this)

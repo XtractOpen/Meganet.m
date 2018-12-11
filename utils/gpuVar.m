@@ -25,7 +25,7 @@ for k=1:nv
     if not(isempty(precision)) && strcmp(precision,'single')
         if isnumeric(vark)
             vark = single(vark);
-        else
+        elseif (isa(vark,'handle') && isprop(vark,'precision')) || isfield(vark,'precision')
             vark.precision = 'single';
         end
     end
@@ -45,7 +45,7 @@ for k=1:nv
     if not(isempty(useGPU)) && useGPU && not(isa(vark,'gpuArray'))
         if isnumeric(vark)
             vark = gpuArray(vark);
-        else
+        elseif (isa(vark,'handle') && isprop(vark,'useGPU')) || isfield(vark,'useGPU')
             vark.useGPU = useGPU;
         end
     end

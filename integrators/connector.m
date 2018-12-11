@@ -68,6 +68,23 @@ classdef connector < abstractMeganetElement
             end
         end
         
+        function this = set.useGPU(this,value)
+            if (value~=0) && (value~=1)
+                error('useGPU must be 0 or 1.')
+            else
+                this.useGPU = value;
+                [this.K, this.b] = gpuVar(value,this.precision,this.K,this.b);
+            end
+        end
+        function this = set.precision(this,value)
+            if not(strcmp(value,'single') || strcmp(value,'double'))
+                error('precision must be single or double.')
+            else
+                this.precision = value;
+                [this.K, this.b] = gpuVar(this.useGPU,value,this.K,this.b);
+            end
+        end
+        
         function runMinimalExample(~)
             nex = 10;
             
