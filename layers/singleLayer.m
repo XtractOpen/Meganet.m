@@ -337,8 +337,8 @@ classdef singleLayer < abstractMeganetElement
                 error('useGPU must be 0 or 1.')
             else
                 this.K.useGPU  = value;
-                this.Bin  = gpuVar(this.useGPU, this.precision, this.Bin);
-                this.Bout  = gpuVar(this.useGPU, this.precision, this.Bout);
+                this.Bin  = gpuVar(value, this.precision, this.Bin);
+                this.Bout  = gpuVar(value, this.precision, this.Bout);
                 if not(isempty(this.normLayer))
                     this.normLayer.useGPU = value;
                 end
@@ -349,8 +349,8 @@ classdef singleLayer < abstractMeganetElement
                 error('precision must be single or double.')
             else
                 this.K.precision = value;
-                this.Bin  = gpuVar(this.useGPU, this.precision, this.Bin);
-                this.Bout = gpuVar(this.useGPU, this.precision, this.Bout);
+                this.Bin  = gpuVar(this.useGPU, value, this.Bin);
+                this.Bout = gpuVar(this.useGPU, value, this.Bout);
                 if not(isempty(this.normLayer))
                     this.normLayer.precision = value;
                 end
