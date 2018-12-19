@@ -5,10 +5,10 @@ classdef dense
     %
     %   Y(theta,Y0)  = reshape(theta,nK) * Y0 
     %
+    %   nK is (num output features)-by-(num input features)
     
     properties
         nK
-        Q
         useGPU
         precision
     end
@@ -18,11 +18,9 @@ classdef dense
             this.nK = nK;
             useGPU  = 0;
             precision = 'double';
-            Q = 1.0;
             for k=1:2:length(varargin)     % overwrites default parameter
                 eval([ varargin{k},'=varargin{',int2str(k+1),'};']);
             end
-            this.Q = Q;
             this.useGPU = useGPU;
             this.precision = precision;
             
@@ -45,18 +43,22 @@ classdef dense
         end
         
         function n = nTheta(this)
-            if this.Q==1.0
-                n = prod(this.nK);
-            else
-                n = size(this.Q,2);
-            end
+            n = prod(this.nK);
         end
         
-        function n = nFeatIn(this)
+        function n = sizeFeatIn(this)
+            n = this.nK(2);
+        end
+
+        function n = sizeFeatOut(this)
+            n = this.nK(1);
+        end
+        
+        function n = numelFeatIn(this) % same as sizeFeat bc nK is 2-D
             n = this.nK(2);
         end
         
-        function n = nFeatOut(this)
+        function n = numelFeatOut(this) % same as sizeFeat bc nK is 2-D
             n = this.nK(1);
         end
         
@@ -65,31 +67,23 @@ classdef dense
         end
             
         function A = getOp(this,theta)
-            A = reshape(this.Q*vec(theta),this.nK);
+            A = reshape(vec(theta),this.nK);
         end
         
         function dY = Jthetamv(this,dtheta,~,Y,~)
-            nex    =  numel(Y)/nFeatIn(this);
-            Y      = reshape(Y,[],nex);
             dY = getOp(this,dtheta)*Y;
         end
         
         function J = getJthetamat(this,~,Y,~)
-            nex    =  numel(Y)/nFeatIn(this);
-            Y      = reshape(Y,[],nex);
             J      = kron(Y',speye(this.nK(1)));
         end
         
        function dtheta = JthetaTmv(this,Z,~,Y,~)
             % Jacobian transpose matvec.
-            nex    =  numel(Y)/nFeatIn(this);
-            Y      = reshape(Y,[],nex);
-            Z      = reshape(Z,[],nex);
-            dtheta   = this.Q'*vec(Z*Y');
+            dtheta   = vec(Z*Y');
        end
         
        function Z = implicitTimeStep(this,theta,Y,h)
-           
            Kop = getOp(this,theta);
            Z   = (h*(Kop'*Kop) + eye(size(Kop,2)))\Y; 
        end

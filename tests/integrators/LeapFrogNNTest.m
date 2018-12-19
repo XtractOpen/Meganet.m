@@ -11,8 +11,7 @@ classdef LeapFrogNNTest < IntegratorTest
             TT = dense([4 4]);
               ks{end+1} = LeapFrogNN(doubleLayer(TT,TT),10,.1) ;
               ks{end+1} = LeapFrogNN(doubleSymLayer(TT),10,.1) ;
-              outTimes = zeros(4,1); outTimes(2:2:end)=1;
-              ks{end+1} = LeapFrogNN(singleLayer(dense([14 14])),4,0.1,'outTimes',outTimes);
+              ks{end+1} = LeapFrogNN(singleLayer(dense([14 14])),4,0.1);
            testCase.integrators = ks;
         end
     end

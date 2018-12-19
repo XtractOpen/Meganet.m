@@ -17,11 +17,7 @@ if not(exist('useGPU','var')) || isempty(useGPU)
 end
 
 A = reshape(1:prod(nK),nK);
-QAt = sparse(vec(A'),1:prod(nK),ones(prod(nK),1),prod(nK),prod(nK));
-Q = speye(prod(nK)) - QAt;
-
-Q = Q(:,sum(abs(Q),1)>0);
-K = dense(nK,'useGPU',useGPU,'precision',precision,'Q',Q);
+K = dense(nK,'useGPU',useGPU,'precision',precision);
 
 function runMinimalExample
 th = randn(9-3,1);

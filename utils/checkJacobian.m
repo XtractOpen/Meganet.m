@@ -1,7 +1,7 @@
 function [isOK,Err,Order] = checkJacobian(fctn,x0,varargin)
 % function [isOK,Err,Order] = checkJacobian(fctn,x0,varargin)
 
-if nargin==0;
+if nargin==0
     feval(mfilename,@quadTestFun,.4);
     return;
 end
@@ -15,7 +15,7 @@ precision = 'double';
 for k=1:2:length(varargin)     % overwrites default parameter
     eval([varargin{k},'=varargin{',int2str(k+1),'};']);
 end
-if strcmp(precision,'single');
+if strcmp(precision,'single')
     nSuccess=2;
 end
 v = gpuVar(useGPU,precision,v);
@@ -41,17 +41,17 @@ else
     error('cannot deal this derivative')
 end
 
-if norm(vec(dvF))/(norm(x0)+norm(x0)==0) < 1e-10
+if norm(vec(dvF))/(norm(vec(x0))+norm(vec(x0))==0) < 1e-10
     warning('gradient is small');
 end
-nF     = norm(vec(F));
-Err   = zeros(30,2);
+nF      = norm(vec(F));
+Err     = zeros(30,2);
 Order   = zeros(30,2);
 Success = zeros(30,1);
 for j=1:30
     Ft = fctn(x0+2.0^(-j)*v);      % function value
     Err(j,1) = gather(norm(vec(F-Ft))/nF);    % Error TaylorPoly 0
-    Err(j,2) = gather(norm(vec(F + 2.0^(-j)*dvF - Ft))/nF); % Error TaylorPoly 1
+    Err(j,2) = gather(norm(vec(F) + 2.0^(-j)*vec(dvF) - vec(Ft))/nF); % Error TaylorPoly 1
     if j>1
         Order(j,:) = log2(Err(j-1,:)./Err(j,:));
     end

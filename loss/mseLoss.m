@@ -39,7 +39,7 @@ classdef mseLoss
             if (doDW) && (nargout>=4)
                 d2WF = kron(speye(size(C,1)),(Y*Y')/nex);
                 matW  = @(W) reshape(W,szW);
-                d2WFmv  = @(U) vec(((matW(U/nex)*Y)*Y'));
+                d2WFmv  = @(U) ((matW(U/nex)*Y)*Y');
                 d2WFt = LinearOperator(prod(szW),prod(szW),d2WFmv,d2WFmv);
             end
             if doDerivative && (nargout>=5)

@@ -6,8 +6,6 @@ classdef NN < abstractMeganetElement
     
     properties
         layers  % layers of Neural Network, cell array
-        outTimes
-        Q
         useGPU
         precision
     end
@@ -37,8 +35,6 @@ classdef NN < abstractMeganetElement
             useGPU = [];
             precision = [];
             nt   = numel(layers);
-            outTimes = zeros(nt,1);  outTimes(end)=1;
-            Q = 1.0;
             for k=1:2:length(varargin)     % overwrites default parameter
                 eval([varargin{k},'=varargin{',int2str(k+1),'};']);
             end
@@ -53,17 +49,15 @@ classdef NN < abstractMeganetElement
                 end
             end
             
-            nout = nFeatOut(layers{1});
+            nout = sizeFeatOut(layers{1});
             for k=2:nt
-                if nFeatIn(layers{k}) ~= nout
+                if any(sizeFeatIn(layers{k}) ~= nout)
                     error('%s - dim. of input features must match dim. of output features',...
                         mfilename);
                 end
-                nout = nFeatOut(layers{k});
+                nout = sizeFeatOut(layers{k});
             end
             this.layers   = layers;
-            this.outTimes = outTimes;
-            this.Q        = Q;
         end
         
         % ---------- counting thetas, input and output features -----
@@ -74,19 +68,14 @@ classdef NN < abstractMeganetElement
             end
         end
         
-        function n = nFeatIn(this)
-            n = nFeatIn(this.layers{1});
+        
+        
+        function n = sizeFeatIn(this)
+            n = sizeFeatIn(this.layers{1});
         end
         
-        function n = nFeatOut(this)
-            n = nFeatOut(this.layers{end});
-        end
-        
-        function n = nDataOut(this)
-            n=0;
-            for k=1:numel(this.layers)
-                n = n+this.outTimes(k)* nFeatOut(this.layers{k});
-            end
+        function n = sizeFeatOut(this)
+            n = sizeFeatOut(this.layers{end});
         end
         
         function theta = initTheta(this)
@@ -109,20 +98,20 @@ classdef NN < abstractMeganetElement
         end
         
         % --------- forward problem ----------
-        function [Ydata,Y,tmp] = apply(this,theta,Y0)
-            Y = Y0;
+        function [Y,tmp] = forwardProp(this,theta,Y,varargin)
+            doDerivative = (nargout>1);
+            for k=1:2:length(varargin)     % overwrites default parameter
+                eval([varargin{k},'=varargin{',int2str(k+1),'};']);
+            end
+            
             nt = numel(this.layers);
             
-            if nargout>1;    tmp = cell(nt,2); end
-            Ydata = [];
+            if doDerivative;    tmp = cell(nt,2); end
             cnt = 0;
             for i=1:nt
                 ni = nTheta(this.layers{i});
-                if (nargout>1), tmp{i,1} = Y; end
-                [Y,~,tmp{i,2}] = this.layers{i}.apply(theta(cnt+(1:ni)),Y);
-                if this.outTimes(i)==1 
-                    Ydata = [Ydata; this.Q*Y];
-                end
+                if doDerivative, tmp{i,1} = Y; end
+                [Y,tmp{i,2}] = this.layers{i}.forwardProp(theta(cnt+(1:ni)),Y,'doDerivative',doDerivative);
                 cnt = cnt + ni;
             end
         end
@@ -135,99 +124,71 @@ classdef NN < abstractMeganetElement
             for i=1:nt
                 ni = nTheta(this.layers{i});
                 thetaNorm(cnt+(1:ni)) = getNormalizedWeights(this.layers{i},theta(cnt+(1:ni)),Y,nL,thetaNL);
-                Y = this.layers{i}.apply(theta(cnt+(1:ni)),Y);
+                Y = this.layers{i}.forwardProp(theta(cnt+(1:ni)),Y);
                 cnt = cnt + ni;
             end
         end
         % -------- Jacobian matvecs --------
-        function [dYdata,dY] = JYmv(this,dY,theta,~,tmp)
+
+        function dY = JYmv(this,dY,theta,~,tmp)
             nt = numel(this.layers);
             cnt = 0;
-            dYdata = [];
             for i=1:nt
                 ni = nTheta(this.layers{i});
                 dY = JYmv(this.layers{i},dY,theta(cnt+(1:ni)),...
                     tmp{i,1},tmp{i,2});
-                if this.outTimes(i)==1
-                    dYdata = [dYdata; this.Q*dY];
-                end
                 cnt = cnt+ni;
             end
         end
         
-        function [dYdata,dY] = Jmv(this,dtheta,dY,theta,~,tmp)
+
+        function dY = Jmv(this,dtheta,dY,theta,~,tmp)
             nt = numel(this.layers);
             if isempty(dY); dY = 0.0; end
             
-            dYdata= [];
             cnt = 0; 
             for i=1:nt
                 ni = nTheta(this.layers{i});
                 dY = this.layers{i}.Jmv(dtheta(cnt+(1:ni)),dY,theta(cnt+(1:ni)),...
                     tmp{i,1},tmp{i,2});
-                if this.outTimes(i)==1
-                    dYdata = [dYdata; this.Q*dY];
-                end
                 cnt = cnt+ni;
             end
         end
         
         % -------- Jacobian' matvecs --------
-        function W = JYTmv(this,Wdata,W,theta,Y,tmp)
-            nex = numel(Y)/nFeatIn(this);
-            if ~isempty(Wdata)
-                Wdata = reshape(Wdata,[],nex);
-            end
+        function W = JYTmv(this,W,theta,Y,tmp)
             if isempty(W)
                 W = 0;
-            elseif numel(W)>1
-                W     = reshape(W,[],nex);
             end
             nt = numel(this.layers);
             
-            cnt = 0; cnt2 = 0;
+            cnt = 0;
             for i=nt:-1:1
                 Yi = tmp{i,1};
                 ni = nTheta(this.layers{i});
-                if this.outTimes(i)==1
-                    nn = nFeatOut(this.layers{i});
-                    W = W + this.Q'*Wdata(end-cnt2-nn+1:end-cnt2,:);
-                    cnt2 = cnt2 + nn;
-                end
-                W  = JYTmv(this.layers{i}, W,[],theta(end-cnt-ni+1:end-cnt),...
+                W  = JYTmv(this.layers{i}, W,theta(end-cnt-ni+1:end-cnt),...
                     Yi,tmp{i,2});
                 cnt = cnt+ni;
             end
         end
             
-        function [dtheta,W] = JTmv(this,Wdata,W,theta,Y,tmp,doDerivative)
-            if not(exist('doDerivative','var')) || isempty(doDerivative); 
+        function [dtheta,W] = JTmv(this,W,theta,Y,tmp,doDerivative)
+            if not(exist('doDerivative','var')) || isempty(doDerivative) 
                doDerivative =[1;0]; 
             end
-            
-            nex = numel(Y)/nFeatIn(this);
-            if ~isempty(Wdata)
-                Wdata = reshape(Wdata,[],nex);
-            end
+          
             if isempty(W)
                 W = 0;
-            elseif numel(W)>1
-                W     = reshape(W,[],nex);
             end
             
             dtheta = 0*theta;
             nt = numel(this.layers);
             
-            cnt = 0; cnt2 = 0;
+            cnt = 0; 
             for i=nt:-1:1
                 Yi = tmp{i,1};
-                if this.outTimes(i)==1
-                    nn = nFeatOut(this.layers{i});
-                    W = W+ this.Q'*Wdata(end-cnt2-nn+1:end-cnt2,:);
-                    cnt2 = cnt2 + nn;
-                end
-                ni        = nTheta(this.layers{i});
-                [dmbi,W] = JTmv(this.layers{i},W,[],theta(end-cnt-ni+1:end-cnt),...
+                ni = nTheta(this.layers{i});
+                [dmbi,W] = JTmv(this.layers{i},W,theta(end-cnt-ni+1:end-cnt),...
                     Yi,tmp{i,2});
                 dtheta(end-cnt-ni+1:end-cnt)  = dmbi;
                 cnt = cnt+ni;
@@ -294,7 +255,6 @@ classdef NN < abstractMeganetElement
                     this.layers{k}.useGPU  = value;
                 end
             end
-            this.Q = gpuVar(value,this.precision,this.Q);
         end
         function this = set.precision(this,value)
             if not(strcmp(value,'single') || strcmp(value,'double'))
@@ -304,7 +264,6 @@ classdef NN < abstractMeganetElement
                     this.layers{k}.precision  = value;
                 end
             end
-            this.Q = gpuVar(this.useGPU,value,this.Q);
         end
         function useGPU = get.useGPU(this)
             useGPU = this.layers{1}.useGPU;
@@ -336,11 +295,10 @@ classdef NN < abstractMeganetElement
              layers{2} = singleLayer(dense([8 4]));
             
             net = NN(layers);
-            net.outTimes = [1;1];
             mb  = randn(nTheta(net),1);
             
             Y0  = randn(2,nex);
-            [Ydata,~,tmp]   = net.apply(mb,Y0);
+            [Ydata,tmp]   = net.forwardProp(mb,Y0);
             dmb = randn(size(mb));
             dY0 = randn(size(Y0));
             
@@ -348,7 +306,7 @@ classdef NN < abstractMeganetElement
             for k=1:14
                 hh = 2^(-k);
                 
-                Yt = net.apply(mb+hh*dmb(:),Y0+hh*dY0);
+                Yt = net.forwardProp(mb+hh*dmb(:),Y0+hh*dY0);
                 
                 E0 = norm(Yt(:)-Ydata(:));
                 E1 = norm(Yt(:)-Ydata(:)-hh*dY(:));

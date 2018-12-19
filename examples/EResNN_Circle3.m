@@ -33,7 +33,7 @@ pLoss = logRegressionLoss();
 regOp1 = opEye(nTheta(block1));
 regOp2 = opTimeDer(nTheta(block2),nt,h);
 pRegK = tikhonovReg(blkdiag(regOp1,regOp2),1e-2,[]);
-regOpW = opEye((nFeatOut(net)+1)*size(Ctrain,1));
+regOpW = opEye((sizeFeatOut(net)+1)*size(Ctrain,1));
 pRegW = tikhonovReg(regOpW,1e-2);
 
 classSolver = newton();
@@ -51,13 +51,12 @@ fval = dnnObjFctn(net,[],pLoss,[],Yv,Cv);
 
 % th0 = 1e0*max(randn(nTheta(net),1),0);
 th0 = [initTheta(block1); repmat(1e-1*[randn(9,1);0],nt,1)];
-%  W0  = randn((nDataOut(net)+1)*size(Ctrain,1),1);
 % W0  = [1;0;0;0;1;0]
 thetaOpt = solve(opt,fctn,th0,fval);
 [Jc,para] = eval(fctn,thetaOpt);
 WOpt = para.W;
 %%
-[Ydata,Yn,tmp] = apply(net,thetaOpt,Yv);
+[Yn,tmp] = forwardProp(net,thetaOpt,Yv);
 figure(1);
 subplot(1,3,2);
 viewFeatures3D(Yn,Cv);

@@ -1,13 +1,16 @@
 classdef tvNormLayer < abstractMeganetElement
     % classdef tvNormLayer < abstractMeganetElement
     %
-    % tailored implementation of total variation normalization layer. Same can be
-    % achieved by stacking an affineScalingLayer and a normLayer in a
-    % Neural Network. However, this would entail unnecessary temp
-    % variables.
+    % tailored implementation of total variation normalization layer applicable to CNNs. 
+    %
+    % The idea is to normalize pixel-wise by the length of the feature
+    % vector, i.e.,
+    %
+    %  Z = diag( sqrt( sum(Y.^2,3)+eps)) Y
+    %
     properties
-        nData       % describe size of data, at least first threes dim must be correct.
-        isWeight     % transformation type
+        nData       % describe size of data, at least first three dim must be correct.
+        isWeight    % boolean, 1 if trainable weights for an affine transformation are provided.
         useGPU      % flag for GPU computing 
         precision   % flag for precision 
         eps
@@ -16,11 +19,13 @@ classdef tvNormLayer < abstractMeganetElement
         function this = tvNormLayer(nData,varargin)
             if nargin==0
                 help(mfilename)
+                this.runMinimalExample
                 return;
             end
             useGPU     = 0;
             precision  = 'double';
             eps = 1e-4;
+            isWeight = 0;
             for k=1:2:length(varargin)     % overwrites default parameter
                     eval([varargin{k},'=varargin{',int2str(k+1),'};']);
             end
@@ -29,118 +34,140 @@ classdef tvNormLayer < abstractMeganetElement
             this.precision = precision;
             this.nData = nData;
             this.eps = eps;
-        end
-        function [s2,b2] = split(this,theta)
-            s2 = reshape(theta(1:this.nData(3)),1,this.nData(3),1);
-            cnt = numel(s2);
-            b2 = reshape(theta(cnt+(1:this.nData(3))),1,this.nData(3),1);
+            this.isWeight=isWeight;
         end
         
-        function [Ydata,Y,dA] = apply(this,theta,Y,varargin)
-           Y   = reshape(Y,this.nData(1)*this.nData(2), this.nData(3),[]); dA = [];
-           nex = size(Y,3);
+        function runMinimalExample(this)
+            data = load('clown');
+            Y    = data.X;
+            nImg = size(Y);
+            
+            K     = convFFT(nImg, [3 3 1 2]);
+            dx    = [0 0 0; -1 1 0; 0 0 0];
+            dy    = [0 1 0; 0 -1 0; 0 0 0];
+            theta = [dx(:); dy(:)];
+            nL    = feval(mfilename,[nImg 2]);
+            layer = doubleSymLayer(K,'normLayer1', nL, 'activation',@identityActivation);
+            nt = 100; h = 0.2;
+            net   = ResNN(layer,nt,h);
+            
+            YN = forwardProp(net,repmat(theta,nt,1),Y);
+            
+            
+            figure(1); clf;
+            subplot(2,2,1);
+            imagesc(Y); 
+            title('input image')
+            
+            subplot(2,2,2);
+            imagesc(YN);
+            title('tv denoised image')
+            
+            subplot(2,2,3);
+            surf(Y,'EdgeColor','none'); 
+            title('input image, surf plot')
+            
+            subplot(2,2,4);
+            surf(YN,'EdgeColor','none');
+            title('tv denoised image, surf plot')
+                
+        end
+        
+        function [s,b] = split(this,theta)
+            if this.isWeight
+                s = reshape(theta(1:this.nData(3)),1,1,this.nData(3),1);
+                cnt = numel(s);
+                b = reshape(theta(cnt+(1:this.nData(3))),1,1,this.nData(3),1);
+            else
+                s = []; b = [];
+            end
+        end
+        
+        function [Y,dA] = forwardProp(this,theta,Y,varargin)
+           dA = [];
            % normalization
-           Y  = Y-mean(Y,2);
-           Y  = Y./sqrt(mean(Y.^2,2)+this.eps);
+           Y  = Y./sqrt(sum(Y.^2,3)+this.eps);
            
-           % scaling
-           [s2,b2] = split(this,theta);           
-           Y = Y.*s2;
-           Y = Y + b2;
-           Y = reshape(Y,[],nex);
-           Ydata = Y;
+           if this.isWeight
+               % affine scaling along channels
+               [s,b] = split(this,theta);           
+               Y = Y.*s;
+               Y = Y + b;
+           end
         end
         
         
         function n = nTheta(this)
-            n = 2*this.nData(3);
+            n = this.isWeight*2*this.nData(3);
         end
         
-        function n = nFeatIn(this)
-            n = prod(this.nData(1:3));
+        function n = sizeFeatIn(this)
+            n = this.nData(1:3);
         end
         
-        function n = nFeatOut(this)
-            n = prod(this.nData(1:3));
-        end
-       
-        function n = nDataOut(this)
-            n = nFeatOut(this);
+        function n = sizeFeatOut(this)
+            n = this.nData(1:3);
         end
         
         function theta = initTheta(this)
-            [s2,b2] = split(this,ones(this.nTheta,1));
-            theta = [s2(:); 0*b2(:);];
+            [s,b] = split(this,ones(this.nTheta,1));
+            theta = [s(:); 0*b(:);];
             theta = gpuVar(this.useGPU,this.precision,theta);
         end
         
         
-        function [dYdata,dY] = Jthetamv(this,dtheta,theta,Y,~)
-           Y   = reshape(Y,this.nData(1)*this.nData(2), this.nData(3),[]);
-           nex = size(Y,3);
-           [ds2,db2] = split(this,dtheta);
+        function [dY] = Jthetamv(this,dtheta,theta,Y,~)
            
-           % normalization
-           Y  = Y-mean(Y,2);
-           Y  = Y./sqrt(mean(Y.^2,2)+this.eps);
-           
-           % scaling
-           dY = Y.*ds2;
-           dY = dY + db2;
-           
-           dY = reshape(dY,[],nex);
-           dYdata = dY;
+           if this.isWeight
+               % compute derivative when affine scaling layer is present
+               dY  = Y./sqrt(sum(Y.^2,3)+this.eps);
+               [ds,db] = split(this,dtheta);
+               dY = dY.*ds;
+               dY = dY + db;
+           else
+               dY = 0*Y;
+           end
         end
         
-        function dtheta = JthetaTmv(this,Z,~,theta,Y,~)
-            Y   = reshape(Y,this.nData(1)*this.nData(2), this.nData(3),[]);
-            Z   = reshape(Z,this.nData(1)*this.nData(2), this.nData(3),[]);
-            % normalization
-           Y  = Y-mean(Y,2);
-           Y  = Y./sqrt(mean(Y.^2,2)+this.eps);
-           
-            W = Y.*Z;
-            dtheta     = vec(sum(sum(W,1),3));
-            dtheta = [dtheta; vec(sum(sum(Z,1),3))];
+        function dtheta = JthetaTmv(this,Z,theta,Y,~)
+            if this.isWeight
+                % compute derivative when affine scaling layer is present
+                Y  = Y./sqrt(sum(Y.^2,3)+this.eps);
+                
+                W = Y.*Z;
+                dtheta     = vec(sum(sum(sum(W,1),2),4));
+                dtheta = [dtheta; vec(sum(sum(sum(Z,1),2),4))];
+            else
+                dtheta = [];
+            end
         end
        
         
-        function [dYdata,dY] = JYmv(this,dY,theta,Y,~)
-            dY   = reshape(dY,this.nData(1)*this.nData(2), this.nData(3),[]);
-            nex = size(dY,3);
-            s2 = split(this,theta);
+        function dY = JYmv(this,dY,theta,Y,~)
             
-            % normalization
-            nf  = this.nData(2);
-            Y    = reshape(Y,[],nf,nex);
+            den = sqrt(sum(Y.^2,3)+this.eps);
+            dY = dY./den  - (Y.* (sum(Y.*dY,3) ./(den.^3))) ;
             
-            Fy  = Y-mean(Y,2);
-            FdY = dY-mean(dY,2);
-            den = sqrt(mean(Fy.^2,2)+this.eps);
-            
-            dY = FdY./den  - (Fy.* (mean(Fy.*FdY,2) ./(den.^3))) ;
-            % scaling
-            dY = dY.*s2;
-            dY = reshape(dY,[],nex);
-            dYdata = dY;
+            if this.isWeight
+                % affine scaling
+                s = split(this,theta);
+                dY = dY.*s;
+            end
         end
         
-        function dY = JYTmv(this,dY,~,theta,Y,~)
-           dY   = reshape(dY,this.nData(1)*this.nData(2), this.nData(3),[]); 
-           Y   = reshape(Y,this.nData(1)*this.nData(2), this.nData(3),[]); 
-           nex = size(dY,3);
-           % scaling
-           s2 = split(this,theta);
-           dY = dY.*s2;
-           
+        function dY = JYTmv(this,dY,theta,Y,~)
+            
+            if this.isWeight
+                % affine scaling
+                s = split(this,theta);
+                dY = dY.*s;
+            end
+            
            % normalization
-           Fy  = Y-mean(Y,2);
-           FdY = dY-mean(dY,2);
-           den = sqrt(mean(Fy.^2,2)+this.eps);
+           den = sqrt(sum(Y.^2,3)+this.eps);
            
-           tt = mean(Fy.*FdY,2) ./(den.^3);
-           dY = FdY./den  - Fy.*tt;
-           dY = reshape(dY,[],nex);
+           tt = sum(Y.*dY,3) ./(den.^3);
+           dY = dY./den  - Y.*tt;
         end
         
         

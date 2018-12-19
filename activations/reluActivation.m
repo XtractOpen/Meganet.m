@@ -32,7 +32,7 @@ dA = [];
 
 A = max(Y,0);
 
-if doDerivative
+if doDerivative && nargout==2
 %     dA = sign(Y);
     dA = Y>=0;
 end

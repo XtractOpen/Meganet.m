@@ -1,4 +1,4 @@
-close all; clear all;
+% close all; clear all;
 
 [Ytrain,Ctrain] = setupPeaks(5000,5);
 [Yv,Cv] = setupPeaks(200,5);
@@ -52,7 +52,7 @@ alpha  = 5e-6;
 reg1 = tikhonovReg(opEye(nTheta(block1)),alpha);
 reg2 = tikhonovReg(opTimeDer(nTheta(block2),nt,h),alpha);
 pRegTh = blockReg({reg1,reg2});
-regOpW = opEye((nFeatOut(net)+1)*size(Ctrain,1));
+regOpW = opEye((sizeFeatOut(net)+1)*size(Ctrain,1));
 pRegW = tikhonovReg(regOpW,1e-10);
 
 %% setup classification and Newton solver for this subproblem
@@ -80,7 +80,7 @@ thetaOpt  = solve(opt,fctn,th0,fval);
 WOpt      = reshape(para.W,[],5);
 
 %% plot results
-[Ydata,Yn,tmp] = apply(net,thetaOpt,Yv);
+[Yn,tmp] = forwardProp(net,thetaOpt,Yv);
 figure(1);
 subplot(1,2,2);
 viewContour2D([-3 3 -3 3],thetaOpt,WOpt,net,pLoss);

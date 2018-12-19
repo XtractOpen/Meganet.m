@@ -10,6 +10,7 @@ classdef convFFTTest < kernelTest
             ks{3} = convFFT([14 24],[3 3,2,2],'useGPU',0);
             ks{4} = convFFT([14 24],[3 3,2,4],'useGPU',0,'precision','single');
             ks{4} = convFFT([14 24],[3 3,2,5],'precision','single');
+            ks{4} = convFFT([14 24],[3 3,2,5],'precision','single','Q',randn(3*3*2*5,8));
             testCase.kernels = ks;
         end
     end

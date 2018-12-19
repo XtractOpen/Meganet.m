@@ -6,12 +6,12 @@ if nargin==0
 end
 markerSize = 10;
 
-for k=1:2:length(varargin),     % overwrites default parameter
+for k=1:2:length(varargin)     % overwrites default parameter
     eval([varargin{k},'=varargin{',int2str(k+1),'};']);
-end;
+end
 
 nclass = size(C,1);
-if size(Y,1)>2;
+if size(Y,1)>2
     warning('Y has too many features. Using first two columns');
     Y = Y(1:2,:);
 end
@@ -33,7 +33,7 @@ hold off
 
 function runMinimalExample
 
-[Y,C] = setupBox;
+[Y,C] = setupPeaks;
 figure(1); clf;
 feval(mfilename,Y,C);
 title('labeled points');

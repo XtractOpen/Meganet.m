@@ -3,7 +3,7 @@ pLoss = regressionLoss();
 
 a = 3;
 b = 2;
-Sour
+% Sour
 Y = randn(500,2);
 W = randn(10,501);
 C = randn(10,2);

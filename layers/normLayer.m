@@ -54,13 +54,7 @@ classdef normLayer < abstractMeganetElement
             Y = nEl*Y;
         end
         
-        function [Ydata,Y,dA] = apply(this,~,Y,varargin)
-            
-            % first organize Y with channels
-            nf  = this.nData(2);
-            nex = numel(Y)/nFeatIn(this);
-            Y = reshape(Y,[],nf,nex);
-            
+        function [Y,dA] = forwardProp(this,~,Y,varargin)
             dA = [];
             for k=1:2:length(varargin)     % overwrites default parameter
                 eval([varargin{k},'=varargin{',int2str(k+1),'};']);
@@ -71,24 +65,18 @@ classdef normLayer < abstractMeganetElement
             
             % normalize
             Y  = Y./sqrt(compMean(this,Y.^2)+this.eps);
-                       
-            Ydata = reshape(Y,[],nex);
         end
         
         function n = nTheta(this)
             n = 0;
         end
         
-        function n = nFeatIn(this)
-            n = prod(this.nData(1:2));
+        function n = sizeFeatIn(this)
+            n = this.nData;
         end
         
-        function n = nFeatOut(this)
-            n = prod(this.nData(1:2));
-        end
-        
-        function n = nDataOut(this)
-            n = nFeatOut(this);
+        function n = sizeFeatOut(this)
+            n = this.nData;
         end
         
         function theta = initTheta(this)
@@ -96,11 +84,11 @@ classdef normLayer < abstractMeganetElement
         end
         
         
-        function [dZ] = Jthetamv(this,dtheta,theta,Y,dA)
+        function dZ = Jthetamv(this,dtheta,theta,Y,dA)
             dZ = 0*Y;
         end
         
-        function [dZ] = JYmv(this,dY,theta,Y,dA)
+        function dZ = JYmv(this,dY,theta,Y,dA)
             %
             % Z(Y) = (Y- Av*Y)./sqrt((Y-Av*Y).^2 + eps)
             %
@@ -115,21 +103,20 @@ classdef normLayer < abstractMeganetElement
             % T = 1./sqrt(A*(T).^2 + eps)
             %
             % A = A*diag(Fy)*Fy --> A' = A*diag(Fy)
-            
-            nex = numel(dY)/nFeatIn(this);
+
+            nex = numel(dY)/numelFeatIn(this);
             nf  = this.nData(2);
             dY   = reshape(dY,[],nf,nex);
             Y    = reshape(Y,[],nf,nex);
-            
+
             Fy  = Y-compMean(this,Y);
             FdY = dY-compMean(this,dY);
             den = sqrt(compMean(this,Fy.^2)+this.eps);
             
             dZ = FdY./den  - ( Fy.* (compMean(this,Fy.*FdY) ./(den.^3))) ;
-            dZ = reshape(dZ,[],nex);
         end
         
-        function [dZ] = Jmv(this,~,dY,theta,Y,dA)
+        function dZ = Jmv(this,~,dY,theta,Y,dA)
             if numel(dY)==1 && dY==0
                 dZ = 0*Y;
             else
@@ -138,31 +125,28 @@ classdef normLayer < abstractMeganetElement
             
         end
         
-        function [dtheta,dY] = JTmv(this,Z,~,theta,Y,dA,doDerivative)
+        function [dtheta,dY] = JTmv(this,Z,theta,Y,dA,doDerivative)
             dtheta = [];
             if not(exist('doDerivative','var')) || isempty(doDerivative)
                doDerivative =[1;0]; 
             end
-            dY     = JYTmv(this,Z,[],theta,Y,dA);
-            
+            dY     = JYTmv(this,Z,theta,Y,dA);
             if nargout==1 && all(doDerivative==1)
                 dtheta = [dtheta(:);dY(:)];
             end
-
         end
         
-        function dtheta = JthetaTmv(this,Z,~,theta,Y,dA)
+        function dtheta = JthetaTmv(this,Z,theta,Y,dA)
             dtheta = [];
         end
         
-        function dY = JYTmv(this,Z,~,theta,Y,dA)
-                        
-            nex = numel(Y)/nFeatIn(this);
-            nf  = this.nData(2);
+        function dY = JYTmv(this,Z,theta,Y,dA)
             
+            nex = numel(Y)/numelFeatIn(this);
+            nf  = this.nData(2);
             Z   = reshape(Z,[],nf,nex);
             Y    = reshape(Y,[],nf,nex);
-            
+                        
             Fy  = Y-compMean(this,Y);
             FdY = Z-compMean(this,Z);
             den = sqrt(compMean(this,Fy.^2)+this.eps);
@@ -170,7 +154,6 @@ classdef normLayer < abstractMeganetElement
             dY = FdY./den  - ( Fy.* (compMean(this,Fy.*FdY) ./(den.^3)));
             clear Fy FdY;
             dY = dY - compMean(this,dY);
-            dY = reshape(dY,[],nex);
         end
         
         function runMinimalExample(this)
@@ -182,23 +165,23 @@ classdef normLayer < abstractMeganetElement
             
             L = batchNormLayer(nfilt,nFeat);
             
-            
-            [Ydata,~,dA]   = L.apply([],Y0);
+           
+            [Y,dA]   = L.forwardProp([],Y0);
             dY0  = randn(size(Y0));
             
             dY = L.Jmv([],dY0,[],Y0,dA);
             for k=1:14
                 hh = 2^(-k);
                 
-                Yt = L.apply([],Y0+hh*dY0);
+                Yt = L.forwardProp([],Y0+hh*dY0);
                 
-                E0 = norm(Yt(:)-Ydata(:));
-                E1 = norm(Yt(:)-Ydata(:)-hh*dY(:));
+                E0 = norm(Yt(:)-Y(:));
+                E1 = norm(Yt(:)-Y(:)-hh*dY(:));
                 
                 fprintf('h=%1.2e\tE0=%1.2e\tE1=%1.2e\n',hh,E0,E1);
             end
             
-            W = randn(size(Ydata));
+            W = randn(size(Y));
             t1  = W(:)'*dY(:);
             
             [~,dWY] = L.JTmv(W,[],[],Y0,dA);

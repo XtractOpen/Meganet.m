@@ -4,7 +4,7 @@ function [thi,wi,idi]=  inter1D(theta,ttheta,ti)
 % Piecewise linear 1D interpolation of vector-valued data. 
 %
 % Given theta(:,i), which is the data measured at time point ttheta(i),
-% compute values at all time points ti(j) using pievewise linear
+% compute values at all time points ti(j) using piecewise linear
 % interpolation.
 %
 % Example: 

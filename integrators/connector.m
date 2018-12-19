@@ -2,10 +2,8 @@ classdef connector < abstractMeganetElement
     % connector block that applies Y = K*Y0 + b, where K and b are fixed
     
     properties
-        K
+        K   % numeric K is unsupported, use LinearOperator(K)
         b
-        outTimes 
-        Q
         useGPU
         precision
     end
@@ -17,8 +15,6 @@ classdef connector < abstractMeganetElement
                 this.runMinimalExample;
                 return;
             end
-            outTimes = 0;
-            Q = 1.0;
             for k=1:2:length(varargin)     % overwrites default parameter
                 eval([varargin{k},'=varargin{',int2str(k+1),'};']);
             end
@@ -27,70 +23,42 @@ classdef connector < abstractMeganetElement
                 b = 0.0;
             end
             
+            if isnumeric(K) && ndims(K)==2
+               K = LinearOperator(K); 
+            end
             this.K = K;
             this.b = b;
-            this.outTimes = outTimes;
-            this.Q = Q;
         end
         
         % -------- counting ---------
         function np = nTheta(this)
             np = 0;
         end
-        function n = nFeatIn(this)
-            n = size(this.K,2);
+        function n = sizeFeatIn(this)
+                n = this.K.n;
         end
-        function n = nFeatOut(this)
-            n = size(this.K,1);
-        end
-        function n = nDataOut(this)
-            if numel(this.Q)==1
-                n = nnz(this.outTimes)*nFeatOut(this);
-            else
-                n = nnz(this.outTimes)*size(this.Q,1);
-            end
+        function n = sizeFeatOut(this)
+                n = this.K.m;
         end
         
         function theta = initTheta(this)
             theta = [];
         end
         
-        % -------- apply forward problem -------
-        function [Ydata,Y,tmp] = apply(this,~,Y0)
-            nex = numel(Y0)/nFeatIn(this);
-            Y0  = reshape(Y0,[],nex);
+        % -------- forwardProp forward problem -------
+        function [Y,tmp] = forwardProp(this,~,Y0,varargin)
             Y = this.K*Y0 + this.b;
-            if this.outTimes==1
-                Ydata = this.Q*Y;
-            else
-                Ydata = [];
-            end
-            tmp = {Y0};
-            tmp{2} = Y;
+            tmp = [];
         end
         
-        function [dYdata,dY] = Jmv(this,~,dY,~,~,~)
+        function dY = Jmv(this,~,dY,~,~,~)
             if (isempty(dY)); dY = 0.0; return; end
-            nex = numel(dY)/nFeatIn(this);
-            dY  = reshape(dY,[],nex);
             dY = this.K*dY;
-            if this.outTimes==1
-                dYdata = this.Q*dY;
-            else
-                dYdata = [];
-            end
         end
             
-        function [dtheta,W] = JTmv(this,Wdata,W,~,Y,~,doDerivative)
-            nex = numel(Y)/nFeatIn(this);
+        function [dtheta,W] = JTmv(this,W,~,Y,~,doDerivative)
             if isempty(W)
                 W = 0;
-            elseif not(isscalar(W))
-                W     = reshape(W,[],nex);
-            end
-            if ~isempty(Wdata)
-                Wdata = reshape(Wdata,[],nex);
-                W     = W+ this.Q'*Wdata;
             end
             
             dtheta = [];
@@ -99,14 +67,32 @@ classdef connector < abstractMeganetElement
                 dtheta=[dtheta(:); W(:)];
             end
         end
+        
+        function this = set.useGPU(this,value)
+            if (value~=0) && (value~=1)
+                error('useGPU must be 0 or 1.')
+            else
+                this.useGPU = value;
+                [this.K, this.b] = gpuVar(value,this.precision,this.K,this.b);
+            end
+        end
+        function this = set.precision(this,value)
+            if not(strcmp(value,'single') || strcmp(value,'double'))
+                error('precision must be single or double.')
+            else
+                this.precision = value;
+                [this.K, this.b] = gpuVar(this.useGPU,value,this.K,this.b);
+            end
+        end
+        
         function runMinimalExample(~)
             nex = 10;
             
-            net = connector(randn(4,2),.3,'outTimes',1);
+            net = connector(LinearOperator(randn(4,2)),.3);
             theta  = randn(nTheta(net),1);
             
             Y0  = randn(2,nex); 
-            [Ydata,~,tmp]   = net.apply(theta,Y0);
+            [Y,tmp]   = net.forwardProp(theta,Y0);
             dmb = randn(size(theta));
             dY0 = randn(size(Y0));
             
@@ -114,15 +100,15 @@ classdef connector < abstractMeganetElement
             for k=1:14
                 hh = 2^(-k);
                 
-                Yt = net.apply(theta+hh*dmb(:),Y0+hh*dY0);
+                Yt = net.forwardProp(theta+hh*dmb(:),Y0+hh*dY0);
                 
-                E0 = norm(Yt(:)-Ydata(:));
-                E1 = norm(Yt(:)-Ydata(:)-hh*dY(:));
+                E0 = norm(Yt(:)-Y(:));
+                E1 = norm(Yt(:)-Y(:)-hh*dY(:));
                 
                 fprintf('h=%1.2e\tE0=%1.2e\tE1=%1.2e\n',hh,E0,E1);
             end
             
-            W = randn(size(Ydata));
+            W = randn(size(Y));
             t1  = W(:)'*dY(:);
             
             [dWdmb,dWY] = net.JTmv(W,[],theta,Y0,tmp);

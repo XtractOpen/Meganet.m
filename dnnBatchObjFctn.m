@@ -1,7 +1,7 @@
 classdef dnnBatchObjFctn < objFctn
     % classdef dnnBatchObjFctn < objFctn
     %
-    % objective function for deep neural networks 
+    % objective function for deep neural networks
     %
     %       J(theta,C) = loss(h(W*Y(theta)), C) + Rtheta(theta) + R(W)
     %
@@ -16,29 +16,30 @@ classdef dnnBatchObjFctn < objFctn
         net         % description of DNN to be trained
         pRegTheta   % regularizer for network parameters
         pLoss       % loss function
-        pRegW       % regularizer for classifier 
+        pRegW       % regularizer for classifier
         Y           % input features
         C           % labels
-        batchSize   % batch size, default=10 (choose according to available memory, choice might be different from the batch size of SGD)
+        batchSize   % batch size, default=10 (choose according to available memory,
+        % choice might be different from the batch size of SGD)
         batchIds    % indices of batches, chosen randomly in each evaulation
         useGPU      % flag for GPU computing
         precision   % flag for precision
+        dataAugment
     end
     
     methods
         function this = dnnBatchObjFctn(net,pRegTheta,pLoss,pRegW,Y,C,varargin)
             % constructor, required inputs are a network, regularizers,
             % loss and examples.
-                       
-            
             if nargout==0 && nargin==0
                 this.runMinimalExample;
                 return;
             end
             batchSize = 10;
-            batchIds  = randperm(size(Y,2));
+            batchIds  = randperm(sizeLastDim(Y));
             useGPU    = [];
             precision = [];
+            dataAugment = @(x) x;
             for k=1:2:length(varargin)     % overwrites default parameter
                 eval([varargin{k},'=varargin{',int2str(k+1),'};']);
             end
@@ -59,6 +60,7 @@ classdef dnnBatchObjFctn < objFctn
             this.C         = C;
             this.batchSize = batchSize;
             this.batchIds  = batchIds;
+            this.dataAugment = dataAugment;
         end
         function [theta,W] = split(this,thetaW)
             % split thetaW = [theta;W] into parts associated with network
@@ -85,55 +87,65 @@ classdef dnnBatchObjFctn < objFctn
             %            printing (see hisNames and hisVals for info and parsing)
             %   dJ     - gradient
             %   H      - approximate Hessian (Gauss Newton like
-            %            approximation for each block, ignore coupling between 
+            %            approximation for each block, ignore coupling between
             %            theta and W)
             %   PC     - preconditioner
             
+            
+            
             if not(exist('idx','var')) || isempty(idx)
-                % use only examples specified in idx in the loss
+                % use all examples
                 Y = this.Y;
                 C = this.C;
             else
-                % use all examples
-                Y = this.Y(:,idx);
+                % use only examples specified in idx in the loss
+                colons = repmat( {':'} , 1 , ndims(this.Y)-1 );
+                Y = this.Y( colons{:} ,idx);
                 C = this.C(:,idx);
             end
-                
+             Y = this.dataAugment(Y);
+            
             compGrad = nargout>2;
             compHess = nargout>3;
             dJth = 0.0; dJW = 0.0; Hth = []; HW = []; PC = [];
             
-            
-            nex = size(Y,2);          % number of examples to compute loss over 
+            nex = sizeLastDim(Y);   % number of examples to compute loss over
             nb  = nBatches(this,nex); % determine number of batches for the computation
             
             [theta,W] = split(this,thetaW);
             this.batchIds  = randperm(nex);
-                        
+            
             % compute loss
             F = 0.0; hisLoss = [];
             for k=nb:-1:1
                 idk = this.getBatchIds(k,nex);
                 if nb>1
-                    Yk  = Y(:,idk);
+                    colons = repmat( {':'} , 1 , ndims(Y)-1 );
+                    Yk  = Y( colons{:} , idk);
                     Ck  = C(:,idk);
                 else
                     Yk = Y;
                     Ck = C;
                 end
                 
+                nBatchEx = sizeLastDim(Yk); % last batch may not be full
+                
                 if compGrad
-                    [YNk,~,tmp]                  = apply(this.net,theta,Yk); % forward propagation
+                    [YNk,tmp]          = forwardProp(this.net,theta,Yk); % forward propagation
                     J = getJthetaOp(this.net,theta,Yk,tmp);
+                    szYNk  = size(YNk);
+                    YNk = reshape(YNk,[],nBatchEx); % loss expects 2D input
                     [Fk,hisLk,dWFk,d2WFk,dYF,d2YF] = getMisfit(this.pLoss,W,YNk,Ck);
+                    dYF = reshape(dYF,szYNk);
                 else
-                    [YNk]        = apply(this.net,theta,Yk); % forward propagation
+                    [YNk]        = forwardProp(this.net,theta,Yk); % forward propagation
+                    YNk = reshape(YNk,[],nBatchEx);
                     [Fk,hisLk]  = getMisfit(this.pLoss,W,YNk,Ck);
                 end
                 F    = F    + numel(idk)*Fk;
                 hisLoss  = [hisLoss;hisLk];
                 if compGrad
-                    dthFk = J'*dYF;
+                    dthFk = J'*dYF; 
                     dJth  = dJth + numel(idk)*dthFk;
                     dJW   = dJW  + numel(idk)*dWFk;
                     if compHess
@@ -145,13 +157,13 @@ classdef dnnBatchObjFctn < objFctn
                     end
                 end
             end
-            F    = F/nex;
+            F    = F/nBatchEx;
             Jc   = F;
             if compGrad
-                dJth = dJth/nex;
-                dJW  = dJW/nex;
+                dJth = dJth/nBatchEx;
+                dJW  = dJW/nBatchEx;
                 if compHess
-                    HW   = HW*(1/nex);
+                    HW   = HW*(1/nBatchEx);
                     Hthmv = @(x) J'*(d2YF*(J*x));
                     Hth   = LinearOperator(numel(theta),numel(theta),Hthmv,Hthmv);
                 end
@@ -205,7 +217,7 @@ classdef dnnBatchObjFctn < objFctn
             % current weights
             %
             % Inputs:
-            % 
+            %
             %   thetaW - current weights
             %
             % Output:
@@ -217,7 +229,7 @@ classdef dnnBatchObjFctn < objFctn
             
             Cp = 0*this.C;
             P  = 0*this.C;
-            nex = size(this.Y,2);
+            nex = sizeLastDim(this.Y);
             nb = nBatches(this,nex);
             
             [theta,W] = split(this,thetaW);
@@ -225,13 +237,14 @@ classdef dnnBatchObjFctn < objFctn
             for k=nb:-1:1
                 idk = this.getBatchIds(k,nex);
                 if nb>1
-                    Yk  = this.Y(:,idk);
+                    colons = repmat( {':'} , 1 , ndims(this.Y)-1 );
+                    Yk  = this.Y( colons{:} , idk);
                 else
                     Yk = this.Y;
                 end
-                [YNk]     = apply(this.net,theta,Yk); % forward propagation
+                [YNk]     = forwardProp(this.net,theta,Yk); % forward propagation
                 [Cp(:,idk),P(:,idk)] = getLabels(this.pLoss,W,YNk);
-            end      
+            end
         end
         
         function nb = nBatches(this,nex)
@@ -299,7 +312,7 @@ classdef dnnBatchObjFctn < objFctn
                 if not(isempty(this.pRegW)); this.pRegW.useGPU       = value; end
                 
                 [this.Y,this.C] = gpuVar(value,this.precision,...
-                                                         this.Y,this.C);
+                    this.Y,this.C);
             end
         end
         function this = set.precision(this,value)
@@ -313,30 +326,30 @@ classdef dnnBatchObjFctn < objFctn
                 if not(isempty(this.pRegW)); this.pRegW.precision       = value; end
                 
                 [this.Y,this.C] = gpuVar(this.useGPU,value,...
-                                                         this.Y,this.C);
+                    this.Y,this.C);
             end
         end
         function useGPU = get.useGPU(this)
-                useGPU = -ones(3,1);
-                
-                if not(isempty(this.net)) && not(isempty(this.net.useGPU))
-                    useGPU(1) = this.net.useGPU;
-                end
-                if not(isempty(this.pRegTheta)) && not(isempty(this.pRegTheta.useGPU))
-                    useGPU(2) = this.pRegTheta.useGPU;
-                end
-                if not(isempty(this.pRegW)) && not(isempty(this.pRegW.useGPU))
-                    useGPU(3) = this.pRegW.useGPU;
-                end
-                
-                useGPU = useGPU(useGPU>=0);
-                if all(useGPU==1)
-                    useGPU = 1;
-                elseif all(useGPU==0)
-                    useGPU = 0;
-                else
-                    error('useGPU flag must agree');
-                end
+            useGPU = -ones(3,1);
+            
+            if not(isempty(this.net)) && not(isempty(this.net.useGPU))
+                useGPU(1) = this.net.useGPU;
+            end
+            if not(isempty(this.pRegTheta)) && not(isempty(this.pRegTheta.useGPU))
+                useGPU(2) = this.pRegTheta.useGPU;
+            end
+            if not(isempty(this.pRegW)) && not(isempty(this.pRegW.useGPU))
+                useGPU(3) = this.pRegW.useGPU;
+            end
+            
+            useGPU = useGPU(useGPU>=0);
+            if all(useGPU==1)
+                useGPU = 1;
+            elseif all(useGPU==0)
+                useGPU = 0;
+            else
+                error('useGPU flag must agree');
+            end
         end
         function precision = get.precision(this)
             isSingle    = -ones(3,1);
@@ -347,7 +360,7 @@ classdef dnnBatchObjFctn < objFctn
             if not(isempty(this.pRegW)) &&  not(isempty(this.pRegW.precision))
                 isSingle(3) = strcmp(this.pRegW.precision,'single');
             end
-                isSingle = isSingle(isSingle>=0);
+            isSingle = isSingle(isSingle>=0);
             if all(isSingle==1)
                 precision = 'single';
             elseif all(isSingle==0)
@@ -355,17 +368,16 @@ classdef dnnBatchObjFctn < objFctn
             else
                 error('precision flag must agree');
             end
-
+            
         end
-
+        
         function runMinimalExample(~)
             
             nex    = 400; nf =2;
             
             blocks = cell(2,1);
             blocks{1} = NN({singleLayer(dense([2*nf nf]))});
-            outTimes = ones(10,1);
-            blocks{2} = ResNN(doubleLayer(dense([2*nf 2*nf]),dense([2*nf 2*nf])),10,.1,'outTimes',outTimes);
+            blocks{2} = ResNN(doubleLayer(dense([2*nf 2*nf]),dense([2*nf 2*nf])),10,.1);
             net    = Meganet(blocks);
             nth = nTheta(net);
             theta  = randn(nth,1);
@@ -384,7 +396,7 @@ classdef dnnBatchObjFctn < objFctn
             
             
             pLoss = softmaxLoss();
-            W = vec(randn(2,nDataOut(net)+1));
+            W = vec(randn(2,numelFeatOut(net)+1));
             pRegW  = tikhonovReg(.01*speye(numel(W)));
             pRegTheta    = tikhonovReg(.01*speye(numel(theta)));
             
@@ -393,8 +405,8 @@ classdef dnnBatchObjFctn < objFctn
             fv1 = dnnObjFctn(net,[],pLoss,[],Yv,Cv);
             fv2 = dnnBatchObjFctn(net,[],pLoss,[],Yv,Cv);
             
-            % [Jc,para,dJ,H,PC] = fctn([Kb(:);W(:)]);
-            % checkDerivative(fctn,[Kb(:);W(:)])
+            [Jc,para,dJ,H,PC] = f2.eval([theta(:);W(:)],[]);
+            checkDerivative(f2,[theta(:);W(:)])
             
             opt =sd('out',1,'maxIter',20);
             [KbW1] = solve(opt,f1,[theta(:); W(:)],fv1);
@@ -404,13 +416,3 @@ classdef dnnBatchObjFctn < objFctn
         end
     end
 end
-
-
-
-
-
-
-
-
-
-

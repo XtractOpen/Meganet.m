@@ -4,14 +4,14 @@ classdef convFFT < convKernel
     %
     % Transforms feature using affine linear mapping
     %
-    %     Y(theta,Y0) =  K(theta_1) * Y0 
+    %     Y(theta,Y0) =  K(Q*theta) * Y0 
     %
     %  where 
     % 
     %      K - convolution matrix (computed using FFTs for periodic bc)
     
     properties
-        S 
+        S % the eigenvalues
     end
     
     methods
@@ -43,27 +43,37 @@ classdef convFFT < convKernel
 
         function runMinimalExample(~)
             nImg   = [16 16];
-            %sK     = [3 3,4,4];
-            sK     = [1 1,4,4];
+            sK     = [3 3,2,4];   % [nRows, nCols, nChanIn, nChanOut]
+            % sK     = [1 1,4,4]; 
             
             kernel = feval(mfilename,nImg,sK);
             
             theta1 = rand(sK); 
-            theta1(:,1,:) = -1; theta1(:,1,:) = 1;
+            theta1(:,:,1:2,1:2) = -1; theta1(:,2,:,:) = 1; % vert edge detection
+            theta1(:,:,:,4) = -1; theta1(2,:,:,3:4) = 1; % horix edge detection
             theta  = [theta1(:);];
 
-            I  = rand(nImgIn(kernel)); I(4:12,4:12,:) = 2;
-            Ik = reshape(Amv(kernel,theta,I),kernel.nImgOut());
-            ITk = reshape(ATmv(kernel,theta,I),kernel.nImgOut());
+            % create random input, but with a huge rectangle in the middle
+            nex = 7;
+            I  = rand([nImgIn(kernel) nex]); I(4:12,4:12,:,:) = 2;
+            % Ik = reshape(Amv(kernel,theta,I),kernel.nImgOut);
+            Ik = Amv(kernel,theta,I);
+            ITk = ATmv(kernel,theta,Ik);
             
-            figure(1); clf;
-            subplot(1,2,1);
-            imagesc(I(:,:,1));
-            title('input');
+            % display how the learned filters perform
+            for i=1:4
+                figure(i); clf;
+                subplot(1,2,1);
+                imagesc(I(:,:,i));
+                title('input');
+
+                subplot(1,2,2);
+                imagesc(Ik(:,:,i));
+                title('output');
+            end
             
-            subplot(1,2,2);
-            imagesc(Ik(:,:,1));
-            title('output');
+            
+            
         end
         
         function A = getMat(this,theta)
@@ -82,24 +92,28 @@ classdef convFFT < convKernel
         
         function Y = Amv(this,theta,Y)
             nex   = numel(Y)/prod(nImgIn(this));
+            % nex = sizeLastDim(Y); % fails if nex=1
+            % nex = size(Y, numel(nImgOut(this))+1);
             
             % compute convolution
             AY = zeros([nImgOut(this) nex],'like',Y); %start with transpose
-            theta    = reshape(theta, [prod(this.sK(1:2)),this.sK(3:4)]);
+            % theta reshaped to [nRows*nCols, nChanIn, nChanOut]
+            theta    = reshape(this.Q*vec(theta), [prod(this.sK(1:2)),this.sK(3:4)]);
             Yh = ifft2(reshape(Y,[nImgIn(this) nex]));
-            for k=1:this.sK(4)
-                Sk = reshape(this.S*theta(:,:,k),nImgIn(this));
+            
+            % for each one of the output channels,
+            for k=1:this.sK(4) 
+                Sk = reshape(this.S*theta(:,:,k),nImgIn(this)); % use eigs to perform conv
                 T  = Sk .* Yh;
                 AY(:,:,k,:)  = sum(T,3);
             end
-            AY = real(fft2(AY));
-            Y  = reshape(AY,[],nex);
+            Y = real(fft2(AY));
         end
         
         function ATY = ATmv(this,theta,Z)
             nex =  numel(Z)/prod(nImgOut(this));
-            ATY = zeros([nImgIn(this) nex],'like',Z); %start with transpose
-            theta    = reshape(theta, [prod(this.sK(1:2)),this.sK(3:4)]);
+            ATY = zeros([nImgIn(this) nex],'like',Z); % start with transpose
+            theta    = reshape(this.Q*vec(theta), [prod(this.sK(1:2)),this.sK(3:4)]);
             
             Yh = fft2(reshape(Z,[this.nImgOut nex]));
             for k=1:this.sK(3)
@@ -112,24 +126,18 @@ classdef convFFT < convKernel
                 ATY(:,:,k,:) = sum(T,3);
             end
             ATY = real(ifft2(ATY));
-            ATY = reshape(ATY,[],nex);
         end
         
         function dY = Jthetamv(this,dtheta,~,Y,~)
-            nex    =  numel(Y)/nFeatIn(this);
-            Y      = reshape(Y,[],nex);
-            dY = getOp(this,dtheta)*Y;
+            dY   = getOp(this,dtheta)*Y;
         end
         
         function dtheta = JthetaTmv(this,Z,~,Y)
-            %  derivative of Z*(A(theta)*Y) w.r.t. theta
-            
-            nex    =  numel(Y)/nFeatIn(this);
             
             dth1    = zeros([this.sK(1)*this.sK(2),this.sK(3:4)],'like',Y);
-            Y     = permute(reshape(Y,[nImgIn(this) nex ]),[1 2 4 3]);
-            Yh    = reshape(fft2(Y),prod(this.nImg(1:2)),nex*this.sK(3));
-            Zh    = permute(ifft2(reshape(Z,[nImgOut(this) nex])),[1 2 4 3]);
+            Y     = permute(Y,[1 2 4 3]);
+            Yh    = reshape(fft2(Y),prod(this.nImg(1:2)),[]);
+            Zh    = permute(ifft2(Z),[1 2 4 3]);
             Zh     = reshape(Zh,[], this.sK(4));
             
             for k=1:prod(this.sK(1:2)) % loop over kernel components
@@ -137,11 +145,8 @@ classdef convFFT < convKernel
                 temp = reshape(temp,[],this.sK(3));
                 dth1(k,:,:) = conj(temp')*Zh;
             end
-            dtheta = real(reshape(dth1,this.sK));
+            dtheta = real(this.Q'*dth1(:));
         end
-    
-  
-        
     end
 end
 

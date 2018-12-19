@@ -6,7 +6,7 @@ classdef connectorTest < IntegratorTest
     methods (TestClassSetup)
         function addIntegrators(testCase)
             ks    = cell(1,1);
-            ks{1} = connector(randn(24,10),randn(24,1),'outTimes',1);
+            ks{1} = connector(randn(24,10),randn(24,1));
 %             ks{2} = ResNN(singleLayer(denseAntiSym([9 9])),4,.9);
 %             TT = dense([14 14]);
 %             ks{2} = ResNN(doubleLayer(TT,TT),4,.1) ;

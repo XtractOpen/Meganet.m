@@ -16,12 +16,12 @@ ya = linspace(domain(3), domain(4), N);
 [XX,YY] = meshgrid(xa,ya);
 
 Y = [XX(:) YY(:)]';
-if nFeatIn(net)>2
-    Y = [Y; zeros(nFeatIn(net)-2,size(Y,2))];
+if prod(sizeFeatIn(net)) > 2
+    Y = [Y; zeros(prod(sizeFeatIn(net))-2,size(Y,2))]; % TODO
 end
     
 if not(isempty(theta))
-    [~,Y] = apply(net,theta,Y);
+    [Y,tmp] = forwardProp(net,theta,Y);
 end
 [Cp] = getLabels(pLoss,W,Y);
 [C,ca] = contourf(xa,ya,reshape((1:size(Cp,1))*Cp,N,N));

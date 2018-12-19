@@ -10,7 +10,7 @@ classdef MegaNetTest < IntegratorTest
             blocks{1} = NN({singleLayer(dense([4 2]))});
             blocks{2} = ResNN(singleLayer(dense([4 4])),3,1);
             ks{1}    = Meganet(blocks);
-            ks{2}    = Meganet(blocks,'useGPU',0,'precision','single');
+            % ks{2}    = Meganet(blocks,'useGPU',0,'precision','single');
             testCase.integrators = ks;
         end
     end

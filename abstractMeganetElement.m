@@ -7,10 +7,10 @@ classdef abstractMeganetElement < handle
 %
 % Abstractly, a MeganetElement does the following
 %
-%  Y_k+1 = apply(theta,Y_k)
+%  Y_k+1 = forwardProp(theta,Y_k)
 %
 %
-% where 'apply' can be everything from a single affine transformation to a
+% where 'forwardProp' can be everything from a single affine transformation to a
 % ResNet block. All these operations have a similar structure, e.g.,
 % provide derivatives w.r.t. theta and Y_k, ... 
 %
@@ -20,17 +20,17 @@ classdef abstractMeganetElement < handle
 % T2  = dense([24,12])
 % net = NN({T1, T2});
 %
-% Calling apply(net,theta,Y) results in a nested evaluation
+% Calling forwardProp(net,theta,Y) results in a nested evaluation
 %
-% apply(net,theta,Y) = apply(T2, theta2, apply(T1, theta1, Y)); 
+% forwardProp(net,theta,Y) = forwardProp(T2, theta2, forwardProp(T1, theta1, Y)); 
 %
 % This example shows that each element of the network needs the following
 % functions
 %
 %  split - partition the input parameters into parameters of elements
 %          describing this object (in our case theta -> theta1, theta2 
-%  apply - evaluate the action (e.g., forward propagation, filtering, ..)
-%          in many cases this involves calling 'apply' for other objects
+%  forwardProp - evaluate the action (e.g., forward propagation, filtering, ..)
+%          in many cases this involves calling 'forwardProp' for other objects
 %          (e.g., for different layers, kernels,...)
 %  Jthetamv  - compute the action of the Jacobian w.r.t theta on a vector
 %  JthetaTmv - compute the action of the transpose(Jacobian) w.r.t theta on a vector
@@ -40,11 +40,13 @@ classdef abstractMeganetElement < handle
 % In addition, elements of this class also need to provide the folowing
 % methods
 %
-%  nTheta   - return the number of parameters, numel(theta) for this
-%              element (may have to ask lower-level elements for this)
-%  nFeatIn  - number of input features
-%  nFeatOut - number of output features
-%  initTheta - initialize parameters
+%  nTheta       - return the number of parameters, numel(theta) for this
+%                 element (may have to ask lower-level elements for this)
+%  sizeFeatIn   - input feature dimensions
+%  sizeFeatOut  - output feature dimensions
+%  numelFeatIn  - input feature number of total elements
+%  numelFeatOut - ouput feature number of total elements
+%  initTheta    - initialize parameters
 
 
 methods
@@ -55,19 +57,38 @@ methods
         n = [];
         error('children of abstractMeganetElement must provide method nTheta');
     end
-    function n = nFeatIn(~)
-        % function n = nFeatIn(this)
+    function n = sizeFeatIn(~)
+        % function n = sizeFeatIn(this)
         %
-        % return number of input features, i.e., size(Y,1)
+        % return dimensions of input features, i.e., for 2D Y, size(Y,1)
         n = [];
-        error('children of abstractMeganetElement must provide method nFeatIn');
+        error('children of abstractMeganetElement must provide method sizeFeatIn');
     end
-    function n = nFeatOut(~)
-        % function n = nFeatOut(this)
+    function n = sizeFeatOut(~)
+        % function n = sizeFeatOut(this)
         %
-        % return number of output features, i.e., size(Y_N,1)
+        % return dimensions of the output features, i.e., for 2D Y, size(Y,2)
         n = [];
-        error('children of abstractMeganetElement must provide method nFeatOut');
+        error('children of abstractMeganetElement must provide method sizeFeatOut');
+    end
+    function net = loadNet(this)
+            % by default, AbstractMeganetElements can be loaded from disk
+            net = this;
+    end
+        
+    function n = numelFeatOut(this)
+        % function n = numelFeatOut(this)
+        %
+        % return number of output features
+        n = prod(sizeFeatOut(this));
+        % error('children of abstractMeganetElement must provide method numelFeatOut');
+    end
+    function n = numelFeatIn(this)
+        % function n = numelFeatIn(this)
+        %
+        % return number of output features
+        n = prod(sizeFeatIn(this));
+        % error('children of abstractMeganetElement must provide method numelFeatIn');
     end
     function varargout = split(~,~)
         % function varargout = split(this,theta)
@@ -85,7 +106,7 @@ methods
     end
         
         % ---------derivatives for Y --------
-        function dY = JYTmv(this,Wdata,W,theta,Y,tmp)
+        function dY = JYTmv(this,W,theta,Y,tmp)
             % dY = abstractMeganetElement.JYTmv(this,W,theta,Y,tmp)
             %
             % computes dY = transpose(J_Y(theta,Y))*W 
@@ -102,9 +123,10 @@ methods
             % Output: 
             %
             %   dY     - directional derivative, numel(dY)==numel(Y)
-            [~,dY] = JTmv(this,Wdata,W,theta,Y,tmp);
+            [~,dY] = JTmv(this,W,theta,Y,tmp);
         end
-        function [dYdata,dY] = JYmv(this,dY,theta,Y,tmp)
+        
+        function dY = JYmv(this,dY,theta,Y,tmp)
             % dZ = abstractMeganetElement.JYTmv(this,W,theta,Y,tmp)
             %
             % computes dZ = J_Y(theta,Y)*dY
@@ -121,7 +143,8 @@ methods
             % Output: 
             %
             %   dZ     - directional derivative, numel(dZ)==numel(Z)
-            [dYdata,dY] = Jmv(this,[],dY,theta,Y,tmp);
+
+            dY = Jmv(this,[],dY,theta,Y,tmp);
         end
         
         function [this,theta] = prolongateWeights(this,theta)
@@ -148,7 +171,7 @@ methods
             %
             %   Z     - current output features
             %   J     - Jacobian, LinearOperator
-            [Z,~,tmp]  = apply(this,theta,Y);
+            [Z,tmp]  = forwardProp(this,theta,Y);
             J        = getJYOp(this,theta,Y,tmp);
         end
         
@@ -171,18 +194,17 @@ methods
             %   dY     - directional derivative, numel(dY)==numel(Y)
             
             if nargin<4; tmp=[]; end
-            nex    = numel(Y)/nFeatIn(this);
-            m      = nex*nDataOut(this);
-            n      = numel(Y);
+            m      = [sizeFeatOut(this) size(Y,ndims(Y))];
+            n      = size(Y);
             Amv    = @(x) JYmv(this,x,theta,Y,tmp);
-            ATmv   = @(x) JYTmv(this,x,[],theta,Y,tmp);
+            ATmv   = @(x) JYTmv(this,x,theta,Y,tmp);
             J      = LinearOperator(m,n,Amv,ATmv);
         end
 
         
 
         % -------- derivatives for theta ---------
-        function [dYdata,dY] = Jthetamv(this,dtheta,theta,Y,tmp)
+        function dY = Jthetamv(this,dtheta,theta,Y,tmp)
             % dZ = abstractMeganetElement.Jthetamv(this,W,theta,Y,tmp)
             %
             % computes dZ = J_theta(theta,Y)*dtheta
@@ -199,10 +221,11 @@ methods
             % Output: 
             %
             %   dZ     - directional derivative, numel(dZ)==numel(Z)
-            [dYdata,dY] = Jmv(this,dtheta,[],theta,Y,tmp);
+
+            dY = Jmv(this,dtheta,[],theta,Y,tmp);
         end
         
-        function dtheta = JthetaTmv(this,Wdata,W,theta,Y,tmp)
+        function dtheta = JthetaTmv(this,W,theta,Y,tmp)
             % dY = abstractMeganetElement.JthetaTmv(this,W,theta,Y,tmp)
             %
             % computes dtheta = transpose(J_theta(theta,Y))*W 
@@ -219,7 +242,7 @@ methods
             % Output: 
             %
             %   dtheta - directional derivative, numel(dtheta)==numel(theta)
-            dtheta = JTmv(this,Wdata,W,theta,Y,tmp);
+            dtheta = JTmv(this,W,theta,Y,tmp);
         end
         
         
@@ -240,16 +263,15 @@ methods
             %
             %   J     - Jacobian, LinearOperator
             if nargin<4; tmp=[]; end
-            nex    = numel(Y)/nFeatIn(this);
-            m      = nex*nDataOut(this);
-            n      = numel(theta);
+            m      = sizeFeatOut(this);
+            n      = nTheta(this);
             Amv    = @(x) Jthetamv(this,x,theta,Y,tmp);
-            ATmv   = @(x) JthetaTmv(this,x,[],theta,Y,tmp);
+            ATmv   = @(x) JthetaTmv(this,x,theta,Y,tmp);
             J      = LinearOperator(m,n,Amv,ATmv);
         end
 
         function [Z,J] = linearizeTheta(this,theta,Y)
-            % function [K,J] = linearizeY(this,theta,Y)
+            % function [Z,J] = linearizeY(this,theta,Y)
             %
             % linearization with respect to theta, i.e., 
             %
@@ -264,12 +286,12 @@ methods
             %
             %   Z     - output features
             %   J     - Jacobian, LinearOperator
-            [Z,~,tmp] = apply(this,theta,Y);
+            [Z,tmp] = forwardProp(this,theta,Y);
             J       = getJthetaOp(this,theta,Y,tmp);
         end
         
         % --------  combined derivatives ----------
-        function [dZdata,dZ] = Jmv(this,dtheta,dY,theta,Y,tmp)
+        function dZ = Jmv(this,dtheta,dY,theta,Y,tmp)
             % dZ = abstractMeganetElement.Jmv(this,dtheta,dY,theta,Y,tmp)
             %
             % computes dZ = J_theta(theta,Y)*dtheta + J_Y(theta,Y)*dY
@@ -290,23 +312,21 @@ methods
             
             if nargin<4; tmp=[]; end
             if isempty(dtheta) || norm(dtheta(:))==0
-                dZdata = 0;
                 dZ     = 0;
             else
-                [dZdata,dZ] = Jthetamv(this,dtheta,theta,Y,tmp);
+                dZ = Jthetamv(this,dtheta,theta,Y,tmp);
             end
 
             if not(isempty(dY)) && norm(dY(:))>0
-                [dZdt,dZt] = JYmv(this,dY,theta,Y,tmp);
-                dZdata = dZdata + dZdt;
+                dZt    = JYmv(this,dY,theta,Y,tmp);
                 dZ     = dZ + dZt;
             end
         end
         
-        function [dtheta,dY] = JTmv(this,Wdata,W,theta,Y,tmp,doDerivative)
-            % dZ = abstractMeganetElement.JTmv(this,Z,theta,Y,tmp)
+        function [dtheta,dY] = JTmv(this,W,theta,Y,tmp,doDerivative)
+            % dZ = abstractMeganetElement.JTmv(this,W,theta,Y,tmp,doDerivative)
             %
-            % computes [dtheta;dY] = [J_theta(theta,Y)'; J_Y(theta)']*Z
+            % computes [dtheta;dY] = [J_theta(theta,Y)'; J_Y(theta)']*W
             %
             % Input:
             %
@@ -333,12 +353,12 @@ methods
             % There are different modes for the output. If nargout==2 
             
             if not(exist('tmp','var')); tmp=[]; end
-            if not(exist('doDerivative','var')) || isempty(doDerivative); 
+            if not(exist('doDerivative','var')) || isempty(doDerivative) 
                doDerivative =[1;0]; 
             end
-            dtheta = JthetaTmv(this,Wdata,W,theta,Y,tmp);
+            dtheta = JthetaTmv(this,W,theta,Y,tmp);
             if nargout==2 || doDerivative(2)==1
-                dY     = JYTmv(this,Wdata,W,theta,Y,tmp);
+                dY     = JYTmv(this,W,theta,Y,tmp);
             end
             
             if nargout==1 && all(doDerivative==1)
@@ -373,19 +393,16 @@ methods
             %   J     - Jacobian, LinearOperator
             
             if nargin<4; tmp=[]; end
-
-            nex    = numel(Y)/nFeatIn(this);
-            m      = nex*nDataOut(this);
-            nth    = numel(theta);
+            
+            % nex    = sizeLastDim(Y);
+            m      = sizeFeatOut(this);
+            nth    = nTheta(this);
             nY     = numel(Y);
-            Amv    = @(x) Jmv(this,x(1:nth),x(nth+1:end),theta,Y,tmp);
-            ATmv   = @(x) JTmv(this,x,[],theta,Y,tmp,[1;1]);
+            Amv    = @(x) Jmv(this,x(1:nth),reshape(x(nth+1:end),size(Y)),theta,Y,tmp);
+            ATmv   = @(x) JTmv(this,x,theta,Y,tmp,[1;1]);
             J      = LinearOperator(m,nth+nY,Amv,ATmv);
         end
-
-        
     end
-    
 end
 
 

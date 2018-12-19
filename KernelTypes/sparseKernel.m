@@ -42,6 +42,7 @@ classdef sparseKernel
             end
             this.Qs   = Qs;
             
+            
         end
         function this = gpuVar(this,useGPU,precision)
         end
@@ -61,14 +62,22 @@ classdef sparseKernel
         end
         
         function n = nTheta(this)
-            n = size(this.Qs,2);
+            n = size(this.Qs,2); %%%% TODO
         end
         
-        function n = nFeatIn(this)
+        function n = sizeFeatIn(this)
             n = this.nK(2);
         end
         
-        function n = nFeatOut(this)
+        function n = sizeFeatOut(this)
+            n = this.nK(1);
+        end
+        
+        function n = numelFeatIn(this) % nK is 2-D so same as sizeFeatIn
+            n = this.nK(2); 
+        end
+        
+        function n = numelFeatOut(this) % nK is 2-D so same as sizeFeatOut
             n = this.nK(1);
         end
         
@@ -77,7 +86,7 @@ classdef sparseKernel
         end
         
         function A = getOp(this,theta)
-            A = sparse(this.ival,this.jval,this.Qs*theta,this.nK(1),this.nK(2));
+            A = sparse(this.ival,this.jval,theta,this.nK(1),this.nK(2));
         end
         
         function dY = Jthetamv(this,dtheta,~,Y,~)
@@ -87,7 +96,6 @@ classdef sparseKernel
         function dtheta = JthetaTmv(this,Z,~,Y,~)
             t = sum(Z(this.ival,:) .* Y(this.jval,:),2);
             dtheta = this.Qs'*t;
-            
         end
         
         function Z = implicitTimeStep(this,theta,Y,h)

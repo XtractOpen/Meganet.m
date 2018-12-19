@@ -14,12 +14,19 @@ if not(exist('precision','var')) || isempty(precision)
     precision = 'double';
 end
 
-v = randn(size(A,2),1);
-w = randn(size(A,1),1);
-[v,w] = gpuVar(useGPU,precision,v,w);
+if isa(A,'LinearOperator')
+    v = randn([A.n,1]);
+else
+    v = randn(size(A,2),1);
+end
+[v] = gpuVar(useGPU,precision,v);
 
-t1 = v'*vec(A'*w);
-t2 = w'*vec(A*v);
+Av = A*v;
+w  = randn(size(Av),'like',Av);
+
+Aw = vec(A'*w); 
+t1 = vec(v)'*Aw;
+t2 = vec(w)'*vec(Av);
 err = abs(t1-t2)/(abs(t1)+(t1==0));
 
 if isa(t1,'double') && isa(t2,'double')

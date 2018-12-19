@@ -1,2 +1,9 @@
 *.mexa64
 *.mexmaci64
+*.idx1-ubyte
+*.idx3-ubyte
+*.mat
+*.txt
+*.tar.gz
+*.m~
+*.png

@@ -20,3 +20,4 @@ else
     % use plain MATLAB implementation
     poolOp    = @opPool;
 end
+

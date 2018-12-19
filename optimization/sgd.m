@@ -45,9 +45,16 @@ classdef sgd < optimizer
             frmt = {'%-12d','%-12.2e','%-12.2e','%-12.2e'};
         end
         
-        function [xc,His,xOpt] = solve(this,fctn,xc,fval)
-            if not(exist('fval','var')); fval = []; end;
+        function [xc,His,xOptAcc,xOptLoss] = solve(this,fctn,xc,fval,varargin)
+            optValAcc    = 0;
+            optValLoss   = Inf;
+            for k=1:2:length(varargin)     % overwrites default parameter
+                eval([varargin{k},'=varargin{',int2str(k+1),'};']);
+            end
             
+            if not(exist('fval','var')); fval = []; end;
+            xOptAcc = [];  % iterate with optimal validation accuracy
+            xOptLoss = []; % iterate with optimal validation loss
             [str,frmt] = hisNames(this);
             
             % parse objective functions
@@ -56,7 +63,6 @@ classdef sgd < optimizer
             [fval,obj2Fctn,obj2Names,obj2Frmt,obj2His] = parseObjFctn(this,fval);
             str = [str,obj2Names{:}]; frmt = [frmt,obj2Frmt{:}];
             doVal     = not(isempty(obj2Fctn));
-            optVal    = 0;
             
             % evaluate training and validation
             
@@ -90,7 +96,7 @@ classdef sgd < optimizer
             his = zeros(1,numel(str));
             
             while epoch <= this.maxEpochs
-                nex = size(objFctn.Y,2);
+                nex = sizeLastDim(objFctn.Y);
                 ids = randperm(nex);
                 lr = learningRate(epoch);
                 for k=1:floor(nex/this.miniBatch)
@@ -114,12 +120,17 @@ classdef sgd < optimizer
                 % we sample 2^12 images from the training set for displaying the objective.     
                 [Jc,para] = fctn(xc,ids(1:min(nex,2^15))); 
                 if doVal
-                    [Fval,pVal] = fval(xc,[]);
+                    [Fval,pVal] = fval(xc,[]); % evaluate loss for validation data
                     valAcc = obj2His(pVal);
-                    if (nargout>2) && (valAcc(2)>optVal)
-                        xOpt = xc;
-                        optVal = valAcc(2);
+                    if (nargout>2) && (valAcc(2)>optValAcc)
+                        xOptAcc = gather(xc);
+                        optValAcc = valAcc(2);
                     end
+                    if (nargout>3) && (valAcc(1)<optValLoss)
+                        xOptLoss = gather(xc);
+                        optValLoss = valAcc(1);
+                    end
+                    
                     valHis = gather(obj2His(pVal));
                 else
                     valHis =[];

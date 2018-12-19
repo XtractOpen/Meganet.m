@@ -21,14 +21,15 @@ clear all; clc;
 
 
 [Y0,C,Ytest,Ctest] = setupMNIST(2^10,2^10);
-nImg = [28 28];
+% nImg = [28 28];
+nImg = [size(Y0,1) size(Y0,2)];
 
 % choose file for results and specify whether or not to retrain
 resFile = sprintf('%s.mat',mfilename);
 doTrain = true;
 
 % set GPU flag and precision
-useGPU = 1;
+useGPU = 0;
 precision='single';
 
 [Y0,C] = gpuVar(useGPU,precision,Y0,C);
@@ -65,7 +66,7 @@ fval = dnnBatchObjFctn(net,[],pLoss,[],Ytest,Ctest,'batchSize',256,'useGPU',useG
 if doTrain || not(exist(resFile,'file'))
     % initialize weights
     theta  = 1e-2*vec(randn(nTheta(net),1));
-    W      = 1e-2*vec(randn(10,nFeatOut(net)+1));
+    W      = 1e-2*vec(randn(10,prod(sizeFeatOut(net))+1));
     [theta,W] = gpuVar(fctn.useGPU,fctn.precision,theta,W);
     
     LW = blkdiag(opGrad(nImg/4,10*nc(2),[1;1]),opEye(10));

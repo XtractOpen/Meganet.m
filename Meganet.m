@@ -4,7 +4,6 @@ classdef Meganet < abstractMeganetElement
     
     properties
         blocks
-        outTimes
         useGPU
         precision
     end
@@ -15,60 +14,47 @@ classdef Meganet < abstractMeganetElement
                 this.runMinimalExample;
                 return
             end
-            nb = numel(blocks);
+            nBlocks = numel(blocks);
             useGPU = [];
             precision = [];
-            outTimes = zeros(nb,1); outTimes(end)=1;
             for k=1:2:length(varargin)     % overwrites default parameter
                 eval([varargin{k},'=varargin{',int2str(k+1),'};']);
             end
             if not(isempty(useGPU))
-                for k=1:nb
+                for k=1:nBlocks
                     blocks{k}.useGPU = useGPU;
                 end
             end
             if not(isempty(precision))
-                for k=1:nb
+                for k=1:nBlocks
                     blocks{k}.precision = precision;
                 end
             end
             
-            nout = nFeatOut(blocks{1});
-            for k=2:nb
-                if nFeatIn(blocks{k}) ~= nout
+            nout = sizeFeatOut(blocks{1});
+            for k=2:nBlocks
+                if sizeFeatIn(blocks{k}) ~= nout
                     error('%s - dim of input features of layer %d does not match output features of layer %d',mfilename,k,k-1);
                 end
-                nout = nFeatOut(blocks{k});
+                nout = sizeFeatOut(blocks{k});
             end
             this.blocks = blocks;
-            for k=1:nb
-                this.blocks{k}.outTimes = this.blocks{k}.outTimes*outTimes(k);
-            end
-            if nDataOut(this)==0
-                this.blocks{end}.outTimes(end)=1;
-            end
         end
         
         % ------- counting ----------
         function n = nTheta(this)
-            nb = numel(this.blocks);
+            nBlocks = numel(this.blocks);
             n  = 0;
-            for k=1:nb
+            for k=1:nBlocks
                 n = n + nTheta(this.blocks{k});
             end
         end
-        function n = nFeatOut(this)
-            n = nFeatOut(this.blocks{end});
+        function n = sizeFeatOut(this)
+            n = sizeFeatOut(this.blocks{end});
         end
         
-        function n = nFeatIn(this)
-            n = nFeatIn(this.blocks{1});
-        end
-        function n = nDataOut(this)
-            n = 0;
-            for k=1:numel(this.blocks)
-                n = n + nDataOut(this.blocks{k});
-            end
+        function n = sizeFeatIn(this)
+            n = sizeFeatIn(this.blocks{1});
         end
         
         function theta = initTheta(this)
@@ -81,11 +67,11 @@ classdef Meganet < abstractMeganetElement
         
         function [net2,theta2] = prolongateWeights(this,theta)
             % piecewise linear interpolation of network weights 
-            nb   = numel(this.blocks);
-            net2 = cell(nb,1);
+            nBlocks   = numel(this.blocks);
+            net2 = cell(nBlocks,1);
             th   = split(this,theta);
             theta2 = [];
-            for k=1:nb
+            for k=1:nBlocks
                 [n2,th2] = prolongateWeights(this.blocks{k},th{k});
                 theta2 = [theta2; vec(th2)];
                 net2{k}=n2;
@@ -94,10 +80,10 @@ classdef Meganet < abstractMeganetElement
         end
         
         function vars = split(this,var)
-            nb = numel(this.blocks);
-            vars = cell(nb,1);
+            nBlocks = numel(this.blocks);
+            vars = cell(nBlocks,1);
             cnt = 0;
-            for k=1:nb
+            for k=1:nBlocks
                 nk = nTheta(this.blocks{k});
                 vars{k} = var(cnt+(1:nk));
                 cnt = cnt + nk;
@@ -105,12 +91,12 @@ classdef Meganet < abstractMeganetElement
         end
         
         function idx = getBlockIndices(this)
-            nb = numel(this.blocks);
+            nBlocks = numel(this.blocks);
             nth = nTheta(this);
             idx = zeros(nth,1);
             
             cnt = 0;
-            for k=1:nb
+            for k=1:nBlocks
                 nk = nTheta(this.blocks{k});
                 idx(cnt+(1:nk)) = k;
                 cnt = cnt + nk;
@@ -118,128 +104,106 @@ classdef Meganet < abstractMeganetElement
         end
         
         % ---------- apply forward problem ------------
-        function [Ydata,Y,tmp] = apply(this,theta,Y0)
-            nex = numel(Y0)/nFeatIn(this);
-            Y0  = reshape(Y0,[],nex);
-            nb = numel(this.blocks);
+        function [Y,tmp] = forwardProp(this,theta,Y0,varargin)
+            doDerivative = (nargout>1);
+            for k=1:2:length(varargin)     % overwrites default parameter
+                eval([varargin{k},'=varargin{',int2str(k+1),'};']);
+            end
+            
+            nBlocks = numel(this.blocks);
             Y  = Y0;
-            tmp = cell(nb,1);
+            tmp = cell(nBlocks,1);
             thetas = split(this,theta);
-            Ydata = [];
-            for k=1:nb
-                [Yd,Y,tmp{k}] = apply(this.blocks{k},thetas{k},Y);
-                Ydata = [Ydata;Yd];
+            for k=1:nBlocks
+                [Y,tmp{k}] = forwardProp(this.blocks{k},thetas{k},Y,'doDerivative',doDerivative);
             end
         end
         
         function YN = applyBatch(this,theta,Y0,batchSize)
-           nex = numel(Y0)/nFeatIn(this);
-           YN = zeros(nDataOut(this),nex,'like',Y0);
+           colons = repmat( {':'} , 1 , ndims(Y0)-1 ); % variable-length colons for indexing Y
+           nex = sizeLastDim(Y0);
+           YN = zeros(size(Y0));
            if not(isempty(batchSize))
-               nb = ceil(nex/batchSize);
+               nBlocks = ceil(nex/batchSize);
                id = randperm(nex);
            else
-               nb = 1;
+               nBlocks = 1;
                batchSize = nex;
                id = 1:nex;
            end
            cnt = 1;
-           for k=1:nb
+           for k=1:nBlocks
                idk = id(cnt:min(nex,cnt+batchSize));
                if numel(idk)==0
                    break;
                end
-                YN(:,idk) = apply(this,theta,Y0(:,idk));
+                YN(colons{:},idk) = forwardProp(this,theta,Y0(colons{:},idk));
                 cnt = cnt + numel(idk);
             end
         end
         
         % ----------- Jacobian matvecs -------------
-        function [dYdata,dY] = JYmv(this,dY,theta,~,tmp)
-            nex = numel(dY)/nFeatIn(this);
+        function dY = JYmv(this,dY,theta,~,tmp)
+            nex = numel(dY)/numelFeatIn(this);
             dY  = reshape(dY,[],nex);
-            dYdata = [];
-            nb = numel(this.blocks);
+            nBlocks = numel(this.blocks);
             cnt = 0;
-            for k=1:nb
+            for k=1:nBlocks
                 nk = nTheta(this.blocks{k});
-                [dYdatak,dY] = JYmv(this.blocks{k},dY,theta(cnt+(1:nk)),[],tmp{k});
-                dYdata = [dYdata;dYdatak];
+                dY = JYmv(this.blocks{k},dY,theta(cnt+(1:nk)),[],tmp{k});
                 cnt = cnt+nk;
             end
         end
         
-        function [dYdata,dY] = Jmv(this,dtheta,dY,theta,~,tmp)
-            nex = numel(dY)/nFeatIn(this);
-            dY  = reshape(dY,[],nex);
-            dYdata = [];
-            nb = numel(this.blocks);
+        function dY = Jmv(this,dtheta,dY,theta,~,tmp)
+            % nex = numel(dY)/numelFeatIn(this);
+            % dY  = reshape(dY,[],nex);
+            nBlocks = numel(this.blocks);
             cnt = 0;
-            for k=1:nb
+            for k=1:nBlocks
                 nk = nTheta(this.blocks{k});
-                [dYdatak,dY] = Jmv(this.blocks{k},dtheta(cnt+(1:nk)),dY,theta(cnt+(1:nk)),[],...
+                dY = Jmv(this.blocks{k},dtheta(cnt+(1:nk)),dY,theta(cnt+(1:nk)),[],...
                     tmp{k});
-                
-                dYdata = [dYdata;dYdatak];
                 cnt = cnt+nk;
             end
         end
         
         % ----------- Jacobian' matvecs -----------
-        function W = JYTmv(this,Wdata,~,theta,Y,tmp)
-            nex = numel(Y)/nFeatIn(this);
-            Wdata  = reshape(Wdata,[],nex);
-            nb  = numel(this.blocks);
+        function W = JYTmv(this,W,theta,Y,tmp)
             
-            cnt = 0; cntW = 0; W = [];
-            for k=nb:-1:1
+            nBlocks  = numel(this.blocks);
+            
+            cnt = 0; % W = [];
+            for k=nBlocks:-1:1
                 nk = nTheta(this.blocks{k});
-                if cntW < size(Wdata,1)
-                    no = nFeatOut(this.blocks{k});
-                    Wdk =  Wdata(end-cntW-no+1:end-cntW,:);
-                    cntW = cntW + no;
-                else
-                    Wdk = [];
-                end
-                W = JYTmv(this.blocks{k},Wdk,W,theta(end-cnt-nk+1:end-cnt),tmp{k}{1,1},...
+                W = JYTmv(this.blocks{k},W,theta(end-cnt-nk+1:end-cnt),tmp{k}{1,1},...
                     tmp{k});
                 cnt = cnt+nk;
             end
         end
         
        
-        function [dtheta,W] = JTmv(this,Wdata,W,theta,Y,tmp,doDerivative)
-            if not(exist('doDerivative','var')) || isempty(doDerivative); 
+        function [dtheta,W] = JTmv(this,W,theta,Y,tmp,doDerivative)
+            if not(exist('doDerivative','var')) || isempty(doDerivative) 
                doDerivative =[1;0]; 
             end
-            
-            nex = numel(Y)/nFeatIn(this);
+            % nex = numel(Y)/numelFeatIn(this);
             if isempty(W)
                 W=0;
-            else
-                W  = reshape(W,[],nex);
-            end
-            if not(isempty(Wdata))
-                Wdata = reshape(Wdata,[],nex);
             end
             
-            nb  = numel(this.blocks);
+            nBlocks  = numel(this.blocks);
             dtheta = 0*theta;
             
-            cnt = 0;cntW = 0; cntWd = 0;
-            for k=nb:-1:1
+            cnt = 0;
+            for k=nBlocks:-1:1
                 nk = nTheta(this.blocks{k});
-                no = nFeatOut(this.blocks{k});
-                %                 W  = Wdata(end-cntW-no+1:end-cntW,:);
-                if any(this.blocks{k}.outTimes)
-                    ndk = nDataOut(this.blocks{k});
-                    Wd  = Wdata(end-cntWd-ndk+1:end-cntWd,:);
+                if isempty(tmp{k})
+                   [dThetak,W] = JTmv(this.blocks{k},W,theta(end-cnt-nk+1:end-cnt),[],tmp{k});
                 else
-                    Wd = [];
+                   [dThetak,W] = JTmv(this.blocks{k},W,theta(end-cnt-nk+1:end-cnt),tmp{k}{1,1},tmp{k});
                 end
-                cntW = cntW + no;
-                [dmbk,W] = JTmv(this.blocks{k},Wd,W,theta(end-cnt-nk+1:end-cnt),tmp{k}{1,1},tmp{k});
-                dtheta(end-cnt-nk+1:end-cnt) = dmbk;
+                dtheta(end-cnt-nk+1:end-cnt) = dThetak;
                 cnt = cnt+nk;
             end
             if nargout==1 && all(doDerivative==1)
@@ -247,7 +211,7 @@ classdef Meganet < abstractMeganetElement
             end
         end
         
-        function [thFine] = prolongateConvStencils(this,theta,getRP)
+        function thFine = prolongateConvStencils(this,theta,getRP)
             % prolongate convolution stencils, doubling image resolution
             %
             % Inputs:
@@ -270,7 +234,7 @@ classdef Meganet < abstractMeganetElement
             end
             thFine = vec(thFine);
         end
-        function [thCoarse] = restrictConvStencils(this,theta,getRP)
+        function thCoarse = restrictConvStencils(this,theta,getRP)
             % restrict convolution stencils, dividing image resolution by two
             %
             % Inputs:
@@ -312,13 +276,7 @@ classdef Meganet < abstractMeganetElement
                 end
             end
         end
-        function this = set.outTimes(this,value)
-            nb = numel(this.blocks);
-            for k=1:nb
-                this.blocks{k}.outTimes = this.blocks{k}.outTimes*value(k);
-                this.outTimes = value;
-            end
-        end
+        
         function useGPU = get.useGPU(this)
             useGPU = this.blocks{1}.useGPU;
             for k=2:length(this.blocks)
@@ -342,38 +300,40 @@ classdef Meganet < abstractMeganetElement
         function runMinimalExample(~)
             nex    = 10;
             blocks = cell(0,1);
-            blocks{end+1} = NN({singleLayer(dense([4 2]))},'outTimes',0);
+            blocks{end+1} = NN({singleLayer(dense([4 2]))});
             blocks{end+1} = ResNN(singleLayer(dense([4 4])),3,1);
             net    = Meganet(blocks);
             net.useGPU=0;
             net.precision = 'double';
             np  = nTheta(net);
-            mb     = randn(np,1);
+            theta     = randn(np,1);
+            
+            numelFeatOut(net)
             
             Y0 = randn(2,nex);
             
-            [Ydata,~,tmp] = net.apply(mb,Y0);
+            [Y,tmp] = net.forwardProp(theta,Y0);
             
-            dmb = randn(np,1);
+            dtheta = randn(np,1);
             dY0 = randn(size(Y0));
-            dY  = net.Jmv(dmb,dY0,mb,[],tmp);
+            dY  = net.Jmv(dtheta,dY0,theta,[],tmp);
             
             for k=1:14
                 hh = 2^(-k);
                 
-                Yt = net.apply(mb+hh*dmb(:),Y0+hh*dY0);
+                Yt = net.forwardProp(theta+hh*dtheta(:),Y0+hh*dY0);
                 
-                E0 = norm(Yt(:)-Ydata(:));
-                E1 = norm(Yt(:)-Ydata(:)-hh*dY(:));
+                E0 = norm(Yt(:)-Y(:));
+                E1 = norm(Yt(:)-Y(:)-hh*dY(:));
                 
                 fprintf('h=%1.2e\tE0=%1.2e\tE1=%1.2e\n',hh,E0,E1);
             end
             
-            W = randn(size(Ydata));
+            W = randn(size(Y));
             t1  = W(:)'*dY(:);
             
-            [dWdmb,dWY] = net.JTmv(W,[],mb,Y0,tmp);
-            t2 = dmb(:)'*dWdmb(:) + dY0(:)'*dWY(:);
+            [dWdtheta,dWY] = net.JTmv(W,theta,Y0,tmp);
+            t2 = dtheta(:)'*dWdtheta(:) + dY0(:)'*dWY(:);
             
             fprintf('adjoint test: t1=%1.2e\tt2=%1.2e\terr=%1.2e\n',t1,t2,abs(t1-t2));
         end

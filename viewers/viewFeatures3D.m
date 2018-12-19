@@ -1,4 +1,4 @@
-function ph = viewFeatures2D(Y,C,varargin)
+function ph = viewFeatures3D(Y,C,varargin)
 
 if nargin==0
     runMinimalExample;
@@ -6,12 +6,12 @@ if nargin==0
 end
 markerSize = 10;
 
-for k=1:2:length(varargin),     % overwrites default parameter
+for k=1:2:length(varargin)     % overwrites default parameter
     eval([varargin{k},'=varargin{',int2str(k+1),'};']);
-end;
+end
 
 nclass = size(C,1);
-if size(Y,1)>3;
+if size(Y,1)>3
     warning('Y has too many features. Using first three columns');
     Y = Y(1:3,:);
 end
@@ -33,7 +33,8 @@ hold off
 
 function runMinimalExample
 
-[Y,C] = setupBox;
+[Y,C] = setupPeaks;
+Y = [Y; 0*Y(1,:)];
 figure(1); clf;
 feval(mfilename,Y,C);
 title('labeled points');

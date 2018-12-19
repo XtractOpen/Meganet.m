@@ -57,7 +57,7 @@ classdef affineScalingLayer < abstractMeganetElement
            end
         end
         
-        function [Ydata,Y,dA] = apply(this,theta,Y,varargin)
+        function [Y,dA] = forwardProp(this,theta,Y,varargin)
             Y   = reshape(Y,this.nData(1), this.nData(2),[]); dA = [];
            nex = size(Y,3);
            if this.isWeight(3) && nex ~= this.nData(3)
@@ -80,7 +80,6 @@ classdef affineScalingLayer < abstractMeganetElement
            end
            
            Y = reshape(Y,[],nex);
-            Ydata = Y;
         end
         
         function Y = scaleCoord(this,Y,s1,s2,s3)
@@ -99,19 +98,14 @@ classdef affineScalingLayer < abstractMeganetElement
         
         function n = nTheta(this)
             n = 2*sum(vec(this.nData).*vec(this.isWeight));
-            
         end
         
-        function n = nFeatIn(this)
-            n = prod(this.nData(1:2));
+        function n = sizeFeatIn(this)
+            n = this.nData(1:2);  
         end
         
-        function n = nFeatOut(this)
-            n = prod(this.nData(1:2));
-        end
-       
-        function n = nDataOut(this)
-            n = nFeatOut(this);
+        function n = sizeFeatOut(this)
+            n = this.nData(1:2);
         end
         
         function theta = initTheta(this)
@@ -121,9 +115,9 @@ classdef affineScalingLayer < abstractMeganetElement
         end
         
         
-        function [dYdata,dY] = Jthetamv(this,dtheta,theta,Y,~)
-           Y   = reshape(Y,this.nData(1), this.nData(2),[]);
-           nex = size(Y,3);
+        function dY = Jthetamv(this,dtheta,theta,Y,~)
+           % Y   = reshape(Y,this.nData(1), this.nData(2),[]);
+           % nex = size(Y,3);
            if this.isWeight(3) && nex ~= this.nData(3)
                error('number of examples (%d) must match number of weights (%d)',nex,this.nData(3));
            end
@@ -156,12 +150,10 @@ classdef affineScalingLayer < abstractMeganetElement
                dY = dY + db3;
            end
            
-           dY = reshape(dY,[],nex);
-           dYdata = dY;
         end
         
-        function dtheta = JthetaTmv(this,Z,~,theta,Y,~)
-            Y   = reshape(Y,this.nData(1), this.nData(2),[]);
+        function dtheta = JthetaTmv(this,Z,theta,Y,~)
+            Y   = reshape(Y,this.nData(1), this.nData(2),[]); % TODO: are these reshapes necessary?
             Z   = reshape(Z,this.nData(1), this.nData(2),[]);
             nex = size(Y,3);
             if this.isWeight(3) && nex ~= this.nData(3)
@@ -189,7 +181,8 @@ classdef affineScalingLayer < abstractMeganetElement
         end
        
         
-        function [dYdata,dY] = JYmv(this,dY,theta,~,~)
+        function dY = JYmv(this,dY,theta,~,~)
+           szdY = size(dY);
            dY   = reshape(dY,this.nData(1), this.nData(2),[]); 
            nex = size(dY,3);
            if this.isWeight(3) && nex ~= this.nData(3)
@@ -209,20 +202,19 @@ classdef affineScalingLayer < abstractMeganetElement
                dY = dY.*s3;
            end
            
-           dY = reshape(dY,[],nex);
-           dYdata = dY;
+           dY = reshape(dY,szdY);
         end
         
-        function Z = JYTmv(this,Z,~,theta,~,~)
-           Z   = reshape(Z,this.nData(1), this.nData(2),[]); 
+        function Z = JYTmv(this,Z,theta,~,~)
+           szZ = size(Z);
+           Z   = reshape(Z,this.nData(1), this.nData(2),[]); % TODO reshapes unnecessary?
            nex = size(Z,3);
            if this.isWeight(3) && nex ~= this.nData(3)
                error('number of examples (%d) must match number of weights (%d)',nex,this.nData(3));
            end
            [s1,~,s2,~,s3,~] = split(this,theta);
            Z = scaleCoord(this,Z,s1,s2,s3);
-           Z = reshape(Z,[],nex);
-           
+           Z = reshape(Z,szZ);
         end
         
         

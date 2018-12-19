@@ -25,15 +25,27 @@ for k=1:nv
     if not(isempty(precision)) && strcmp(precision,'single')
         if isnumeric(vark)
             vark = single(vark);
-        else
+        elseif (isa(vark,'handle') && isprop(vark,'precision')) || isfield(vark,'precision')
             vark.precision = 'single';
         end
     end
     
+    if useGPU  % check if GPU exists, run on CPU if it does not
+        try
+            gpuDevice();
+        catch E
+            useGPU = 0;
+            disp(['GPU error caught. Changing to using CPU because of '...
+             'the following error:']);
+            disp(E.identifier);
+        end
+    end
+
+    
     if not(isempty(useGPU)) && useGPU && not(isa(vark,'gpuArray'))
-        if isnumeric(vark)
+        if isnumeric(vark) || islogical(vark)
             vark = gpuArray(vark);
-        else
+        elseif (isa(vark,'handle') && isprop(vark,'useGPU')) || isfield(vark,'useGPU')
             vark.useGPU = useGPU;
         end
     end

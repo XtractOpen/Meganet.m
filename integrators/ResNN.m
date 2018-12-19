@@ -7,8 +7,6 @@ classdef ResNN < abstractMeganetElement
         layer
         nt
         h
-        outTimes
-        Q
         useGPU
         precision
     end
@@ -21,8 +19,6 @@ classdef ResNN < abstractMeganetElement
             end
             useGPU = [];
             precision = [];
-            outTimes  = zeros(nt,1); outTimes(end)=1;
-            Q = 1.0;
             for k=1:2:length(varargin)     % overwrites default parameter
                eval([varargin{k},'=varargin{',int2str(k+1),'};']);
             end
@@ -33,32 +29,22 @@ classdef ResNN < abstractMeganetElement
                 layer.precision = precision;
             end
             this.layer = layer;
-            if nFeatOut(layer)~=nFeatIn(layer)
+            if any(sizeFeatOut(layer)~=sizeFeatIn(layer))
                 error('%s - dim. of input and output features must agree for ResNet layers',mfilename);
             end
             this.nt    = nt;
             this.h     = h;
-            this.outTimes = outTimes;
-            this.Q = Q;
         end
         
         function n = nTheta(this)
             n = this.nt*nTheta(this.layer);
         end
-        function n = nFeatIn(this)
-            n = nFeatIn(this.layer);
+        function n = sizeFeatIn(this)
+            n = sizeFeatIn(this.layer);
         end
-        function n = nFeatOut(this)
-            n = nFeatOut(this.layer);
+        function n = sizeFeatOut(this)
+            n = sizeFeatOut(this.layer);
         end
-        function n = nDataOut(this)
-           if numel(this.Q)==1
-               n = nnz(this.outTimes)*nFeatOut(this.layer);
-           else
-               n = nnz(this.outTimes)*size(this.Q,1);
-           end
-        end
-        
         
         function theta = initTheta(this)
             theta = repmat(vec(initTheta(this.layer)),this.nt,1);
@@ -68,124 +54,91 @@ classdef ResNN < abstractMeganetElement
             % piecewise linear interpolation of network weights 
             t1 = 0:this.h:(this.nt-1)*this.h;
             
-            net2 = ResNN(this.layer,2*this.nt,this.h/2,'useGPU',this.useGPU,'Q',this.Q,'precision',this.precision);
-            net2.outTimes = (sum(this.outTimes)>0)*net2.outTimes;
-          
+            net2 = ResNN(this.layer,2*this.nt,this.h/2,'useGPU',this.useGPU,'precision',this.precision);
             t2 = 0:net2.h:(net2.nt-1)*net2.h;
             
             theta2 = inter1D(theta,t1,t2);
         end
         
         
-        % ------- apply forward problems -----------
-        function [Ydata,Y,tmp] = apply(this,theta,Y0)
-            nex = numel(Y0)/nFeatIn(this);
-            Y   = reshape(Y0,[],nex);
+        % ------- forwardProp forward problems -----------
+        function [Y,tmp] = forwardProp(this,theta,Y,varargin)
+            doDerivative = (nargout>1);
+            for k=1:2:length(varargin)     % overwrites default parameter
+                eval([varargin{k},'=varargin{',int2str(k+1),'};']);
+            end
+            
             if nargout>1;    tmp = cell(this.nt,2); end
             
             theta = reshape(theta,[],this.nt);
             
-            Ydata = [];
             for i=1:this.nt
-                if (nargout>1), tmp{i,1} = Y; end
-                [Z,~,tmp{i,2}] = apply(this.layer,theta(:,i),Y);
+                if doDerivative, tmp{i,1} = Y; end
+                [Z,tmp{i,2}] = forwardProp(this.layer,theta(:,i),Y,'doDerivative',doDerivative);
                 Y =  Y + this.h * Z;
-                if this.outTimes(i)==1
-                    Ydata = [Ydata;this.Q*Y];
-                end
             end
         end
         
         % -------- Jacobian matvecs ---------------
-        function [dYdata,dY] = JYmv(this,dY,theta,~,tmp)
+        function dY = JYmv(this,dY,theta,~,tmp)
             if isempty(dY)
                 dY = 0.0;
             elseif numel(dY)>1
-                nex = numel(dY)/nFeatIn(this);
+                nex = numel(dY)/numelFeatIn(this);
                 dY   = reshape(dY,[],nex);
             end
-            dYdata = [];
             theta  = reshape(theta,[],this.nt);
             for i=1:this.nt
                 dY = dY + this.h* JYmv(this.layer,dY,theta(:,i),tmp{i,1},tmp{i,2});
-                if this.outTimes(i)==1
-                    dYdata = [dYdata; this.Q*dY];
-                end
             end
         end
         
         
-        function [dYdata,dY] = Jmv(this,dtheta,dY,theta,~,tmp)
+        function dY = Jmv(this,dtheta,dY,theta,~,tmp)
             if isempty(dY)
                 dY = 0.0;
             elseif numel(dY)>1
-                nex = numel(dY)/nFeatIn(this);
+                nex = numel(dY)/numelFeatIn(this);
                 dY   = reshape(dY,[],nex);
             end
             
-            dYdata = [];
             theta  = reshape(theta,[],this.nt);
             dtheta = reshape(dtheta,[],this.nt);
             for i=1:this.nt
                   dY = dY + this.h* Jmv(this.layer,dtheta(:,i),dY,theta(:,i),tmp{i,1},tmp{i,2});
-                  if this.outTimes(i)==1
-                      dYdata = [dYdata;this.Q*dY];
-                  end
             end
         end
         
         % -------- Jacobian' matvecs ----------------
         
-        function W = JYTmv(this,Wdata,W,theta,Y,tmp)
-            nex = numel(Y)/nFeatIn(this);
-            if ~isempty(Wdata)
-                Wdata = reshape(Wdata,[],nnz(this.outTimes),nex);
-            end
+        function W = JYTmv(this,W,theta,Y,tmp)
             if isempty(W)
                 W = 0;
-            elseif not(isscalar(W))
-                W     = reshape(W,[],nex);
             end
             theta  = reshape(theta,[],this.nt);
             
-            cnt = nnz(this.outTimes);
             for i=this.nt:-1:1
                 Yi = tmp{i,1};
-                if  this.outTimes(i)==1
-                    W = W + this.Q'*squeeze(Wdata(:,cnt,:));
-                    cnt = cnt-1;
-                end
-                dW = JYTmv(this.layer,W,[],theta(:,i),Yi,tmp{i,2});
+                dW = JYTmv(this.layer,W,theta(:,i),Yi,tmp{i,2});
                 W  = W + this.h*dW;
             end
         end
         
-        function [dtheta,W] = JTmv(this,Wdata,W,theta,Y,tmp,doDerivative)
+        function [dtheta,W] = JTmv(this,W,theta,Y,tmp,doDerivative)
             if not(exist('doDerivative','var')) || isempty(doDerivative)
                doDerivative =[1;0]; 
             end
             
-            nex = numel(Y)/nFeatIn(this);
-            if ~isempty(Wdata)
-                Wdata = reshape(Wdata,[],nnz(this.outTimes),nex);
-            end
             if isempty(W) 
                 W = 0;
-            elseif numel(W)>1
-                W     = reshape(W,[],nex);
             end
             
             theta  = reshape(theta,[],this.nt);
-            cnt = nnz(this.outTimes);
             dtheta = 0*theta;
             for i=this.nt:-1:1
                 Yi = tmp{i,1};
-                if  this.outTimes(i)==1
-                    W = W + this.Q'* squeeze(Wdata(:,cnt,:));
-                    cnt = cnt-1;
-                end
-                [dmbi,dW] = JTmv(this.layer,W,[],theta(:,i),Yi,tmp{i,2});
-                dtheta(:,i)  = this.h*dmbi;
+                [dthetai,dW] = JTmv(this.layer,W,theta(:,i),Yi,tmp{i,2});
+                dtheta(:,i)  = this.h*dthetai;
                 W = W + this.h*dW;
             end
             dtheta = vec(dtheta);
@@ -248,7 +201,6 @@ classdef ResNN < abstractMeganetElement
             else
                 this.layer.useGPU  = value;
             end
-            this.Q = gpuVar(value,this.precision,this.Q);
         end
         function this = set.precision(this,value)
             if not(strcmp(value,'single') || strcmp(value,'double'))
@@ -256,7 +208,6 @@ classdef ResNN < abstractMeganetElement
             else
                 this.layer.precision = value;
             end
-            this.Q = gpuVar(this.useGPU,value,this.Q);
         end
         function useGPU = get.useGPU(this)
             useGPU = this.layer.useGPU;
@@ -275,13 +226,11 @@ classdef ResNN < abstractMeganetElement
 %             S = singleLayer(D)
             S = doubleSymLayer(D);
             nt = 20;
-            outTimes = zeros(nt,1);
-            outTimes([1;10;nt])= 1;
-            net = ResNN(S,nt,.1,'outTimes',outTimes);
+            net = ResNN(S,nt,.1);
             mb  = randn(nTheta(net),1);
             
             Y0  = randn(nK(2),nex);
-            [Ydata,~,dA]   = net.apply(mb,Y0);
+            [Y,dA]   = net.forwardProp(mb,Y0);
             dmb = reshape(randn(size(mb)),[],net.nt);
             dY0  = randn(size(Y0));
             
@@ -289,18 +238,18 @@ classdef ResNN < abstractMeganetElement
             for k=1:14
                 hh = 2^(-k);
                 
-                Yt = net.apply(mb+hh*dmb(:),Y0+hh*dY0);
+                Yt = net.forwardProp(mb+hh*dmb(:),Y0+hh*dY0);
                 
-                E0 = norm(Yt(:)-Ydata(:));
-                E1 = norm(Yt(:)-Ydata(:)-hh*dY(:));
+                E0 = norm(Yt(:)-Y(:));
+                E1 = norm(Yt(:)-Y(:)-hh*dY(:));
                 
                 fprintf('h=%1.2e\tE0=%1.2e\tE1=%1.2e\n',hh,E0,E1);
             end
             
-            W = randn(size(Ydata));
+            W = randn(size(Y));
             t1  = W(:)'*dY(:);
             
-            [dWdmb,dWY] = net.JTmv(W,[],mb,Y0,dA);
+            [dWdmb,dWY] = net.JTmv(W,mb,Y0,dA);
             t2 = dmb(:)'*dWdmb(:) + dY0(:)'*dWY(:);
             
             fprintf('adjoint test: t1=%1.2e\tt2=%1.2e\terr=%1.2e\n',t1,t2,abs(t1-t2));
