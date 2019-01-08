@@ -7,14 +7,17 @@ classdef batchNormLayer2 < abstractMeganetElement
     % Z = (Y-mean(Y,[1,2,4]))./var(Y,[1,2,4])
     % 
     % i.e., we compute the batch statistics across examples for every pixel
-    % and channel. See batchNormLayer2 for another version that also
-    % averages all the pixels. 
+    % and channel. By default, running mean and variances are stored and used 
+    % in the evaluation. 
     
     properties
         nData       % describe size of data, at least first two dim must be correct.
         isWeight    % boolean, 1 if trainable weights for an affine transformation are provided.
-        useGPU      % flag for GPU computing 
-        precision   % flag for precision 
+        momentum    % momentum for running statistics. If empty, no stats are kept
+        runningMean % running mean
+        runningVar  % running variance
+        useGPU      % flag for GPU computing
+        precision   % flag for precision
         eps
     end
     methods
@@ -24,10 +27,14 @@ classdef batchNormLayer2 < abstractMeganetElement
                 this.runMinimalExample() 
                 return;
             end
-            useGPU     = 0;
-            precision  = 'double';
-            eps = 1e-4;
-            isWeight = 0;
+            % default properties
+            useGPU      = 0;
+            precision   = 'double';
+            eps         = 1e-4;
+            isWeight    = 0;
+            momentum    = 0.9;
+            runningMean = 0;
+            runningVar  = 1;
             for k=1:2:length(varargin)     % overwrites default parameter
                     eval([varargin{k},'=varargin{',int2str(k+1),'};']);
             end
@@ -37,7 +44,11 @@ classdef batchNormLayer2 < abstractMeganetElement
             this.nData = nData;
             this.eps = eps;
             this.isWeight=isWeight;
+            this.momentum = momentum;
+            this.runningMean = runningMean;
+            this.runningVar = runningVar;
         end
+        
         function [s,b] = split(this,theta)
             if this.isWeight
                 s = reshape(theta(1:this.nData(3)),1,1,this.nData(3),1);
@@ -49,19 +60,35 @@ classdef batchNormLayer2 < abstractMeganetElement
         end
         
         function [Y,dA] = forwardProp(this,theta,Y,varargin)
-           dA = [];
-           Y  = Y-compMean(this,Y);
-           Y  = Y./sqrt(compMean(this,Y.^2)+this.eps);
-           
-           if this.isWeight
-               % affine scaling along channels
-               [s,b] = split(this,theta);
-               Y = Y.*s;
-               Y = Y + b;
-           end
+            doDerivative = (nargout>1);
+            for k=1:2:length(varargin)     % overwrites default parameter
+                eval([varargin{k},'=varargin{',int2str(k+1),'};']);
+            end
+            dA = [];
+            
+            if doDerivative || isempty(this.momentum) || isempty(this.runningMean) || isempty(this.runningVar)
+                % use batch statistics to normalize
+                Ym = compMean(this,Y);
+                Y  = Y-Ym;
+                Yv = compMean(this,Y.^2);
+                Y  = Y./sqrt(Yv+this.eps);
+                if not(isempty(this.momentum))
+                   this.runningMean = this.momentum*this.runningMean + (1-this.momentum)*Ym;
+                   this.runningVar = this.momentum*this.runningVar + (1-this.momentum)*Yv;
+                end
+            else
+                % use running statistics to normalize
+                Y = (Y-this.runningMean)./sqrt(this.runningVar+this.eps);
+            end
+ 
+            if this.isWeight
+                % affine scaling along channels
+                [s,b] = split(this,theta);
+                Y = Y.*s;
+                Y = Y + b;
+            end
         end
-        
-        
+                
         function n = nTheta(this)
             n = this.isWeight*2*this.nData(3);
         end
@@ -146,10 +173,6 @@ classdef batchNormLayer2 < abstractMeganetElement
            den = sqrt(compMean(this,Fy.^2)+this.eps);
            dY = dY./den  - (Fy.* (compMean(this,Fy.*dY) ./(den.^3))) ;
             
-%            tt = compMean(this,Fy.*dY) ./(den.^3);
-%            dY = dY./den;
-%            clear den;
-%            dY = dY - Fy.*tt;
         end
         
         
@@ -159,13 +182,16 @@ classdef batchNormLayer2 < abstractMeganetElement
                 error('useGPU must be 0 or 1.')
             else
                 this.useGPU  = value;
+                [this.runningMean,this.runningVar] = gpuVar(this.useGPU,this.precision,this.runningMean,this.runningVar);
             end
         end
+        
         function this = set.precision(this,value)
             if not(strcmp(value,'single') || strcmp(value,'double'))
                 error('precision must be single or double.')
             else
                 this.precision = value;
+                [this.runningMean,this.runningVar] = gpuVar(this.useGPU,this.precision,this.runningMean,this.runningVar);
             end
         end
         function useGPU = get.useGPU(this)
@@ -176,26 +202,22 @@ classdef batchNormLayer2 < abstractMeganetElement
         end
         function runMinimalExample(this)
            nData = [32 48 4 50];
-           layer = feval(mfilename,nData,'isWeight',0);
+           layer = feval(mfilename,nData,'isWeight',1,'momentum',[]);
            
-            
            Y = randn(nData);
            dY = randn(size(Y));
            th = initTheta(layer);
-           dth = 0* randn(size(th));
+           dth = randn(size(th));
            
            [Z] = forwardProp(layer,th,Y,'doDerivative',true);
-           dZ  = layer.JYmv(dY,th,Y,[]);
+           dZ  = layer.Jmv(dth,dY,th,Y,[]);
            W = randn(size(Y));
            t1  = W(:)'*dZ(:);
            
-           dWY = layer.JYTmv(W,th,Y,[]);
-%            t2 = dth(:)'*dWdtheta(:) + dY(:)'*dWY(:);
-            t2 =  dY(:)'*dWY(:);
+           [dthY,dWY] = layer.JTmv(W,th,Y,[]);
+           t2 =  dY(:)'*dWY(:) + dth(:)'*dthY(:);
            fprintf('adjoint test: t1=%1.2e\tt2=%1.2e\trel.err=%1.2e\n',t1,t2,abs(t1-t2)/abs(t1));
-           
-            
-            for k=20:30
+            for k=1:10
                 hh = 2^(-k);
                 Zt = layer.forwardProp(th+hh*dth(:),Y+hh*dY,'doDerivative',true);
                 
@@ -204,9 +226,6 @@ classdef batchNormLayer2 < abstractMeganetElement
                 
                 fprintf('h=%1.2e\tE0=%1.2e\tE1=%1.2e\n',hh,E0,E1);
             end
-                
-            
-           
         end
     end
 end
