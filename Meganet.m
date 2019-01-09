@@ -119,10 +119,10 @@ classdef Meganet < abstractMeganetElement
             end
         end
         
-        function YN = applyBatch(this,theta,Y0,batchSize)
+        function YN = forwardPropBatch(this,theta,Y0,batchSize)
            colons = repmat( {':'} , 1 , ndims(Y0)-1 ); % variable-length colons for indexing Y
            nex = sizeLastDim(Y0);
-           YN = zeros(size(Y0),'like',Y0);
+           YN = zeros([sizeFeatOut(this) nex],'like',Y0);
            if not(isempty(batchSize))
                nBlocks = ceil(nex/batchSize);
                id = randperm(nex);

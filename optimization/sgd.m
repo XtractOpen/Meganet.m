@@ -88,8 +88,8 @@ classdef sgd < optimizer
             end
             
             if this.out>0
-                fprintf('== sgd (n=%d,maxEpochs=%d,maxStep=%1.1e, lr = %1.1e, momentum = %1.1e, ADAM = %d, Nesterov = %d, miniBatch=%d) ===\n',...
-                    numel(xc), this.maxEpochs, this.maxStep,learningRate(1) ,this.momentum, this.ADAM,this.nesterov,this.miniBatch);
+                fprintf('== sgd (n=%d,maxEpochs=%d, lr = %1.1e, momentum = %1.1e, ADAM = %d, Nesterov = %d, miniBatch=%d) ===\n',...
+                    numel(xc), this.maxEpochs, learningRate(1) ,this.momentum, this.ADAM,this.nesterov,this.miniBatch);
                 fprintf([repmat('%-12s',1,numel(str)) '\n'],str{:});
             end
             xc = this.P(xc);

@@ -157,13 +157,13 @@ classdef dnnBatchObjFctn < objFctn
                     end
                 end
             end
-            F    = F/nBatchEx;
+            F    = F/nex;
             Jc   = F;
             if compGrad
-                dJth = dJth/nBatchEx;
-                dJW  = dJW/nBatchEx;
+                dJth = dJth/nex;
+                dJW  = dJW/nex;
                 if compHess
-                    HW   = HW*(1/nBatchEx);
+                    HW   = HW*(1/nex);
                     Hthmv = @(x) J'*(d2YF*(J*x));
                     Hth   = LinearOperator(numel(theta),numel(theta),Hthmv,Hthmv);
                 end
