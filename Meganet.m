@@ -66,7 +66,8 @@ classdef Meganet < abstractMeganetElement
         end
         
         function [net2,theta2] = prolongateWeights(this,theta)
-            % piecewise linear interpolation of network weights 
+            % call prolongation for each block. return new network
+            % and concatenated weights.
             nBlocks   = numel(this.blocks);
             net2 = cell(nBlocks,1);
             th   = split(this,theta);
