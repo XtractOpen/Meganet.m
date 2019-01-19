@@ -96,11 +96,21 @@ classdef sgd < optimizer
             his = zeros(1,numel(str));
             
             while epoch <= this.maxEpochs
+                
                 nex = sizeLastDim(objFctn.Y);
                 ids = randperm(nex);
                 lr = learningRate(epoch);
                 for k=1:floor(nex/this.miniBatch)
                     idk = ids((k-1)*this.miniBatch+1: min(k*this.miniBatch,nex));
+                    
+                    if k==1
+                        % update time stepping
+                        Yk = objFctn.Y(:,:,:,idk);
+                        setTimeY(objFctn.net,xc,Yk);
+                    end
+                        
+                        
+                    
                     if this.nesterov && ~this.ADAM
                         [Jk,~,dJk] = fctn(xc-this.momentum*dJ,idk);
                     else
@@ -117,10 +127,15 @@ classdef sgd < optimizer
                     end
                     xc = this.P(xc - dJ);
                 end
+                
                 % we sample 2^12 images from the training set for displaying the objective.     
                 [Jc,para] = fctn(xc,ids(1:min(nex,2^15))); 
                 if doVal
-                    [Fval,pVal] = fval(xc,[]); % evaluate loss for validation data
+                    if isa(objFctn,'segVarProBatchObjFctn') || isa(objFctn,'dnnVarProBatchObjFctn') ||isa(objFctn,'dnnMultiStepVarProBatchObjFctn') || isa(objFctn,'dnnVarProObjFctn')
+                    [Fval,pVal] = fval([xc; para.W(:)],[]);
+                    else
+                        [Fval,pVal] = fval(xc,[]);
+                    end
                     valAcc = obj2His(pVal);
                     if (nargout>2) && (valAcc(2)>optValAcc)
                         xOptAcc = gather(xc);
