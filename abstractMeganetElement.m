@@ -50,6 +50,9 @@ classdef abstractMeganetElement < handle
 
 
 methods
+    function this = setTimeY(this,varargin)
+            % set time steps for states
+    end
     function n = nTheta(~)
         % function n = nTheta(this)
         %

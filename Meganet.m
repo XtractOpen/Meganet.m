@@ -80,6 +80,23 @@ classdef Meganet < abstractMeganetElement
             net2 = Meganet(net2);
         end
         
+        function setTimeY(this,theta,Y,AbsTol,RelTol)
+            % call blocks
+            if not(exist('AbsTol','var')) || isempty(AbsTol)
+                AbsTol = 1e-1;
+            end
+            if not(exist('RelTol','var')) || isempty(RelTol)
+                RelTol = 1e-1;
+            end
+            nBlocks   = numel(this.blocks);
+            th   = split(this,theta);
+            theta2 = [];
+            for k=1:nBlocks
+                this.blocks{k} = setTimeY(this.blocks{k},th{k},Y,AbsTol,RelTol);
+                Y = forwardProp(this.blocks{k},th{k},Y);
+            end
+        end
+        
         function vars = split(this,var)
             nBlocks = numel(this.blocks);
             vars = cell(nBlocks,1);
