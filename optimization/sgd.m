@@ -103,11 +103,11 @@ classdef sgd < optimizer
                 for k=1:floor(nex/this.miniBatch)
                     idk = ids((k-1)*this.miniBatch+1: min(k*this.miniBatch,nex));
                     
-                    if k==1
-                        % update time stepping
-                        Yk = objFctn.Y(:,:,:,idk);
-                        setTimeY(objFctn.net,xc,Yk);
-                    end
+%                     if k==1
+%                         % update time stepping
+%                         Yk = objFctn.Y(:,:,:,idk);
+%                         setTimeY(objFctn.net,xc,Yk);
+%                     end
                         
                         
                     
