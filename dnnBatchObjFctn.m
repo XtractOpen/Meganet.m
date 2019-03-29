@@ -164,7 +164,7 @@ classdef dnnBatchObjFctn < objFctn
                 dJW  = dJW/nex;
                 if compHess
                     HW   = HW*(1/nex);
-                    Hthmv = @(x) J'*(d2YF*(J*x));
+                    Hthmv = @(x) J'*reshape(d2YF*(J*x),szYNk);
                     Hth   = LinearOperator(numel(theta),numel(theta),Hthmv,Hthmv);
                 end
             end
