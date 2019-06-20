@@ -92,7 +92,7 @@ classdef dnnVarProBatchObjFctn < objFctn
             %classify
             YN = reshape(YN,[],nex);
             fctn   = classObjFctn(this.pLoss,this.pRegW,YN,C);
-            W      = solve(this.optClass,fctn,zeros(size(C,1)*(size(YN,1)+1),1,'like',theta));
+            W      = solve(this.optClass,fctn,zeros(size(C,1)*(size(YN,1)+this.pLoss.addBias),1,'like',theta));
             
             % compute loss
             F = 0.0; hisLoss = []; dJth = 0.0;

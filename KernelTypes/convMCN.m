@@ -57,7 +57,6 @@ classdef convMCN < convKernel
         
         function [Y,tmp] = Amv(this,theta,Y)
             % compute convolution
-%             Y = reshape(Y,[nImg this.sK(3)]);
             K = reshape(this.Q*theta(:),this.sK);
             Y = vl_nnconv(Y,K,[],'pad',this.pad,'stride',this.stride);
         end
