@@ -8,6 +8,7 @@ classdef sgd < optimizer
         miniBatch
         atol
         rtol
+        lossTol
         maxStep
         out
         learningRate
@@ -24,6 +25,7 @@ classdef sgd < optimizer
             this.miniBatch = 16;
             this.atol    = 1e-3;
             this.rtol    = 1e-3;
+            this.lossTol = -Inf;
             this.maxStep = 1.0;
             this.out     = 0;
             this.learningRate = 0.1;
@@ -74,7 +76,7 @@ classdef sgd < optimizer
             if this.ADAM
                 mJ = 0*xc;
                 vJ = 0*xc;
-                this.learningRate = 0.001;
+%                 this.learningRate = 0.001;
             end
             beta2 = 0.999;
             beta1 = this.momentum;
@@ -88,8 +90,8 @@ classdef sgd < optimizer
             end
             
             if this.out>0
-                fprintf('== sgd (n=%d,maxEpochs=%d, lr = %1.1e, momentum = %1.1e, ADAM = %d, Nesterov = %d, miniBatch=%d) ===\n',...
-                    numel(xc), this.maxEpochs, learningRate(1) ,this.momentum, this.ADAM,this.nesterov,this.miniBatch);
+                fprintf('== sgd (n=%d,maxEpochs=%d, lr = %1.1e, momentum = %1.1e, ADAM = %d, Nesterov = %d, miniBatch=%d, lossTol=%1.1e) ===\n',...
+                    numel(xc), this.maxEpochs, learningRate(1) ,this.momentum, this.ADAM,this.nesterov,this.miniBatch,this.lossTol);
                 fprintf([repmat('%-12s',1,numel(str)) '\n'],str{:});
             end
             xc = this.P(xc);
@@ -165,6 +167,10 @@ classdef sgd < optimizer
                 end
                 if this.out>0
                     fprintf('\n');
+                end
+                if (this.lossTol>-Inf) && (his(epoch,5) < this.lossTol)
+                    fprintf('--- %s reached loss tolerance: terminate ---\n',mfilename);
+                    break;
                 end
                 epoch = epoch + 1;
             end

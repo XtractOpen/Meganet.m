@@ -1,4 +1,4 @@
-function viewContour2D(domain,theta,W,net,pLoss)
+function [C,Cp,Y] =  viewContour2D(domain,theta,W,net,pLoss)
 
 if nargin==0
     runMinimalExample;
@@ -24,7 +24,8 @@ if not(isempty(theta))
     [Y,tmp] = forwardProp(net,theta,Y);
 end
 [Cp] = getLabels(pLoss,W,Y);
-[C,ca] = contourf(xa,ya,reshape((1:size(Cp,1))*Cp,N,N));
+Cp = reshape((1:size(Cp,1))*Cp,N,N);
+[C,ca] = contourf(xa,ya,Cp);
 cmap
 colormap(cmap);
 set(ca,'EdgeColor','none');
