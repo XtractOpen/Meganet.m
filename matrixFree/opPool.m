@@ -48,7 +48,7 @@ classdef opPool < LinearOperator
             % apply transpose of average pooling operator to Z
             nex = sizeLastDim(Z);
             Z   = reshape(Z,this.nImg(1)./this.pool, this.nImg(1)./this.pool,[]);
-            Y   = imresize(Z,2,'nearest')/this.pool^2;
+            Y   = imresize(Z,this.nImg(1:2),'nearest')/this.pool^2;
             Y   = reshape(Y,[this.nImg nex]);
         end
     end
