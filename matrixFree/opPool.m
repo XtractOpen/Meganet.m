@@ -34,22 +34,22 @@ classdef opPool < LinearOperator
         
         function Z = applyPool(this,Y)
             % apply average pooling to data Y
-            nex = numel(Y)/prod(this.n);
+            nex = sizeLastDim(Y);
             Y = reshape(Y,this.nImg(1),this.nImg(2),[]);
             % filter for averaging operator
             F = ones(this.pool,this.pool,'like',Y); 
             F = F/sum(F(:));
             Z = convn(Y,F,'same');
             Z = Z(1:this.stride:end,1:this.stride:end,:);
-            Z   = reshape(Z,[],nex);
+            Z   = reshape(Z,[this.m nex]);
         end
         
         function Y = applyTranspose(this,Z)
             % apply transpose of average pooling operator to Z
-            nex = numel(Z)/prod(this.m);
+            nex = sizeLastDim(Z);
             Z   = reshape(Z,this.nImg(1)./this.pool, this.nImg(1)./this.pool,[]);
             Y   = imresize(Z,2,'nearest')/this.pool^2;
-            Y   = reshape(Y,[],nex);
+            Y   = reshape(Y,[this.nImg nex]);
         end
     end
 end
