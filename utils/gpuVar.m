@@ -42,9 +42,13 @@ for k=1:nv
     end
 
     
-    if not(isempty(useGPU)) && useGPU && not(isa(vark,'gpuArray'))
+    if not(isempty(useGPU))
         if isnumeric(vark) || islogical(vark)
-            vark = gpuArray(vark);
+            if useGPU && not(isa(vark,'gpuArray'))
+                vark = gpuArray(vark);
+            elseif ~useGPU && isa(vark,'gpuArray')
+                vark = gather(vark);
+            end
         elseif (isa(vark,'handle') && isprop(vark,'useGPU')) || isfield(vark,'useGPU')
             vark.useGPU = useGPU;
         end
