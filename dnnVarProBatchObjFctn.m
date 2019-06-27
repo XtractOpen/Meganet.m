@@ -57,10 +57,13 @@ classdef dnnVarProBatchObjFctn < objFctn
         
         function [Jc,para,dJ,H,PC] = eval(this,theta,idx)
             if not(exist('idx','var')) || isempty(idx)
+                % use all examples
                 Y = this.Y;
                 C = this.C;
             else
-                Y = this.Y(:,idx);
+                % use only examples specified in idx in the loss
+                colons = repmat( {':'} , 1 , ndims(this.Y)-1 );
+                Y = this.Y( colons{:} ,idx);
                 C = this.C(:,idx);
             end
             colons = repmat( {':'} , 1 , ndims(Y)-1 ); % variable-length colons for indexing Y
@@ -70,25 +73,13 @@ classdef dnnVarProBatchObjFctn < objFctn
             dJ = 0.0; H = []; PC = [];
             
             szY = size(Y);
-            nex = szY(end);
+            nex = sizeLastDim(Y);   % number of examples to compute loss over
+            nb  = nBatches(this,nex); % determine number of batches for the computation
             szYN  = [sizeFeatOut(this.net) nex];
             
 %           % forward prop
-            YN = zeros(szYN,'like',this.Y);
-            for k=1:nb
-                if nb>1
-                    idk = this.getBatchIds(k,nex);
-                    Yk  = Y( colons{:} , idk);
-                else
-                    Yk = Y;
-                end
-                YNk = forwardProp(this.net,theta,Yk);
-                if nb>1
-                    YN( colons{:} , idk ) = YNk;
-                else
-                    YN=YNk;
-                end
-            end
+            YN = forwardPropBatch(this.net,theta,Y,this.batchSize);
+            
             %classify
             YN = reshape(YN,[],nex);
             fctn   = classObjFctn(this.pLoss,this.pRegW,YN,C);
@@ -125,7 +116,7 @@ classdef dnnVarProBatchObjFctn < objFctn
                     dthFk = J'*dYF;
                     dJth  = dJth + numel(idk)*dthFk;
                     if compHess&&k==1
-                        Hthmv   =@(x) (numel(idk)/nex)*(J'*(d2YF*(J*x)));
+                        Hthmv   =@(x) (numel(idk)/nex)*(J'*reshape(d2YF*(J*x),szYNk));
                         H   = LinearOperator(numel(theta),numel(theta),Hthmv,Hthmv); 
                     end
                 end
