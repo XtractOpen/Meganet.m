@@ -8,6 +8,7 @@ classdef sgd < optimizer
         miniBatch
         atol
         rtol
+        lossTol
         maxStep
         out
         learningRate
@@ -24,6 +25,7 @@ classdef sgd < optimizer
             this.miniBatch = 16;
             this.atol    = 1e-3;
             this.rtol    = 1e-3;
+            this.lossTol = -Inf;
             this.maxStep = 1.0;
             this.out     = 0;
             this.learningRate = 0.1;
@@ -74,7 +76,7 @@ classdef sgd < optimizer
             if this.ADAM
                 mJ = 0*xc;
                 vJ = 0*xc;
-                this.learningRate = 0.001;
+%                 this.learningRate = 0.001;
             end
             beta2 = 0.999;
             beta1 = this.momentum;
@@ -88,19 +90,29 @@ classdef sgd < optimizer
             end
             
             if this.out>0
-                fprintf('== sgd (n=%d,maxEpochs=%d, lr = %1.1e, momentum = %1.1e, ADAM = %d, Nesterov = %d, miniBatch=%d) ===\n',...
-                    numel(xc), this.maxEpochs, learningRate(1) ,this.momentum, this.ADAM,this.nesterov,this.miniBatch);
+                fprintf('== sgd (n=%d,maxEpochs=%d, lr = %1.1e, momentum = %1.1e, ADAM = %d, Nesterov = %d, miniBatch=%d, lossTol=%1.1e) ===\n',...
+                    numel(xc), this.maxEpochs, learningRate(1) ,this.momentum, this.ADAM,this.nesterov,this.miniBatch,this.lossTol);
                 fprintf([repmat('%-12s',1,numel(str)) '\n'],str{:});
             end
             xc = this.P(xc);
             his = zeros(1,numel(str));
             
             while epoch <= this.maxEpochs
+                
                 nex = sizeLastDim(objFctn.Y);
                 ids = randperm(nex);
                 lr = learningRate(epoch);
                 for k=1:floor(nex/this.miniBatch)
                     idk = ids((k-1)*this.miniBatch+1: min(k*this.miniBatch,nex));
+                    
+%                     if k==1
+%                         % update time stepping
+%                         Yk = objFctn.Y(:,:,:,idk);
+%                         setTimeY(objFctn.net,xc,Yk);
+%                     end
+                        
+                        
+                    
                     if this.nesterov && ~this.ADAM
                         [Jk,~,dJk] = fctn(xc-this.momentum*dJ,idk);
                     else
@@ -117,10 +129,15 @@ classdef sgd < optimizer
                     end
                     xc = this.P(xc - dJ);
                 end
+                
                 % we sample 2^12 images from the training set for displaying the objective.     
                 [Jc,para] = fctn(xc,ids(1:min(nex,2^15))); 
                 if doVal
-                    [Fval,pVal] = fval(xc,[]); % evaluate loss for validation data
+                    if isa(objFctn,'segVarProBatchObjFctn') || isa(objFctn,'dnnVarProBatchObjFctn') ||isa(objFctn,'dnnMultiStepVarProBatchObjFctn') || isa(objFctn,'dnnVarProObjFctn')
+                    [Fval,pVal] = fval([xc; para.W(:)],[]);
+                    else
+                        [Fval,pVal] = fval(xc,[]);
+                    end
                     valAcc = obj2His(pVal);
                     if (nargout>2) && (valAcc(2)>optValAcc)
                         xOptAcc = gather(xc);
@@ -150,6 +167,10 @@ classdef sgd < optimizer
                 end
                 if this.out>0
                     fprintf('\n');
+                end
+                if (this.lossTol>-Inf) && (his(epoch,5) < this.lossTol)
+                    fprintf('--- %s reached loss tolerance: terminate ---\n',mfilename);
+                    break;
                 end
                 epoch = epoch + 1;
             end

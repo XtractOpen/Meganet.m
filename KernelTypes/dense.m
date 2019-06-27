@@ -63,7 +63,8 @@ classdef dense
         end
         
         function theta = initTheta(this)
-            theta = rand(nTheta(this),1);
+            sd = sqrt(2/this.nK(2));
+            theta = sd*randn(nTheta(this),1);
         end
             
         function A = getOp(this,theta)

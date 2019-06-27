@@ -28,6 +28,12 @@ for k=1:nv
         elseif (isa(vark,'handle') && isprop(vark,'precision')) || isfield(vark,'precision')
             vark.precision = 'single';
         end
+    elseif not(isempty(precision)) && strcmp(precision,'double')
+        if isnumeric(vark)
+            vark = double(vark);
+        elseif (isa(vark,'handle') && isprop(vark,'precision')) || isfield(vark,'precision')
+            vark.precision = 'double';
+        end
     end
     
     if useGPU  % check if GPU exists, run on CPU if it does not

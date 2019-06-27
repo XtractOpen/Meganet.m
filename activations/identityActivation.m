@@ -1,4 +1,4 @@
-function [A,dA] = identityActivation(Y,varargin)
+function [A,dA,d2A] = identityActivation(Y,varargin)
 % [A,dA] = identityActivation(Y,varargin)
 %
 % identity activation function A = Y
@@ -22,18 +22,19 @@ if nargin==0
     return
 end
 
-doDerivative = nargout==2;
+doDerivative = nargout>=2;
 for k=1:2:length(varargin)    % overwrites default parameter
   eval([varargin{k},'=varargin{',int2str(k+1),'};']);
 end;
 
 
-dA = [];
+dA = []; d2A = [];
 
 A = Y;
 
 if doDerivative
      dA = Y*0 + 1;
+     d2A = Y*0 ;
 end
 
 

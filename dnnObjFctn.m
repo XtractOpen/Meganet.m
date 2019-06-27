@@ -58,12 +58,14 @@ classdef dnnObjFctn < objFctn
                 Y = this.Y;
                 C = this.C;
             else
-                Y = this.Y(:,idx);
+                colons = repmat( {':'} , 1 , ndims(this.Y)-1 );
+                Y = this.Y( colons{:} ,idx);
                 C = this.C(:,idx);
             end
             compGrad = nargout>2;
             compHess = nargout>3;
-            
+            nex = sizeLastDim(Y);   % number of examples to compute loss over
+
             dJth = []; dJW = []; Hth = []; HW = []; PC = [];
             
             [theta,W] = split(this,thetaW);
@@ -74,7 +76,6 @@ classdef dnnObjFctn < objFctn
                 [YN,J] = linearizeTheta(this.net,theta,Y);
                 
                 szYN  = size(YN);
-                nex = szYN(end);
                 YN = reshape(YN,[],nex); % loss expects 2D input
                 [F,hisLoss,dWF,d2WF,dYF,d2YF] = getMisfit(this.pLoss,W,YN,C);
                 dYF = reshape(dYF,szYN);
@@ -83,14 +84,13 @@ classdef dnnObjFctn < objFctn
                 dJW  = dWF;
                 Jc   = F;
                 if compHess
-                    Hthmv = @(x) J'*(d2YF*(J*x)); %  JTmv(this.net, reshape(d2YF* Jmv(this.net,x,[],Kb,Yall,dA),size(YN)), Kb,Yall,dA);
+                    Hthmv = @(x) J'*reshape(d2YF*(J*x),szYN); %  JTmv(this.net, reshape(d2YF* Jmv(this.net,x,[],Kb,Yall,dA),size(YN)), Kb,Yall,dA);
                     Hth   = LinearOperator(numel(theta),numel(theta),Hthmv,Hthmv);
                     HW    = d2WF;
                 end
             else
                 [YN]                   = forwardProp(this.net,theta,Y);
                 szYN  = size(YN);
-                nex = szYN(end);
                 YN = reshape(YN,[],nex); % loss expects 2D input
                 [F,hisLoss] = getMisfit(this.pLoss,W,YN,C);
                 Jc = F;

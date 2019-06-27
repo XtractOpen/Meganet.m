@@ -99,7 +99,7 @@ classdef ResNN < abstractMeganetElement
                 dY = 0.0;
             elseif numel(dY)>1
                 nex = numel(dY)/numelFeatIn(this);
-                dY   = reshape(dY,[],nex);
+%                 dY   = reshape(dY,[],nex);
             end
             
             theta  = reshape(theta,[],this.nt);

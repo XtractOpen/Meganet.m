@@ -29,18 +29,16 @@ convOp = getConvOp(useGPU);
 
 % setup network
 miniBatchSize=128;
-if useGPU
-    act = @smoothReluActivationArrayfun;
-else
-    act = @smoothReluActivation;
-end
+act = @reluActivation;
+
 % act = @tanhActivation;
 nc      = 8;
 nt      = 4;
 h       = .1;
 
-B = gpuVar(useGPU,precision,kron(eye(nc),ones(prod(nImg),1)));
+B = opCNNBias([nImg nc]);
 blocks    = cell(0,1); RegOps = cell(0,1);
+
 blocks{end+1} = NN({singleLayer(convOp(nImg,[1 1 1 nc]),'activation', act,'Bin',B)});
 regD = gpuVar(useGPU,precision,[ones(nTheta(blocks{end}.layers{1}.K),1); zeros(size(B,2),1)]);
 RegOps{end+1} = opDiag(regD);

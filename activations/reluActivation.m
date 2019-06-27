@@ -1,4 +1,4 @@
-function [A,dA] = reluActivation(Y,varargin)
+function [A,dA,d2A] = reluActivation(Y,varargin)
 % [A,dA] = reluActivation(Y,varargin)
 %
 % relu activation function A = relu(Y)
@@ -22,19 +22,23 @@ if nargin==0
     return
 end
 
-doDerivative = nargout==2;
+doDerivative = nargout>=2;
 for k=1:2:length(varargin)    % overwrites default parameter
   eval([varargin{k},'=varargin{',int2str(k+1),'};']);
 end
 
 
-dA = [];
+dA = []; d2A = [];
 
 A = max(Y,0);
 
-if doDerivative && nargout==2
+if doDerivative && nargout>=2
 %     dA = sign(Y);
     dA = Y>=0;
+end
+if doDerivative && nargout==3
+%     dA = sign(Y);
+    d2A = 0*Y;
 end
 
 
