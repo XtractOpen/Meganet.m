@@ -196,16 +196,35 @@ function [Y,tmp] = forwardProp(this,theta,Y,varargin)
                 W = 0;
             end
             
+            % get last two time points
+            Yold = tmp{1};
+            Y    = tmp{2};
+            
             theta  = reshape(theta,[],this.nt);
             dtheta = 0*theta;
-            Wold   = 0;
+            Wold   = 0*W;
             for i=this.nt:-1:1
-%                 [dmbi,dW] = JTmv(this.layer,W,[],theta(:,i),tmp{i,1},tmp{i,2});
-                [dmbi,dW] = JTmv(this.layer,W,theta(:,i),tmp{i,1},tmp{i,2});
+                
+                % evaluate layer
+                [Z,tmp]     = forwardProp(this.layer,theta(:,i),Y,'storeInterm',1);
+                
+                % compute Jacobian matvecs
+                [dmbi,dW] = JTmv(this.layer,W,theta(:,i),Y,tmp);
                 dtheta(:,i)  = this.h^2*dmbi;
                 Wtemp = W;
-                W     = 2*W - Wold + this.h^2*dW;
+                if i>1
+                    W     = 2*W - Wold + this.h^2*dW;
+                else
+                    % note that we use homogeneous Neumann boundary
+                    % conditions
+                    W     =(W-Wold)+this.h^2*dW;
+                end
                 Wold  = Wtemp;
+                
+                % update Y
+                Ytemp = Y;
+                Y     =  2*Y - Yold + this.h^2 * Z;
+                Yold  = Ytemp;
             end
             dtheta = vec(dtheta);
             if nargout==1 && all(doDerivative==1)
@@ -283,12 +302,13 @@ function [Y,tmp] = forwardProp(this,theta,Y,varargin)
         end
         
         function runMinimalExample(~)
-            nex = 10;
-            nK  = [4 4];
+            nex = 500;
+            nK  = [2 2];
             
             D   = dense(nK);
-            S   = singleLayer(D);
-            net = LeapFrogNN(S,2,.01);
+            S   = doubleSymLayer(D);
+            S.activation = @reluActivation;
+            net = LeapFrogNNrev(S,3,1);
             mb  = randn(nTheta(net),1);
             
             Y0  = randn(nK(2),nex);
@@ -296,8 +316,8 @@ function [Y,tmp] = forwardProp(this,theta,Y,varargin)
             dmb = reshape(randn(size(mb)),[],net.nt);
             dY0  = randn(size(Y0));
             
-            dY = net.Jmv(dmb(:),dY0,mb,[],tmp);
-            for k=1:14
+            dY = net.Jmv(dmb(:),dY0,mb,Y0,tmp);
+            for k=1:30
                 hh = 2^(-k);
                 
                 Yt = net.forwardProp(mb+hh*dmb(:),Y0+hh*dY0);
@@ -311,15 +331,10 @@ function [Y,tmp] = forwardProp(this,theta,Y,varargin)
             W = randn(size(Ydata));
             t1  = W(:)'*dY(:);
             
-            [dWdmb,dWY] = net.JTmv(W,[],mb,Y0,tmp);
+            [dWdmb,dWY] = net.JTmv(W,mb,Y0,tmp);
             t2 = dmb(:)'*dWdmb(:) + dY0(:)'*dWY(:);
             
             fprintf('adjoint test: t1=%1.2e\tt2=%1.2e\terr=%1.2e\n',t1,t2,abs(t1-t2));
-            
-            
-            
-            
-            
         end
     end
     
