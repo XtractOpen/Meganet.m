@@ -92,34 +92,44 @@ classdef doubleSymLayer < abstractMeganetElement
         end
         
         function [Z,tmp] = forwardProp(this,theta,Y,varargin)
+            storeInterm  = this.storeInterm;
             doDerivative = (nargout>1);
             for k=1:2:length(varargin)     % overwrites default parameter
                 eval([varargin{k},'=varargin{',int2str(k+1),'};']);
             end
-            tmp =  cell(1,2);
+            doDerivative = doDerivative && storeInterm;
+
             
             [th1,th2,th3,th4,th5] = split(this,theta);
+            
             Kop    = getOp(this.K,th1);
-            Y     = Kop*Y;
-            if this.storeInterm
-                tmp{1}    = Y;
-            end
+            KY      = Kop*Y;
+            
             if not(isempty(this.normLayer1))
-                Y = forwardProp(this.normLayer1,th4,Y);
+                [Z,tmpNL1] = forwardProp(this.normLayer1,th4,KY,'doDerivative',doDerivative);
+            else
+                tmpNL1 = [];
+                Z = KY;
             end
+            
             if not(isempty(th2))
-                Y     = Y + this.Bin*th2;
+                Z     = Z + this.Bin*th2;
             end
-            Z      = this.activation(Y,'doDerivative',doDerivative);
-            Z      = -(Kop'*Z);
+            [A,dA]  = this.activation(Z,'doDerivative',doDerivative);
+            KZ      = -(Kop'*A);
             if not(isempty(this.normLayer2))
-                if this.storeInterm
-                    tmp{2} = Z;
-                end
-                Z = forwardProp(this.normLayer2,th5,Z);
+                [Z,tmpNL2] = forwardProp(this.normLayer2,th5,KZ,'doDerivative',doDerivative);
+            else
+                tmpNL2 = [];
+                Z = KZ;
             end
+                
             if not(isempty(th3))
                 Z = Z + this.Bout*th3;
+            end
+            
+            if nargout>1
+               tmp = {KY,tmpNL1,A,dA,KZ,tmpNL2}; 
             end
         end
 
@@ -137,33 +147,15 @@ classdef doubleSymLayer < abstractMeganetElement
             %   KY    - K(theta)*Y
             %   tmpNL - temp results of norm Layer
             
-            tmpNL1 =[]; tmpNL2 = []; KZ = [];
-            [th1, th2,~,th4,th5]  = split(this,theta);
-            
-            if not(this.storeInterm)
-                KY = getOp(this.K,th1)*Y;
-            else
-                KY = tmp{1};
+            if not(this.storeInterm)  || isempty(tmp)
+                [~,tmp] = forwardProp(this,theta,Y,'storeInterm',1);
             end
-            
-            if not(isempty(this.normLayer1))
-                [KYn,tmpNL1] = forwardProp(this.normLayer1,th4,KY);
-            else
-                KYn = KY;
-            end
-            if not(isempty(th2))
-                KYn = KYn + this.Bin*th2;
-            end
-            [A,dA] = this.activation( KYn );
-            if not(isempty(this.normLayer2))
-                if not(this.storeInterm)
-                    KZ = - (getOp(this.K,th1)*A);
-                else
-                    KZ = tmp{2};
-                end
-                [~,tmpNL2] = forwardProp(this.normLayer2,th5,KZ);
-            end
-                
+            KY = tmp{1};
+            tmpNL1 = tmp{2};
+            A  = tmp{3};
+            dA = tmp{4};
+            KZ = tmp{5};
+            tmpNL2 = tmp{6};
         end
         
         function n = nTheta(this)
