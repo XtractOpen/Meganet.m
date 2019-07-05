@@ -79,78 +79,115 @@ classdef LeapFrogNN < abstractMeganetElement
         end
         
         % ------- forwardProp forward problems -----------
-        function [Y,tmp] = forwardProp(this,theta,Y,varargin)
-            doDerivative = (nargout>1);
+function [Y,tmp] = forwardProp(this,theta,Y,varargin)
             for k=1:2:length(varargin)     % overwrites default parameter
                 eval([varargin{k},'=varargin{',int2str(k+1),'};']);
             end
             
-            tmp = cell(this.nt,2);
-            
             theta = reshape(theta,[],this.nt);
-            Yold = 0;
+            Yold = Y;
             for i=1:this.nt
-                if doDerivative, tmp{i,1} = Y; end
-                [Z,tmp{i,2}] = forwardProp(this.layer,theta(:,i),Y,'doDerivative',doDerivative);
+                Z     = forwardProp(this.layer,theta(:,i),Y);
                 Ytemp = Y;
-                Y =  2*Y - Yold + this.h^2 * Z;
-                Yold = Ytemp;
+                Y     =  2*Y - Yold + this.h^2 * Z;
+                Yold  = Ytemp;
             end
+            tmp = {Y,Yold};
         end
         
         % -------- Jacobian matvecs ---------------
-        function dY = JYmv(this,dY,theta,~,tmp)
+        function dY = JYmv(this,dY,theta,Y,~)
             if isempty(dY)
                 dY = 0.0;
             end
             
+            dYold = dY;
+            Yold  = Y;
             
-            dYold = 0;
             theta  = reshape(theta,[],this.nt);
             for i=1:this.nt
+                % evaluate layer
+                [Z,tmp]     = forwardProp(this.layer,theta(:,i),Y,'storeInterm',1);
+                
+                % update dY
                 dYtemp = dY;
-                dY     = 2*dY - dYold + this.h^2* JYmv(this.layer,dY,theta(:,i),tmp{i,1},tmp{i,2});
+                dY     = 2*dY - dYold + this.h^2* JYmv(this.layer,dY,theta(:,i),Y,tmp);
                 dYold  = dYtemp;
+
+                % update Y
+                Ytemp = Y;
+                Y     =  2*Y - Yold + this.h^2 * Z;
+                Yold  = Ytemp;
             end
         end
         
         
 
-        function dY = Jmv(this,dtheta,dY,theta,~,tmp)
+        function dY = Jmv(this,dtheta,dY,theta,Y,~)
             if isempty(dY)
                 dY = 0.0;
             end
             
-            dYold = 0;
+            dYold = dY;
+            Yold  = Y;
+            
             theta  = reshape(theta,[],this.nt);
             dtheta = reshape(dtheta,[],this.nt);
             for i=1:this.nt
+                % evaluate layer
+                [Z,tmp]     = forwardProp(this.layer,theta(:,i),Y,'storeInterm',1);
+                
+                % update dY
                 dYtemp = dY;
-                dY = 2*dY - dYold + this.h^2* Jmv(this.layer,dtheta(:,i),dY,theta(:,i),tmp{i,1},tmp{i,2});
+                dY = 2*dY - dYold + this.h^2* Jmv(this.layer,dtheta(:,i),dY,theta(:,i),Y,tmp);
                 dYold = dYtemp;
+                
+                % update Y
+                Ytemp = Y;
+                Y     =  2*Y - Yold + this.h^2 * Z;
+                Yold  = Ytemp;
             end
         end
         
         % -------- Jacobian' matvecs ----------------
         
-        function W = JYTmv(this,W,theta,Y,tmp)
+        function W = JYTmv(this,W,theta,~,tmp)
             % call JYTmv (saving computations of the derivatives w.r.t.
             % theta)
             if isempty(W)
                 W = 0;
             end
             
+            % get last two time points
+            Yold = tmp{1};
+            Y    = tmp{2};
+            
             theta  = reshape(theta,[],this.nt);
-            Wold = 0;
+            Wold = 0*W;
             for i=this.nt:-1:1
-                dW = JYTmv(this.layer,W,theta(:,i),tmp{i,1},tmp{i,2});
+                % evaluate layer
+                [Z,tmp]     = forwardProp(this.layer,theta(:,i),Y,'storeInterm',1);
+                
+                % compute Jacobian matvecs
+                dW = JYTmv(this.layer,W,theta(:,i),Y,tmp);
                 Wtemp = W;
-                W     = 2*W - Wold + this.h^2*dW;
+                if i>1
+                    W     = 2*W - Wold + this.h^2*dW;
+                else
+                    % note that we use homogeneous Neumann boundary
+                    % conditions
+                    W     =(W-Wold)+this.h^2*dW;
+                end
                 Wold  = Wtemp;
+                
+                % update Y
+                Ytemp = Y;
+                Y     =  2*Y - Yold + this.h^2 * Z;
+                Yold  = Ytemp;
             end
         end
         
-        function [dtheta,W] = JTmv(this,W,theta,Y,tmp,doDerivative)
+        function [dtheta,W] = JTmv(this,W,theta,~,tmp,doDerivative)
             if not(exist('doDerivative','var')) || isempty(doDerivative)
                doDerivative =[1;0]; 
             end

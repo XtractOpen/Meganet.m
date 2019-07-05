@@ -43,9 +43,9 @@ if norm(vec(dvF))/(norm(x0)+norm(x0)==0) < 1e-10
     warning('gradient is small');
 end
 nF     = norm(vec(F));
-Err   = zeros(10,2);
-Order   = zeros(10,2);
-Success = zeros(10,1);
+Err   = zeros(30,2);
+Order   = zeros(30,2);
+Success = zeros(30,1);
 for j=1:30
     Ft = fctn(x0+2.0^(-j)*v);      % function value
     Err(j,1) = gather(norm(vec(F-Ft))/nF);    % Error TaylorPoly 0
