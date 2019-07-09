@@ -122,18 +122,31 @@ classdef Meganet < abstractMeganetElement
         end
         
         % ---------- apply forward problem ------------
-        function [Y,tmp] = forwardProp(this,theta,Y0,varargin)
+        function [Y,tmp] = forwardProp(this,theta,Y,varargin)
             doDerivative = (nargout>1);
             for k=1:2:length(varargin)     % overwrites default parameter
                 eval([varargin{k},'=varargin{',int2str(k+1),'};']);
             end
             
             nBlocks = numel(this.blocks);
-            Y  = Y0;
             tmp = cell(nBlocks,1);
             thetas = split(this,theta);
             for k=1:nBlocks
                 [Y,tmp{k}] = forwardProp(this.blocks{k},thetas{k},Y,'doDerivative',doDerivative);
+            end
+        end
+        
+        function [Y,W,tmp] = forwardPropGrad(this,W,theta,Y,varargin)
+            doDerivative = (nargout>1);
+            for k=1:2:length(varargin)     % overwrites default parameter
+                eval([varargin{k},'=varargin{',int2str(k+1),'};']);
+            end
+            
+            nBlocks = numel(this.blocks);
+            tmp = cell(nBlocks,1);
+            thetas = split(this,theta);
+            for k=1:nBlocks
+                [Y,W,tmp{k}] = this.blocks{k}.forwardPropGrad(W,thetas{k}, Y);
             end
         end
         
@@ -162,8 +175,6 @@ classdef Meganet < abstractMeganetElement
         
         % ----------- Jacobian matvecs -------------
         function dY = JYmv(this,dY,theta,~,tmp)
-            nex = numel(dY)/numelFeatIn(this);
-            dY  = reshape(dY,[],nex);
             nBlocks = numel(this.blocks);
             cnt = 0;
             for k=1:nBlocks
@@ -173,9 +184,26 @@ classdef Meganet < abstractMeganetElement
             end
         end
         
-        function dY = Jmv(this,dtheta,dY,theta,~,tmp)
-            % nex = numel(dY)/numelFeatIn(this);
-            % dY  = reshape(dY,[],nex);
+        function dW = JYJYmv(this,dY,W,theta,~,tmp)
+            nBlocks = numel(this.blocks);
+            cnt = 0;
+            dW = 0*dY;
+            for k=1:nBlocks
+                nk = nTheta(this.blocks{k});
+                thk = theta(cnt+(1:nk));
+                
+                dW1 = this.blocks{k}.JYmv(dW,thk,[],tmp{k});
+                dW2 = JYJYmv(this.blocks{k},dY,[],thk,[],tmp{k});
+                dW  = dW1 + dW2;
+                
+                
+                dY = JYmv(this.blocks{k},dY,thk,[],tmp{k});
+                cnt = cnt+nk;
+            end
+        end
+        
+        
+        function dY = Jmv(this,dtheta,dY,theta,Y,tmp)
             nBlocks = numel(this.blocks);
             cnt = 0;
             for k=1:nBlocks
@@ -186,16 +214,63 @@ classdef Meganet < abstractMeganetElement
             end
         end
         
+        function dW = JJYmv(this,dtheta,dY,W,theta,~,tmp)
+            nBlocks = numel(this.blocks);
+            if isempty(dY); 
+                dY = 0*W;
+            end
+            cnt = 0;
+            dW = 0*dY;
+            for k=1:nBlocks
+                nk   = nTheta(this.blocks{k});
+                dthk = dtheta(cnt+(1:nk));
+                thk  = theta(cnt+(1:nk));
+                
+                dW1 = JYmv(this.blocks{k},dW,thk,[],tmp{k});
+                dW2 = JJYmv(this.blocks{k},dthk,dY,[],thk,[],tmp{k});
+                dW  = dW1 + dW2;
+                
+                
+                dY = Jmv(this.blocks{k},dthk,dY,thk,[],tmp{k});
+                cnt = cnt+nk;
+            end
+        end
+        
+        
         % ----------- Jacobian' matvecs -----------
         function W = JYTmv(this,W,theta,Y,tmp)
             
             nBlocks  = numel(this.blocks);
             
-            cnt = 0; % W = [];
+            cnt = 0;
             for k=nBlocks:-1:1
                 nk = nTheta(this.blocks{k});
-                W = JYTmv(this.blocks{k},W,theta(end-cnt-nk+1:end-cnt),tmp{k}{1,1},...
-                    tmp{k});
+                thk = theta(end-cnt-nk+1:end-cnt);
+                if not(isempty(tmp{k}))
+                    W = JYTmv(this.blocks{k},W,thk,tmp{k}{1,1},tmp{k});
+                else
+                    W = JYTmv(this.blocks{k},W,thk,[],[]);
+                end                    
+                cnt = cnt+nk;
+            end
+        end
+        
+        function dW = JYTJYmv(this,dZ,W,theta,Y,tmp)
+            
+            nBlocks  = numel(this.blocks);
+            dW = 0*dZ;
+            
+            cnt = 0;
+            for k=nBlocks:-1:1
+                nk = nTheta(this.blocks{k});
+                Yk  = tmp{k}{1,1};
+                thk = theta(end-cnt-nk+1:end-cnt);
+                
+                dW1  = JYTJYmv(this.blocks{k}, dZ,[],thk,Yk,tmp{k});
+                dW2 = JYTmv(this.blocks{k},dW,thk,[],tmp{k});
+                dW = dW1 + dW2;
+    
+                dZ = JYTmv(this.blocks{k},dZ,thk,Yk,tmp{k});
                 cnt = cnt+nk;
             end
         end
@@ -205,7 +280,6 @@ classdef Meganet < abstractMeganetElement
             if not(exist('doDerivative','var')) || isempty(doDerivative) 
                doDerivative =[1;0]; 
             end
-            % nex = numel(Y)/numelFeatIn(this);
             if isempty(W)
                 W=0;
             end
@@ -226,6 +300,42 @@ classdef Meganet < abstractMeganetElement
             end
             if nargout==1 && all(doDerivative==1)
                 dtheta=[dtheta(:); W(:)];
+            end
+        end
+        
+        function [dthetadW,dYdW] = JTJYmv(this,dZ,W,theta,Y,tmp,doDerivative)
+            if not(exist('doDerivative','var')) || isempty(doDerivative) 
+               doDerivative =[1;0]; 
+            end
+            
+            dYdW = 0*dZ;
+            dthetadW = 0*theta;
+            
+            nBlocks  = numel(this.blocks);
+            
+            cnt = 0;
+            for k=nBlocks:-1:1
+                nk = nTheta(this.blocks{k});
+                thk = theta(end-cnt-nk+1:end-cnt);
+                
+                if isempty(tmp{k})
+                    Yk = [];
+                else
+                   Yk = tmp{k}{1,1}; 
+                end
+                
+                [dth0,dY1] = JTJYmv(this.blocks{k}, dZ,[],thk,Yk,tmp{k});
+                [dth2,dY2] = JTmv(this.blocks{k},dYdW,thk,[],tmp{k});
+                dYdW = dY1 + dY2;
+                dthetadW(end-cnt-nk+1:end-cnt)  =  dth2(:)+dth0(:);
+                
+                
+                dZ = JYTmv(this.blocks{k},dZ,thk,Yk,tmp{k});
+                
+                cnt = cnt+nk;
+            end
+            if nargout==1 && all(doDerivative==1)
+                dthetadW=[dthetadW(:); W(:)];
             end
         end
         

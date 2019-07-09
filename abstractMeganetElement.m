@@ -227,6 +227,9 @@ methods
 
             dY = Jmv(this,dtheta,[],theta,Y,tmp);
         end
+        function dY = JthetaJYmv(this,dtheta,W,theta,Y,tmp)
+            dY = JJYmv(this,dtheta,[],W,theta,Y,tmp);
+        end
         
         function dtheta = JthetaTmv(this,W,theta,Y,tmp)
             % dY = abstractMeganetElement.JthetaTmv(this,W,theta,Y,tmp)
@@ -246,6 +249,9 @@ methods
             %
             %   dtheta - directional derivative, numel(dtheta)==numel(theta)
             dtheta = JTmv(this,W,theta,Y,tmp);
+        end
+        function dtheta = JthetaTJYmv(this,Z,W,theta,Y,tmp)
+            dtheta = JTJYmv(this,Z,W,theta,Y,tmp);
         end
         
         
@@ -270,6 +276,16 @@ methods
             n      = nTheta(this);
             Amv    = @(x) Jthetamv(this,x,theta,Y,tmp);
             ATmv   = @(x) JthetaTmv(this,x,theta,Y,tmp);
+            J      = LinearOperator(m,n,Amv,ATmv);
+        end
+        function J = getJthetaJYOp(this,W,theta,Y,tmp)
+
+            if nargin<5; tmp=[]; end
+            
+            m      = sizeFeatOut(this);
+            n      = nTheta(this);
+            Amv    = @(x) JthetaJYmv(this,x,W,theta,Y,tmp);
+            ATmv   = @(x) JthetaTJYmv(this,x,W,theta,Y,tmp);
             J      = LinearOperator(m,n,Amv,ATmv);
         end
 
