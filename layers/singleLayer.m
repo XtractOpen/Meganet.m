@@ -8,7 +8,8 @@ classdef singleLayer < abstractMeganetElement
     properties
         activation  % activation function
         K           % transformation type
-        normLayer      % normalization layer
+        normLayer   % normalization layer
+        normLayerOut   % normalization layer after nonlinearity
         Bin         % bias inside nonlinearity
         Bout        % bias outside nonlinearity
         useGPU      % flag for GPU computing (derived from trafo)
@@ -27,6 +28,7 @@ classdef singleLayer < abstractMeganetElement
             Bin        = [];
             Bout       = [];
             normLayer     = [];
+            normLayerOut     = [];
             storeInterm =0;
             for k=1:2:length(varargin)     % overwrites default parameter
                     eval([varargin{k},'=varargin{',int2str(k+1),'};']);
@@ -47,19 +49,27 @@ classdef singleLayer < abstractMeganetElement
             end
             this.Bout = gpuVar(K.useGPU, K.precision, Bout);
             this.normLayer = normLayer;
+            this.normLayerOut = normLayerOut;
             this.K      = K;
             this.activation = activation;
             this.storeInterm=storeInterm;
             
         end
-        function [th1,th2,th3,th4] = split(this,theta)
+        function [th1,th2,th3,th4,th5] = split(this,theta)
             th1 = theta(1:nTheta(this.K));
             cnt = numel(th1);
             th2 = theta(cnt+(1:sizeLastDim(this.Bin)));
             cnt = cnt + numel(th2);
             th3 = theta(cnt+(1:sizeLastDim(this.Bout)));
             cnt = cnt + numel(th3);
-            th4 = theta(cnt+1:end);
+            th4 = []; th5 = [];
+            if not(isempty(this.normLayer))
+                th4 = theta(cnt+(1:nTheta(this.normLayer)));
+            end
+            cnt = cnt + numel(th4);
+            if not(isempty(this.normLayerOut))
+                th5 = theta(cnt+(1:nTheta(this.normLayerOut)));
+            end
         end
         
         function [Y,KY] = forwardProp(this,theta,Y,varargin)
@@ -67,7 +77,7 @@ classdef singleLayer < abstractMeganetElement
             for k=1:2:length(varargin)     % overwrites default parameter
                 eval([varargin{k},'=varargin{',int2str(k+1),'};']);
             end
-            [th1,th2,th3,th4] = split(this,theta);
+            [th1,th2,th3,th4,th5] = split(this,theta);
             
             Y      =  getOp(this.K,th1)*Y;
             if this.storeInterm
@@ -81,6 +91,11 @@ classdef singleLayer < abstractMeganetElement
                 Y = Y + this.Bin * th2;
             end
             Y = this.activation(Y);
+            
+            if not(isempty(this.normLayerOut))
+                Y = forwardProp(this.normLayerOut,th5,Y,'doDerivative',doDerivative);
+            end
+            
             if not(isempty(th3))
                 Y = Y +this.Bout*th3;
             end
@@ -90,6 +105,9 @@ classdef singleLayer < abstractMeganetElement
             n = nTheta(this.K) + sizeLastDim(this.Bin) + sizeLastDim(this.Bout) ;
             if not(isempty(this.normLayer))
                 n = n + nTheta(this.normLayer);
+            end
+            if not(isempty(this.normLayerOut))
+                n = n + nTheta(this.normLayerOut);
             end
         end
         
@@ -107,9 +125,12 @@ classdef singleLayer < abstractMeganetElement
            if not(isempty(this.normLayer))
                theta = [theta; initTheta(this.normLayer)];
            end
+           if not(isempty(this.normLayerOut))
+               theta = [theta; initTheta(this.normLayerOut)];
+           end
         end
         
-        function [dA,KY] = getTempsForSens(this,theta,Y,KY)
+        function [dA,KY,A,d2A] = getTempsForSens(this,theta,Y,KY)
             % re-computes temp variables needed for sensitivity computations
             %
             % Input:
@@ -134,18 +155,18 @@ classdef singleLayer < abstractMeganetElement
             if not(isempty(th2))
                 KYn = KYn + this.Bin*th2;
             end
-            [~,dA] = this.activation( KYn);
+            [A,dA,d2A] = this.activation( KYn);
         end
         
         function dZ = Jthetamv(this,dtheta,theta,Y,KY)
-            [th1, ~,~,th4]  = split(this,theta);
+            [th1, ~,~,th4,th5]  = split(this,theta);
             
-            [dA,KY] = getTempsForSens(this,theta,Y,KY);
-            [dth1,dth2,dth3,dth4] = split(this,dtheta);
+            [dA,KY,A] = getTempsForSens(this,theta,Y,KY);
+            [dth1,dth2,dth3,dth4,dth5] = split(this,dtheta);
             
             dZ = Jthetamv(this.K,dth1,th1,Y);
             if not(isempty(this.normLayer))
-                dZ  = Jmv(this.normLayer,dth4,dZ,th4,KY);
+                dZ  = Jmv(this.normLayer,dth4,dZ,th4,KY,[]);
             end
             
             if not(isempty(this.Bin))
@@ -153,30 +174,148 @@ classdef singleLayer < abstractMeganetElement
             end
             
             dZ = dA.*dZ;
+            if not(isempty(this.normLayerOut))
+                dZ  = Jmv(this.normLayerOut,dth5,dZ,th5,A,[]);
+            end
+            
             if not(isempty(this.Bout))
                 dZ = dZ +this.Bout*dth3;
             end
         end
         
+        
+        
+        
         function dZ = JYmv(this,dY,theta,Y,KY)
-            [th1,~,~,th4]  = split(this,theta);
-            [dA,KY] = getTempsForSens(this,theta,Y,KY);
+            [th1,~,~,th4,th5]  = split(this,theta);
+            [dA,KY,A] = getTempsForSens(this,theta,Y,KY);
 
             Kop = getOp(this.K,th1);
             dZ = Kop*dY;
             if not(isempty(this.normLayer))
-                dZ = JYmv(this.normLayer,dZ,th4,KY);
+                dZ = JYmv(this.normLayer,dZ,th4,KY,[]);
             end
             dZ = dA.*dZ;
+            if not(isempty(this.normLayerOut))
+                dZ = JYmv(this.normLayerOut,dZ,th5,A,[]);
+            end
+            
         end
         
+        
+        function dZ = JYJYmv(this,dY,W,theta,Y,KY)
+            [th1,~,~,th4,th5]  = split(this,theta);
+            [dA,KY,A,d2A] = getTempsForSens(this,theta,Y,KY);
+
+            Kop = getOp(this.K,th1);
+            dZ = Kop*W;
+            dY = Kop*dY;
+            if not(isempty(this.normLayer))
+                dZ = JYmv(this.normLayer,dZ,th4,KY,[]);
+                dY = JYmv(this.normLayer,dY,th4,KY,[]);
+            end
+            dZ = dY.*d2A.*dZ;
+        end
+        
+        
+         
+        
+        function dZ = JthJYmv(this,dtheta,W,theta,Y,KY)
+            [th1,~,~,th4,th5]  = split(this,theta);
+            [dth1,dth2,dth3,dth4,dth5]= split(this,dtheta);
+            [dA,KY,A,d2A] = getTempsForSens(this,theta,Y,KY);
+
+            Kop  = getOp(this.K,th1);
+            dKop = getOp(this.K,dth1);
+            
+            KW = Kop*W;
+            
+            % dtheta first part: (K*W) .* activation'' .* kron(Y',I)
+            dZ1 = Jthetamv(this.K,dth1,th1,Y);
+            if not(isempty(this.normLayer))
+                dZ1  = Jmv(this.normLayer,dth4,dZ1,th4,KY,[]);
+            end
+            if not(isempty(this.Bin))
+                dZ1 = dZ1 +  this.Bin*dth2;
+            end
+            
+            dZ1 = d2A.*dZ1;
+            if not(isempty(this.normLayerOut))
+                dZ1  = Jmv(this.normLayerOut,dth5,dZ1,th5,A,[]);
+            end
+            dZ1 = dZ1.*KW;
+            
+            % dtheta second part:    activation' .* kron(W',I)      
+            dZ = dKop*W;
+            if not(isempty(this.normLayer))
+                dZ = JYmv(this.normLayer,dZ,th4,KY,[]);
+            end
+            dZ = dA.*dZ;
+            if not(isempty(this.normLayerOut))
+                dZ = JYmv(this.normLayerOut,dZ,th5,A,[]);
+            end
+            
+            dZ = dZ + dZ1;
+        end
+        
+        function dZ = JJYmv(this,dtheta,dY,W,theta,Y,KY)
+            [th1,~,~,th4,th5]  = split(this,theta);
+            [dth1,dth2,dth3,dth4,dth5]= split(this,dtheta);
+            [dA,KY,A,d2A] = getTempsForSens(this,theta,Y,KY);
+
+            Kop  = getOp(this.K,th1);
+            dKop = getOp(this.K,dth1);
+            
+            KW = Kop*W;
+            if not(isempty(this.normLayer))
+                KW = JYmv(this.normLayer,KW,th4,KY,[]);
+            end
+            % dtheta first part: (K*W) .* activation'' .* kron(Y',I)
+            dZtha = Jthetamv(this.K,dth1,th1,Y);
+            if not(isempty(this.normLayer))
+                dZtha  = Jmv(this.normLayer,dth4,dZtha,th4,KY,[]);
+            end
+            if not(isempty(this.Bin))
+                dZtha = dZtha +  this.Bin*dth2;
+            end
+            
+            dZtha = d2A.*dZtha;
+            if not(isempty(this.normLayerOut))
+                dZtha  = Jmv(this.normLayerOut,dth5,dZtha,th5,A,[]);
+            end
+            dZtha = dZtha.*KW;
+            
+            % dtheta second part:  activation' .* kron(W',I)               
+            dZthb = dKop*W;
+            if not(isempty(this.normLayer))
+                dZthb = JYmv(this.normLayer,dZthb,th4,KY,[]);
+            end
+            dZthb = dA.*dZthb;
+            if not(isempty(this.normLayerOut))
+                dZthb = JYmv(this.normLayerOut,dZthb,th5,A,[]);
+            end
+            
+            
+            % dY              
+            dZY  = Kop*dY;
+            if not(isempty(this.normLayer))
+                dZY = JYmv(this.normLayer,dZY,th4,KY,[]);
+            end
+            dZY = KW.*d2A.*dZY;
+            
+            dZ = dZY + dZtha + dZthb;
+        end
+        
+        
+        
+        
         function dZ = Jmv(this,dtheta,dY,theta,Y,KY)
-            [th1, ~,~,th4]  = split(this,theta);
+            [th1, ~,~,th4,th5]  = split(this,theta);
                         
-            [dA,KY] = getTempsForSens(this,theta,Y,KY);
+            [dA,KY,A] = getTempsForSens(this,theta,Y,KY);
 
             
-            [dth1,dth2,dth3,dth4]= split(this,dtheta);
+            [dth1,dth2,dth3,dth4,dth5]= split(this,dtheta);
             Kop = getOp(this.K,th1);
             if isempty(dY) || (numel(dY)==1 && abs(dY)==0)
                 dZ = 0;
@@ -185,12 +324,15 @@ classdef singleLayer < abstractMeganetElement
             end
             dZ = dZ + Jthetamv(this.K,dth1,th1,Y);
             if not(isempty(this.normLayer))
-                dZ = Jmv(this.normLayer,dth4,dZ,th4,KY);
+                dZ = Jmv(this.normLayer,dth4,dZ,th4,KY,[]);
             end
             if not(isempty(this.Bin))
                 dZ = dZ +  this.Bin*dth2;
             end
             dZ = dA.*dZ;
+            if not(isempty(this.normLayerOut))
+                dZ = Jmv(this.normLayerOut,dth5,dZ,th5,A,[]);
+            end
             if not(isempty(this.Bout))
                 dZ = dZ + this.Bout*dth3;
             end
@@ -200,8 +342,8 @@ classdef singleLayer < abstractMeganetElement
             if not(exist('doDerivative','var')) || isempty(doDerivative)
                doDerivative =[1;0]; 
             end
-            [th1, ~,~,th4]  = split(this,theta);
-            [dA,KY] = getTempsForSens(this,theta,Y,KY);
+            [th1, ~,~,th4,th5]  = split(this,theta);
+            [dA,KY,A] = getTempsForSens(this,theta,Y,KY);
             nd = ndims(Y);
             
             dY = [];
@@ -218,8 +360,15 @@ classdef singleLayer < abstractMeganetElement
             else 
                 dth3 = [];
             end
+            
+            if not(isempty(this.normLayerOut))
+               [dth5,Z] = JTmv(this.normLayerOut,Z,th5,A); 
+            else
+               dth5 = [];
+            end
+            
                 
-            dAZ  = dA.*Z;
+            dAZ  = dA.*reshape(Z,size(dA));
             
             if not(isempty(this.Bin))
                 dth2   = vec(sum(this.Bin'*dAZ,nd));
@@ -237,17 +386,18 @@ classdef singleLayer < abstractMeganetElement
             if nargout==2 || doDerivative(2)==1
                 dY   = Kop'*dAZ;
             end
-            dtheta = [dth1(:); dth2(:); dth3(:); dth4(:)];
+            dtheta = [dth1(:); dth2(:); dth3(:); dth4(:); dth5(:)];
             
             if nargout==1 && all(doDerivative==1)
                 dtheta = [dtheta(:);dY(:)];
             end
-
+            
         end
+       
         
         function dtheta = JthetaTmv(this,Z,theta,Y,KY)
-            [~, ~,~,th4]  = split(this,theta);
-            [dA,KY] = getTempsForSens(this,theta,Y,KY);
+            [~, ~,~,th4,th5]  = split(this,theta);
+            [dA,KY,A] = getTempsForSens(this,theta,Y,KY);
             nd = ndims(Y);
             
             if not(isempty(this.Bout))
@@ -255,6 +405,13 @@ classdef singleLayer < abstractMeganetElement
             else
                 dth3 = [];
             end
+            
+            if not(isempty(this.normLayerOut))
+               [dth5,Z] = JTmv(this.normLayerOut,Z,th5,A); 
+            else
+               dth5 = [];
+            end
+            
             
             dAZ       = dA.*Z;
             
@@ -271,12 +428,12 @@ classdef singleLayer < abstractMeganetElement
             end
             
             dth1      = JthetaTmv(this.K,dAZ,theta,Y);
-            dtheta = [dth1(:); dth2(:); dth3(:);dth4(:)];
+            dtheta = [dth1(:); dth2(:); dth3(:);dth4(:);dth5(:)];
         end
         
         function dY = JYTmv(this,Z,theta,Y,KY)
-            [th1, ~,~,th4]  = split(this,theta);
-            [dA,KY] = getTempsForSens(this,theta,Y,KY);
+            [th1, ~,~,th4,th5]  = split(this,theta);
+            [dA,KY,A] = getTempsForSens(this,theta,Y,KY);
 
             if all(Z(:)==0)
                 dY = 0*Y;
@@ -284,11 +441,137 @@ classdef singleLayer < abstractMeganetElement
             end
             Kop = getOp(this.K,th1);
             
+            if not(isempty(this.normLayerOut))
+                Z = JYTmv(this.normLayerOut,Z,th5,A);
+            end
+            
             dAZ   = dA.*Z;
             if not(isempty(this.normLayer))
                 dAZ = JYTmv(this.normLayer,dAZ,th4,KY);
             end
             dY    = Kop'*dAZ;
+        end
+        
+         function dZ = JYTJYmv(this,Z,W,theta,Y,KY)
+            [th1,~,~,th4,th5]  = split(this,theta);
+            [dA,KY,A,d2A] = getTempsForSens(this,theta,Y,KY);
+            
+            Kop = getOp(this.K,th1);
+            
+            dZ = Kop*W;
+            Z = Z.*d2A;
+            if not(isempty(this.normLayer))
+                dZ = JYmv(this.normLayer,dZ,th4,KY,[]);
+                Z = JYTmv(this.normLayer,Z,th4,KY);
+            end
+            dZ = Z.*dZ;
+            dZ = Kop'*dZ;
+            
+         end
+        
+        function dtheta = JthetaTJYmv(this,Z,W,theta,Y,KY)
+            [th1,~,th3,th4,th5]  = split(this,theta);
+            [dA,KY,A,d2A] = getTempsForSens(this,theta,Y,KY);
+            nd = ndims(Y);
+            dth3 = 0*th3; dth5 =[];
+
+            Kop  = getOp(this.K,th1);
+            KW   = Kop*W;
+            if not(isempty(this.normLayer))
+                KW = JYmv(this.normLayer,KW,th4,KY,[]);
+            end
+            
+            % dtheta first part: (K*W) .* activation'' .* kron(Y',I)
+            dAZ = Z.*d2A.*KW;
+            if not(isempty(this.Bin))
+                dth2      = vec(sum(this.Bin'*dAZ,nd));
+            else
+                dth2 = [];
+            end
+            if not(isempty(this.normLayer))
+               [dth4,dAZ] = JTmv(this.normLayer,dAZ,th4,KY); 
+            else
+               dth4 = [];
+            end
+            dth1 = JthetaTmv(this.K,dAZ,theta,Y);
+           
+                      
+            % dtheta second part: activation' .* kron(W',I)
+            dZ = Z.*dA;
+            if not(isempty(this.Bin))
+                dth2      = dth2 + vec(sum(this.Bin'*dZ,nd));
+            else
+                dth2 = [];
+            end
+            dth1      = dth1 + JthetaTmv(this.K,dZ,theta,W);
+
+            dtheta = [dth1(:); dth2(:); dth3(:);dth4(:);dth5(:)];
+ 
+        end
+        
+        
+        function [dtheta,dY] = JTJYmv(this,Z,W,theta,Y,KY,doDerivative)
+            if not(exist('doDerivative','var')) || isempty(doDerivative)
+               doDerivative =[1;0]; 
+            end
+            
+            [th1,~,th3,th4,th5]  = split(this,theta);
+            [dA,KY,A,d2A] = getTempsForSens(this,theta,Y,KY);
+            nd = ndims(Y);
+            
+            dY = [];
+            if isscalar(Z) && Z==0
+                dtheta = 0*theta; 
+                dY     = 0*Y;
+                return
+            end
+            dth3 = 0*th3; dth5 =[];
+
+            Kop  = getOp(this.K,th1);
+            KW   = Kop*W;
+            if not(isempty(this.normLayer))
+                KW = JYmv(this.normLayer,KW,th4,KY,[]);
+            end
+            
+            % dtheta first part: (K*W) .* activation'' .* kron(Y',I)
+            dAZ = Z.*d2A.*KW;
+            if not(isempty(this.Bin))
+                dth2      = vec(sum(this.Bin'*dAZ,nd));
+            else
+                dth2 = [];
+            end
+            if not(isempty(this.normLayer))
+               [dth4,dAZ] = JTmv(this.normLayer,dAZ,th4,KY); 
+            else
+               dth4 = [];
+            end
+            dth1 = JthetaTmv(this.K,dAZ,theta,Y);
+           
+                      
+            % dtheta second part: activation' .* kron(W',I)
+            dZ = Z.*dA;
+            if not(isempty(this.Bin))
+                dth2      = dth2 + vec(sum(this.Bin'*dZ,nd));
+            else
+                dth2 = [];
+            end
+            dth1      = dth1 + JthetaTmv(this.K,dZ,theta,W);
+
+            dtheta = [dth1(:); dth2(:); dth3(:);dth4(:);dth5(:)];
+            
+            % dY
+            if nargout==2 || doDerivative(2)==1
+                Z = Z.*d2A;
+                if not(isempty(this.normLayer))
+                    Z = JYTmv(this.normLayer,Z,th4,KY);
+                end
+                dY = Kop'*( Z.*KW);
+            end
+            
+            if nargout==1 && all(doDerivative==1)
+                dtheta = [dtheta(:);dY(:)];
+            end
+            
         end
         
         function [thFine] = prolongateConvStencils(this,theta,getRP)
@@ -342,6 +625,9 @@ classdef singleLayer < abstractMeganetElement
                 if not(isempty(this.normLayer))
                     this.normLayer.useGPU = value;
                 end
+                if not(isempty(this.normLayerOut))
+                    this.normLayerOut.useGPU = value;
+                end
             end
         end
         function this = set.precision(this,value)
@@ -353,6 +639,9 @@ classdef singleLayer < abstractMeganetElement
                 this.Bout = gpuVar(this.useGPU, value, this.Bout);
                 if not(isempty(this.normLayer))
                     this.normLayer.precision = value;
+                end
+                if not(isempty(this.normLayerOut))
+                    this.normLayerOut.precision = value;
                 end
             end
         end
