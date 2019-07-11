@@ -109,7 +109,7 @@ classdef DoubleHamiltonianNN < abstractMeganetElement
                 fY = forwardProp(this.layer2,th2(:,i),Y);
                 Z  = Z - this.h*fY;
             end
-            tmp = {Y,Z};
+            tmp = {Y,Z,X0};
             X = unsplitData(this,Y,Z);
         end
         
@@ -134,13 +134,14 @@ classdef DoubleHamiltonianNN < abstractMeganetElement
             dX = unsplitData(this,dY,dZ);
         end
         
-        function dX = Jmv(this,dtheta,dX,theta,X0,~)
+        function dX = Jmv(this,dtheta,dX,theta,~,tmp)
             if isempty(dX)
                 dY = 0.0;
                 dZ = 0.0;
             elseif numel(dX)>1
                 [dY,dZ] = splitData(this,dX);
             end
+            X0 = tmp{3};
             
             [Y,Z] = splitData(this,X0);
             [th1,th2]   = split(this,theta);
