@@ -9,6 +9,8 @@ classdef dense
     
     properties
         nK
+        Q
+        q 
         useGPU
         precision
     end
@@ -17,15 +19,20 @@ classdef dense
         function this = dense(nK,varargin)
             this.nK = nK;
             useGPU  = 0;
+            Q = [];
+            q = [];
             precision = 'double';
             for k=1:2:length(varargin)     % overwrites default parameter
                 eval([ varargin{k},'=varargin{',int2str(k+1),'};']);
             end
+            this.Q = Q;
+            this.q = q;
             this.useGPU = useGPU;
             this.precision = precision;
             
         end
         function this = gpuVar(this,useGPU,precision)
+            [this.Q,this.q] = gpuVar(useGPU,precision,this.Q,this.q);
         end
         function this = set.useGPU(this,value)
             if (value~=0) && (value~=1)
@@ -43,7 +50,11 @@ classdef dense
         end
         
         function n = nTheta(this)
-            n = prod(this.nK);
+            if isempty(this.Q)
+                n = prod(this.nK);
+            else
+                n = size(this.Q,2);
+            end
         end
         
         function n = sizeFeatIn(this)
@@ -68,11 +79,18 @@ classdef dense
         end
             
         function A = getOp(this,theta)
+            if not(isempty(this.Q))
+                theta = this.Q*theta + this.q;
+            end
             A = reshape(vec(theta),this.nK);
         end
         
         function dY = Jthetamv(this,dtheta,~,Y,~)
-            dY = getOp(this,dtheta)*Y;
+            if not(isempty(this.Q))
+                dtheta = this.Q*dtheta;
+            end
+            A = reshape(vec(dtheta),this.nK);
+            dY = A*Y;
         end
         
         function J = getJthetamat(this,~,Y,~)
@@ -82,6 +100,10 @@ classdef dense
        function dtheta = JthetaTmv(this,Z,~,Y,~)
             % Jacobian transpose matvec.
             dtheta   = vec(Z*Y');
+            if not(isempty(this.Q))
+                dtheta = this.Q'*dtheta;
+            end
+            
        end
         
        function Z = implicitTimeStep(this,theta,Y,h)

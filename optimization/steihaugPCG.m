@@ -8,6 +8,7 @@ classdef steihaugPCG
         tol
         maxIter
         Delta
+        PC
     end
     
     methods
@@ -20,6 +21,7 @@ classdef steihaugPCG
             this.tol     = 1e-1;
             this.maxIter = 10;
             this.Delta   = Inf;
+            this.PC = [];
             for k=1:2:length(varargin)     % overwrites default parameter
                 eval(['this.' varargin{k},'=varargin{',int2str(k+1),'};']);
             end;
@@ -57,11 +59,17 @@ classdef steihaugPCG
 %             end
 %             
             if not(exist('PC','var')) || isempty(PC)
+                if not(isempty(this.PC))
+                    PC = this.PC;
+                else
 %                  PC = @(x) x;
                    PC = LinearOperator(size(b,1),size(b,1),@(x) x, @(x) x);
+                end
                   
             end
-            if isnumeric(PC); PC = @(x) PC\x; end;
+            if isnumeric(PC); 
+                PC = LinearOperator(size(b,1),size(b,1),@(x) PC\x, @(x) PC\x);
+            end
             
             if norm(b)==0
                 x=0*b;
