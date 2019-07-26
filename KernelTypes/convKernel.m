@@ -68,7 +68,7 @@ classdef convKernel  < handle
         end
         
         function n = nImgOut(this)
-            n = [this.nImg(1:2)./this.stride this.sK(4)];
+            n = [(this.nImg(1:2) + this.pad - (this.sK(1:2)-1))./this.stride this.sK(4)];
         end
         function this = gpuVar(this,useGPU,precision)
         end
