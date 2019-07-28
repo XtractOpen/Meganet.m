@@ -115,6 +115,26 @@ classdef NN < abstractMeganetElement
                 cnt = cnt + ni;
             end
         end
+        function [Y,W,tmp] = forwardPropGrad(this,W,theta,Y,varargin)
+            doDerivative = 1;
+            for k=1:2:length(varargin)     % overwrites default parameter
+                eval([varargin{k},'=varargin{',int2str(k+1),'};']);
+            end
+            
+            nt = numel(this.layers);
+            
+            if doDerivative;  tmp = cell(nt,3); end
+            cnt = 0;
+            for i=1:nt
+                tmp{i,3} = W;
+                ni = nTheta(this.layers{i});
+                if doDerivative, tmp{i,1} = Y; end
+                W = this.layers{i}.JYmv(W,theta(cnt+(1:ni)), Y, []);
+                [Y,tmp{i,2}] = this.layers{i}.forwardProp(theta(cnt+(1:ni)),Y,'doDerivative',doDerivative);
+                cnt = cnt + ni;
+            end
+        end
+        
         function [thetaNorm] = getNormalizedWeights(this,theta,Y,nL,thetaNL)
             if not(exist('nL','var')); nL = []; end
             if not(exist('thetaNL','var')); thetaNL = []; end
@@ -155,6 +175,48 @@ classdef NN < abstractMeganetElement
             end
         end
         
+        function dW = JYJYmv(this,dY,W,theta,~,tmp)
+            nt = numel(this.layers);
+            cnt = 0;
+            
+            dW = 0*dY;
+            for i=1:nt
+                ni   = nTheta(this.layers{i});
+                
+                
+                dW1 = this.layers{i}.JYmv(dW,theta(cnt+(1:ni)),...
+                    tmp{i,1},tmp{i,2});
+                dW2 = JYJYmv(this.layers{i},dY,tmp{i,3},theta(cnt+(1:ni)),tmp{i,1},tmp{i,2});
+                dW  = dW1 + dW2;
+                
+                dY   = this.layers{i}.JYmv(dY,theta(cnt+(1:ni)),...
+                    tmp{i,1},tmp{i,2});
+                
+                cnt = cnt+ni;
+            end
+        end
+        
+        function dW = JJYmv(this,dtheta,dY,W,theta,~,tmp)
+            nt = numel(this.layers);
+            if isempty(dY); dY = 0.0; end
+            
+            dW = 0*dY;
+            
+            cnt = 0;
+            for i=1:nt
+                ni = nTheta(this.layers{i});
+                dthi = dtheta(cnt+(1:ni));
+                thi  = theta(cnt+(1:ni));
+                
+                dW1 = JYmv(this.layers{i},dW,thi,tmp{i,1},tmp{i,2});
+                dW2 = JJYmv(this.layers{i},dthi,dY,tmp{i,3},thi,tmp{i,1},tmp{i,2});
+                dW  = dW1 + dW2;
+                
+                dY = Jmv(this.layers{i},dthi,dY,thi,tmp{i,1},tmp{i,2});
+                cnt = cnt+ni;
+            end
+        end
+        
         % -------- Jacobian' matvecs --------
         function W = JYTmv(this,W,theta,Y,tmp)
             if isempty(W)
@@ -168,6 +230,27 @@ classdef NN < abstractMeganetElement
                 ni = nTheta(this.layers{i});
                 W  = JYTmv(this.layers{i}, W,theta(end-cnt-ni+1:end-cnt),...
                     Yi,tmp{i,2});
+                cnt = cnt+ni;
+            end
+        end
+        
+        function dW = JYTJYmv(this,dZ,W,theta,Y,tmp)
+            
+            nt = numel(this.layers);
+            
+            dW = 0*dZ;
+            
+            cnt = 0;
+            for i=nt:-1:1
+                ni  = nTheta(this.layers{i});
+                Yi  = tmp{i,1};
+                thi = theta(end-cnt-ni+1:end-cnt);
+                
+                dW1  = JYTJYmv(this.layers{i}, dZ,tmp{i,3},thi,Yi,tmp{i,2});
+                dW2 = JYTmv(this.layers{i},dW,thi,tmp{i,1},tmp{i,2});
+                dW = dW1 + dW2;
+                
+                dZ  = JYTmv(this.layers{i}, dZ,thi, Yi,tmp{i,2});
                 cnt = cnt+ni;
             end
         end
@@ -197,7 +280,37 @@ classdef NN < abstractMeganetElement
             if nargout==1 && all(doDerivative==1)
                 dtheta=[dtheta(:); W(:)];
             end
-
+        end
+        
+        function [dthetadW,dYdW] = JTJYmv(this,dZ,W,theta,Y,tmp,doDerivative)
+            if not(exist('doDerivative','var')) || isempty(doDerivative) 
+               doDerivative =[1;0]; 
+            end
+          
+            
+            dYdW = 0*dZ;
+            
+            dthetadW = 0*theta;
+            nt = numel(this.layers);
+            
+            cnt = 0; 
+            for i=nt:-1:1
+                Yi = tmp{i,1};
+                ni = nTheta(this.layers{i});
+                thi = theta(end-cnt-ni+1:end-cnt);
+                
+                [dth0,dY1] = JTJYmv(this.layers{i}, dZ,tmp{i,3},thi,Yi,tmp{i,2});
+                [dth2,dY2] = JTmv(this.layers{i},dYdW,thi,tmp{i,1},tmp{i,2});
+                dYdW = dY1 + dY2;
+                dthetadW(end-cnt-ni+1:end-cnt)  =  dth2+dth0;
+                
+                dZ  = JYTmv(this.layers{i}, dZ,thi, Yi,tmp{i,2});
+                
+                cnt = cnt+ni;
+            end
+            if nargout==1 && all(doDerivative==1)
+                dthetadW=[dthetadW(:); dYdW(:)];
+            end
         end
         
         function [thFine] = prolongateConvStencils(this,theta,getRP)
