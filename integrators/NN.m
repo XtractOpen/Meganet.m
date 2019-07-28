@@ -392,7 +392,7 @@ classdef NN < abstractMeganetElement
             precision = this.layers{1}.precision;
             for k=2:length(this.layers)
                 precision2 = this.layers{k}.precision;
-                if strcmp(precision,precision2)
+                if strcmp(precision,precision2)==false
                     warning('precisions of all layers must agree')
                     this.layers{k}.precision = precision;
                 end
