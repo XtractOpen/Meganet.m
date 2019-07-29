@@ -7,8 +7,8 @@ classdef steihaugPCG
     properties
         tol
         maxIter
-        Delta
-        PC
+        Delta   % trust region radius
+        PC      % preconditioner
     end
     
     methods
@@ -21,13 +21,13 @@ classdef steihaugPCG
             this.tol     = 1e-1;
             this.maxIter = 10;
             this.Delta   = Inf;
-            this.PC = [];
+            this.PC      = [];
             for k=1:2:length(varargin)     % overwrites default parameter
                 eval(['this.' varargin{k},'=varargin{',int2str(k+1),'};']);
-            end;
+            end
         end
         
-        function [x,flag,relres,iter,resvec] = solve(this,A,b,x,PC)
+        function [xOpt,flag,relres,iterOpt,resvec] = solve(this,A,b,x,PC)
 %             if isa(A,'opBlkdiag') && (isempty(PC) || isa(PC,'opBlkdiag'))
 %                 % see if the block sizes are the same and if so call this
 %                 % code for each block separately to use the block structure
@@ -58,16 +58,17 @@ classdef steihaugPCG
 %                 end
 %             end
 %             
-            if not(exist('PC','var')) || isempty(PC)
-                if not(isempty(this.PC))
-                    PC = this.PC;
-                else
-%                  PC = @(x) x;
-                   PC = LinearOperator(size(b,1),size(b,1),@(x) x, @(x) x);
-                end
-                  
+            
+            if not(isempty(this.PC))
+                % overwrite PC provided by the objective function
+                PC = this.PC;
             end
-            if isnumeric(PC); 
+                
+            if not(exist('PC','var')) || isempty(PC)
+                PC = opEye(size(b,1));
+            end
+            
+            if isnumeric(PC) 
                 PC = LinearOperator(size(b,1),size(b,1),@(x) PC\x, @(x) PC\x);
             end
             
@@ -93,6 +94,11 @@ classdef steihaugPCG
             resvec = zeros(this.maxIter+1,1);
             resvec(1) = gather(norm(b));
             flag = 1;
+            
+            xOpt    = x;
+            resOpt  = resvec(1); % optimal residual
+            iterOpt = []; % iteration of optimal residual
+            
             for iter=1:this.maxIter
                 Ap    = A*p;
                 gamma = r'*z;
@@ -141,6 +147,11 @@ classdef steihaugPCG
                 r = r -  (gamma./curv)*Ap;
                 
                 resvec(iter+1) = gather(norm(r));
+                if resvec(iter+1) < resOpt
+                    resOpt = resvec(iter+1);
+                    iterOpt = iter;
+                    xOpt = x;
+                end
                 if resvec(iter+1)/resvec(1) <= this.tol
                     flag = 0;
                     break
@@ -151,7 +162,7 @@ classdef steihaugPCG
                 p    = z + beta*p;
             end
             resvec = resvec(1:iter+1);
-            relres = resvec(iter+1)/resvec(1);
+            relres = resOpt/resvec(1);
             
         end
         
