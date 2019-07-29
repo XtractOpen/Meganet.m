@@ -80,7 +80,7 @@ classdef dnnVarProObjFctn < objFctn
                 dJ = J'*dYF;
             end
             if compHess
-                HKbmv = @(x) J'*(d2YF*(J*x));
+                HKbmv = @(x) J'*reshape(d2YF*(J*x),szYN);
                 H   = LinearOperator(numel(theta),numel(theta),HKbmv,HKbmv);
             end
             

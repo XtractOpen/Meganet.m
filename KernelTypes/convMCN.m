@@ -77,14 +77,17 @@ classdef convMCN < convKernel
             
             theta = reshape(this.Q*theta(:),this.sK);
 
-            crop = this.pad;
-            if this.stride==2 && this.sK(1)==3
-                crop=this.pad.*[1,0,1,0];
-            elseif this.stride==2 && this.sK(1)==2
-                crop=0*crop;
-            end
+             crop = this.pad * [1 1 1 1];
+             if this.stride==2 && (this.sK(1)==3 || this.sK(1)==5)
+                 crop = max(crop-[0 1 0 1],0);
+%                  crop=this.pad.*[1,0,1,0];
+             end
+%             elseif this.stride==2 && this.sK(1)==2
+%                 crop=0*crop;
+%             end
             dY = vl_nnconvt(Z,theta,[],'crop',crop,'upsample',this.stride);
-            if this.stride==2 && this.sK(1)==1
+            szY = sizeFeatIn(this);
+            if (size(dY,1)==szY(1)-1) && (size(dY,2)==szY(2)-1)
                 dY = padarray(dY,[1 1],0,'post');
             end
        end

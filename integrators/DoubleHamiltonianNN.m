@@ -54,9 +54,15 @@ classdef DoubleHamiltonianNN < abstractMeganetElement
             n = this.nt*(nTheta(this.layer1)+ nTheta(this.layer2));
         end
         function n = sizeFeatIn(this)
-            n = sizeFeatIn(this.layer1);
-            n1 = sizeFeatIn(this.layer2);
-            n(3) = n(3) + n1(3);
+            n1 = sizeFeatIn(this.layer1);
+            n2 = sizeFeatIn(this.layer2);
+            if (numel(n1) > 2) && (numel(n2) > 2)
+                % convolution layer. add chanels together
+                n = n1;
+                n(3) = n1(3) + n2(3);
+            else
+                n = n1+n2;            
+            end
         end
         function n = sizeFeatOut(this)
             n = sizeFeatIn(this);
@@ -85,11 +91,24 @@ classdef DoubleHamiltonianNN < abstractMeganetElement
            th2 = x(nTheta(this.layer1)+1:end,:);
         end
         function [Y,Z] = splitData(this,X)
-           Y = X(:,:,1:this.layer1.K.sK(3),:);
-           Z = X(:,:,this.layer1.K.sK(3)+1:end,:);
+           n1 = sizeFeatIn(this.layer1);
+           
+           if (numel(n1) > 2)
+                % convolution layers
+                Y = X(:,:,1:n1(3),:);
+                Z = X(:,:,n1(3)+1:end,:);
+           else
+               Y = X(1:n1,:);
+               Z = X(n1+1:end,:);
+           end
         end
         function X = unsplitData(this,Y,Z)
-            X = cat(3,Y,Z);
+            n1 = sizeFeatIn(this.layer1);
+            if (numel(n1) > 2)
+                X = cat(3,Y,Z);
+            else
+               X = [Y;Z]; 
+            end
         end
 
                % ------- forwardProp forward problems -----------
@@ -109,16 +128,17 @@ classdef DoubleHamiltonianNN < abstractMeganetElement
                 fY = forwardProp(this.layer2,th2(:,i),Y);
                 Z  = Z - this.h*fY;
             end
-            tmp = {Y,Z};
+            tmp = {Y,Z,X0};
             X = unsplitData(this,Y,Z);
         end
         
         % -------- Jacobian matvecs ---------------
-        function dX = JYmv(this,dX,theta,X0,~)
+        function dX = JYmv(this,dX,theta,~,tmp)
             if isempty(dX) || (numel(dX)==0 && dX==0.0)
                 dX     = zeros(size(Y),'like',Y);
                 return
             end
+            X0 = tmp{3};
             [Y,Z] = splitData(this,X0);
             [dY,dZ]   = splitData(this,dX);
             [th1,th2] = split(this,theta);
@@ -134,13 +154,14 @@ classdef DoubleHamiltonianNN < abstractMeganetElement
             dX = unsplitData(this,dY,dZ);
         end
         
-        function dX = Jmv(this,dtheta,dX,theta,X0,~)
+        function dX = Jmv(this,dtheta,dX,theta,~,tmp)
             if isempty(dX)
                 dY = 0.0;
                 dZ = 0.0;
             elseif numel(dX)>1
                 [dY,dZ] = splitData(this,dX);
             end
+            X0 = tmp{3};
             
             [Y,Z] = splitData(this,X0);
             [th1,th2]   = split(this,theta);
@@ -173,12 +194,12 @@ classdef DoubleHamiltonianNN < abstractMeganetElement
             
             for i=this.nt:-1:1
                 [fY,tmp] = forwardProp(this.layer2,th2(:,i),Y);
-                dWZ = JYTmv(this.layer2,WZ,th2(:,i),Y,tmp);
+                dWY = JYTmv(this.layer2,WZ,th2(:,i),Y,tmp);
                 WY  = WY - this.h*dWY;
                 Z = Z + this.h*fY;
                 
                 [fZ,tmp] = forwardProp(this.layer1,th1(:,i),Z,'storeInterm',1);
-                dWY = JYTmv(this.layer1,WY,th1(:,i),Z,tmp);
+                dWZ = JYTmv(this.layer1,WY,th1(:,i),Z,tmp);
                 WY  = WZ + this.h*dWZ;
                 Y = Y - this.h*fZ;
             end
@@ -300,7 +321,7 @@ classdef DoubleHamiltonianNN < abstractMeganetElement
             
             layer = doubleSymLayer(dense([2,2]));
 %             layer = singleLayer(affineTrafo(dense([2,2])));
-            net   = DoubleHamiltonianNNrev(layer,layer,100,.1);
+            net   = DoubleHamiltonianNN(layer,layer,10,.1);
             Y = [1;1;1;1];
             theta =  [vec([2 1;-1 2]);vec([2 -1;1 2])];
             theta = vec(repmat(theta,1,net.nt));
@@ -309,15 +330,6 @@ classdef DoubleHamiltonianNN < abstractMeganetElement
             [YN,tmp] = forwardProp(net,theta,Y); % Yd was deleted
             Ys = reshape(cell2mat(tmp(:,1)),2,[]);
             
-            
-%             figure(1); clf;
-%             plot(Y(1,:),Y(2,:),'.r','MarkerSize',20);
-%             hold on;
-%             plot(Ys(1,:),Ys(2,:),'-k');
-%             plot(YN(1,:),YN(2,:),'.b','MarkerSize',20);
-%             
-            
-%             return
             nex = 100;
             mb  = randn(nTheta(net),1);
             Y0  = randn(numelFeatIn(net),nex);
@@ -343,12 +355,7 @@ classdef DoubleHamiltonianNN < abstractMeganetElement
             [dWdmb,dWY] = net.JTmv(W,mb,Y0,tmp);
             t2 = dmb(:)'*dWdmb(:) + dY0(:)'*dWY(:);
             
-            fprintf('adjoint test: t1=%1.2e\tt2=%1.2e\terr=%1.2e\n',t1,t2,abs(t1-t2));
-            
-            
-            
-            
-            
+            fprintf('adjoint test: t1=%1.2e\tt2=%1.2e\terr=%1.2e\n',t1,t2,abs(t1-t2)/abs(t1));
         end
     end
     

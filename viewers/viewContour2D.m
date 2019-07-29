@@ -5,7 +5,7 @@ if nargin==0
     return
 end
 
-if size(W,2)==1
+if size(W,1)==1
     cmap = [ .92 .71 .63;.6 .77 .89]; % colors of MATLAB dots with alpha(.4)
 else
     cmap = [ .6 .77 .89; .92 .71 .63; 0.969 .875 .651;  0.796 0.671 0.824;.785 .867 .675;]; % colors of MATLAB dots with alpha(.4)

@@ -3,7 +3,7 @@ classdef regressionLoss
     %   
     % class describing loss function for regression
     %
-    % loss(W,Y) = 0.5*| W*Y - C|^2
+    % loss(W,Y) = 0.5*| W*Y - C|_Gamma^2
     
     properties
         addBias 
@@ -35,7 +35,7 @@ classdef regressionLoss
             if this.addBias==1
                 Y = [Y; ones(1,nex)];
             end
-            res = W*Y - C;
+            res = P* (W*Y - C);
             F   = .5*sum(vec(res.^2))/nex;
             para = [nex*F,nex,err];
             
