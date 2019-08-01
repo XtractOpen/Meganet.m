@@ -14,7 +14,7 @@
 
 clear all; close; 
 
-[Ytrain,Ctrain,Yv,Cv] = setupSpiral(256);
+[Ytrain,Ctrain,Yv,Cv] = setupSwissRoll(256);
 
 Ctrain = Ctrain(1,:);
 Cv = Cv(1,:);

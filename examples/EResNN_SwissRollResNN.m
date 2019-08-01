@@ -14,7 +14,7 @@
 
 clear all; close; 
 
-[Ytrain,Ctrain,Yv,Cv] = setupSpiral(256);
+[Ytrain,Ctrain,Yv,Cv] = setupSwissRoll(256);
 
 % increase dimension of feature space
 Ytrain = [Ytrain; zeros(2,size(Ytrain,2))];
