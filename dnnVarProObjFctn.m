@@ -110,7 +110,8 @@ classdef dnnVarProObjFctn < objFctn
             para.W = W;
             if nargout>4
 %                 PC = getPC(this.pRegTheta);
-                 PC = opEye(numel(theta)); % getPC(this.pRegTheta);
+                 PC = []; 
+                 %opEye(numel(theta)); % getPC(this.pRegTheta);
             end           
         end
         
