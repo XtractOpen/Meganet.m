@@ -74,6 +74,20 @@ methods
         n = [];
         error('children of abstractMeganetElement must provide method sizeFeatOut');
     end
+    function n = getHessian(~)
+        % function n = getHessian(~)
+        %
+        % return Hessian matrix
+        n = [];
+        error('Matrix-based Hessians are not implemented for objects of this type.');
+    end
+    function n = JthJthetaTmv(~)
+        % function n = JthJthetaTmv(~)
+        %
+        % return matrix vector products with Jacobian of J'*dYF
+        n = [];
+        error('Matrix-free implementations of JthJthetaTmv are not supported for objects of this type.');
+    end   
     function net = loadNet(this)
             % by default, AbstractMeganetElements can be loaded from disk
             net = this;

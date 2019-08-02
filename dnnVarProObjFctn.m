@@ -14,6 +14,8 @@ classdef dnnVarProObjFctn < objFctn
         pRegW
         Y
         C
+        matrixFree  % flag for matrix-free computation, default = 1
+        gnHessian   % flag for Gauss-Newton approximation of Hessian
         optClass 
         useGPU      % flag for GPU computing
         precision   % flag for precision
@@ -29,6 +31,8 @@ classdef dnnVarProObjFctn < objFctn
             end
             useGPU    = [];
             precision = [];
+            matrixFree = 1;
+            gnHessian  = 1;
             for k=1:2:length(varargin)     % overwrites default parameter
                 eval([varargin{k},'=varargin{',int2str(k+1),'};']);
             end
@@ -48,6 +52,8 @@ classdef dnnVarProObjFctn < objFctn
             [Y,C] = gpuVar(this.useGPU,this.precision,Y,C);
             this.Y         = Y;
             this.C         = C;
+            this.gnHessian = gnHessian;
+            this.matrixFree = matrixFree;
             
         end
         
@@ -65,7 +71,7 @@ classdef dnnVarProObjFctn < objFctn
             
             % project onto W
             if compGrad || compHess
-                [YN,J] = linearizeTheta(this.net,theta,Y); % forward propagation
+                [YN,tmp] = forwardProp(this.net,theta,Y); % forward propagation
             else
                 YN = forwardProp(this.net,theta,Y);
             end
@@ -77,11 +83,37 @@ classdef dnnVarProObjFctn < objFctn
             [F,hisLoss,~,~,dYF,d2YF] = getMisfit(this.pLoss,W,YN,C);
             dYF = reshape(dYF,szYN);
             if compGrad
-                dJ = J'*dYF;
+                dJ = JthetaTmv(this.net,dYF,theta,Y,tmp);
             end
             if compHess
-                HKbmv = @(x) J'*reshape(d2YF*(J*x),szYN);
-                H   = LinearOperator(numel(theta),numel(theta),HKbmv,HKbmv);
+                if this.matrixFree
+                    if this.gnHessian
+                        % default case
+                        HKbmv = @(x) JthetaTmv(this.net,reshape(d2YF*(Jthetamv(this.net,x,theta,Y,tmp)),szYN),theta,Y,tmp);
+                        H   = LinearOperator(numel(theta),numel(theta),HKbmv,HKbmv);
+                    else
+                        HKbmv1 = @(x) JthetaTmv(this.net,reshape(d2YF*(Jthetamv(this.net,x,theta,Y,tmp)),szYN),theta,Y,tmp);
+                        HKbmv2 = @(x) JthJthetaTmv(this.net,x,dYF,theta,Y,tmp);
+                
+                        HKbmv = @(x) HKbmv1(x)+HKbmv2(x);
+                        H   = LinearOperator(numel(theta),numel(theta),HKbmv,HKbmv);
+                    end
+                else
+                    % build the Hessian (only possible in simple cases)
+                    switch class(this.pLoss)
+                        case 'regressionLoss'
+                            d2YF =(1/nex)* kron(speye(nex),W(:,1:end-1)'*W(:,1:end-1));
+                        otherwise
+                            error('matrix-based Hessians are not implemented for this loss function');
+                    end
+
+                    if this.gnHessian
+                        H = getHessian(this.net,dYF,d2YF,theta,Y,tmp);
+                    else
+                        [HKb1,HKb2] = getHessian(this.net,dYF,d2YF,theta,Y,tmp);
+                        H = HKb1 + HKb2;
+                    end
+                end
             end
             
             para = struct('F',F,'hisLoss',hisLoss);

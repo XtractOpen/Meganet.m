@@ -213,6 +213,63 @@ classdef singleLayer < abstractMeganetElement
             
         end
         
+        function [H1,H2] = getHessian(this,dZF,d2ZF,theta,Y,KY)
+            % Hessian matrix w.r.t. theta associated with a loss function
+            %
+            %    F(theta) = loss(Z(theta)) where Z(theta) = forwardProp(theta,Y)
+            %
+            %  Warning: Constructing the Hessian explicitly can be costly,
+            %  consider using matrix-free implementations.
+            % 
+            %  Inputs:
+            %    dZF  - gradient of the loss with respect to Z
+            %    d2ZF - Hessian of the loss with respect ot Z
+            %    theta - weights
+            %    Y     - features
+            %    KY    - temp results from forwardProp (if empty, recompute!)
+            %
+            %  Outputs:
+            %    H1    - spsd part of Hessian, i.e., H1 = J'*d2ZF*J, where
+            %            J is the Jacobian of Z w.r.t. theta
+            %    H2    - Jacobian of theta -> J(theta)'*dZF w.r.t. theta
+            %    
+            %   Restrictions:
+            %     This code does not yet support convolutions,
+            %     normalization layers, and Bout.
+            %    
+            
+            if isa(this.K,'convKernel')
+                error('nyi');
+            end
+            
+            if not(isempty(this.normLayer))
+                error('nyi');
+            end
+            if not(isempty(this.Bout))
+                error('nyi');
+            end
+            H2 = [];
+            
+            [th1,~,~,th4]  = split(this,theta);
+            [dA,KY,A,d2A] = getTempsForSens(this,theta,Y,KY);
+            nex = sizeLastDim(Y);
+
+            Ymat = [ kron(Y',speye(this.K.nK(1))), repmat(this.Bin,nex,1)];
+            Jth = dA(:).* Ymat; % Jacobian matrix w.r.t. theta
+
+            H1 = Jth'*d2ZF*Jth;
+            if not(isempty(this.K.Q))
+                H1 = this.K.Q' * H1 * this.K.Q;
+            end
+            
+            if nargout>1
+                H2 = (Ymat' *  (  (d2A(:).*vec(dZF)) .* Ymat));
+                if not(isempty(this.K.Q))
+                    H2 = this.K.Q' * H2 * this.K.Q;
+                end
+            end
+            
+        end
         
         function dZ = JYJYmv(this,dY,W,theta,Y,KY)
             [th1,~,~,th4]  = split(this,theta);
