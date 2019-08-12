@@ -271,6 +271,49 @@ classdef singleLayer < abstractMeganetElement
             
         end
         
+        function [Jth,JY] = getJacobians(this,theta,Y,KY)
+            % Jacobian matrices w.r.t. theta and Y
+            %
+            %  Warning: Constructing the Jacobians explicitly can be costly,
+            %  consider using matrix-free implementations: Jthetamv, JYmv,
+            %  ...
+            % 
+            %  Inputs:
+            %    theta - weights
+            %    Y     - features
+            %    KY    - temp results from forwardProp (if empty, recompute!)
+            %
+            %  Outputs:
+            %    Jth    - Jacobian of layer(theta,Y) w.r.t. theta
+            %    JY     - Jacobian of layer(theta,Y) w.r.t. Y
+            %    
+            %   Restrictions:
+            %     This code does not yet support convolutions,
+            %     normalization layers, and Bout.
+            %    
+            
+            if isa(this.K,'convKernel')
+                error('nyi');
+            end
+            if not(isempty(this.normLayer))
+                error('nyi');
+            end
+            if not(isempty(this.Bout))
+                error('nyi');
+            end
+            
+            [th1,~,~,th4]  = split(this,theta);
+            [dA,KY,A,d2A] = getTempsForSens(this,theta,Y,KY);
+            nex = sizeLastDim(Y);
+            Kop = getOp(this.K,th1);
+
+            Ymat = [ kron(Y',speye(this.K.nK(1))), repmat(this.Bin,nex,1)];
+            Jth = dA(:).* Ymat; 
+            
+            JY = dA(:).* kron(speye(nex),Kop);
+            
+        end
+        
         function dZ = JYJYmv(this,dY,W,theta,Y,KY)
             [th1,~,~,th4]  = split(this,theta);
             [dA,KY,A,d2A] = getTempsForSens(this,theta,Y,KY);
