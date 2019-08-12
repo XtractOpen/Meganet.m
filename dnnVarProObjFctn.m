@@ -102,7 +102,7 @@ classdef dnnVarProObjFctn < objFctn
                     % build the Hessian (only possible in simple cases)
                     switch class(this.pLoss)
                         case 'regressionLoss'
-                            d2YF =(1/nex)* kron(speye(nex),W(:,1:end-1)'*W(:,1:end-1));
+                            d2YF =(1/nex)* kron(speye(nex),W(:,1:end-this.pLoss.addBias)'*W(:,1:end-this.pLoss.addBias));
                         otherwise
                             error('matrix-based Hessians are not implemented for this loss function');
                     end
