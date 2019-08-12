@@ -35,7 +35,7 @@ classdef regressionLoss
             if this.addBias==1
                 Y = [Y; ones(1,nex)];
             end
-            res = P* (W*Y - C);
+            res = W*Y - C;
             F   = .5*sum(vec(res.^2))/nex;
             para = [nex*F,nex,err];
             
