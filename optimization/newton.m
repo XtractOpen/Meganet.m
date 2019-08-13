@@ -74,8 +74,10 @@ classdef newton < optimizer
         
         function [str,frmt] = hisNames(this)
             % define the labels for each column in his table
-            str  = {'iter', 'Jc','|x-xOld|', '|dJ|/|dJ0|','iterCG','relresCG','mu','LS'};
-            frmt = {'%-12d','%-12.2e','%-12.2e','%-12.2e','%-12d','%-12.2e','%-12.2e','%-12d'};
+            [linSolStr,linSolFrmt] = hisNames(this.linSol);
+            % str  = {'iter', 'Jc','|x-xOld|', '|dJ|/|dJ0|','iterCG','relresCG','mu','LS'};
+            str = [{'iter', 'Jc','|x-xOld|', '|dJ|/|dJ0|'},linSolStr,{'mu','LS'}];
+            frmt = [{'%-12d','%-12.2e','%-12.2e','%-12.2e'},linSolFrmt,{'%-12.2e','%-12d'}];
         end
         
         function [xc,His] = solve(this,fctn,xc,fval)
@@ -83,6 +85,7 @@ classdef newton < optimizer
             if not(exist('fval','var')); fval = []; end;
             
             [str,frmt] = hisNames(this);
+            numNames = length(str);
             
             % parse objective functions
             [fctn,objFctn,objNames,objFrmt,objHis]     = parseObjFctn(this,fctn);
@@ -112,22 +115,32 @@ classdef newton < optimizer
             iter = 1;
             xOld = xc;
             while iter <= this.maxIter
-                
-                his(iter,1:4)  = [iter,gather(Jc),gather(norm(xOld(:)-xc(:))),gather(norm(dJ(:))/nrm0)];
+
+                hisEnd = 4;
+                his(iter,1:hisEnd)  = [iter,gather(Jc),gather(norm(xOld(:)-xc(:))),gather(norm(dJ(:))/nrm0)];
                 if this.out>0
                     fprintf([frmt{1:4}], his(iter,1:4));
                 end
                 if (norm(dJ(:))/nrm0 < this.rtol) || (norm(dJ(:))< this.atol), break; end
                 
                 % solve the linear system
-                [s,~,relresCG,iterCG,resvec] = solve(this.linSol,d2J,-dJ(:),[],PC);
+                % [s,~,relresCG,iterCG,resvec] = solve(this.linSol,d2J,-dJ(:),[],PC);
+                [s,linSolPara] = solve(this.linSol,d2J,-dJ(:),[],PC);
+                linSolVals = hisVals(this.linSol,linSolPara);
+                
                 if norm(s) == 0, s = -dJ(:)/norm(dJ(:)); end
                 clear d2J
 				clear PC
 
-                his(iter,5:6) = [iterCG, relresCG];
-                if this.out>0
-                    fprintf([frmt{5:6}], his(iter,5:6));
+                % his(iter,5:6) = [iterCG, relresCG];
+                numPrintOuts = length(linSolVals);
+                hisStart = hisEnd+1;
+                hisEnd = hisEnd+numPrintOuts;
+                if numPrintOuts
+                    his(iter,hisStart:hisEnd) = linSolVals;
+                    if this.out>0
+                        fprintf([frmt{hisStart:hisEnd}], his(iter,hisStart:hisEnd));
+                    end
                 end
                 
                 % s = d2F\(-dF(:));
@@ -142,9 +155,13 @@ classdef newton < optimizer
                     his = his(1:iter,:);
                     break;
                 end
-                his(iter,7:8) = [mu lsIter];
+                
+                
+                hisStart = hisEnd+1;
+                hisEnd = hisEnd+2;
+                his(iter,hisStart:hisEnd) = [mu lsIter];
                 if this.out>0
-                    fprintf([frmt{7:8}], his(iter,7:8));
+                    fprintf([frmt{hisStart:hisEnd}], his(iter,hisStart:hisEnd));
                 end
                 if lsIter == 1
                     mu = min(mu*1.5,1);
@@ -160,10 +177,11 @@ classdef newton < optimizer
                 end
                 [Jc,para,dJ,d2J,PC] = fctn(xc);
 				
-                if size(his,2)>=9
-                    his(iter,9:end) = [gather(objHis(para)), gather(obj2His(pVal))];
+                if size(his,2) >= numNames+4
+                    hisStart = hisEnd+1;
+                    his(iter,hisStart:end) = [gather(objHis(para)), gather(obj2His(pVal))];
                     if this.out>0
-                        fprintf([frmt{9:end}],his(iter,9:end));
+                        fprintf([frmt{hisStart:end}],his(iter,hisStart:end));
                     end
                 end
                 if this.out>0
