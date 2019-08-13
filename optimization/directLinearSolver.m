@@ -1,10 +1,11 @@
 classdef directLinearSolver
     % classdef directLinearSolver
     %
-    % Solve a linear system using backslash
+    % Solve A * x = b where A is SPD.
+    % To be used as a linear solver within a Newton iteration.
     
     properties
-        PC      % preconditioner
+        
     end
     
     methods
@@ -14,31 +15,21 @@ classdef directLinearSolver
                 return;
             end
             
-            this.PC      = [];
             for k=1:2:length(varargin)     % overwrites default parameter
                 eval(['this.' varargin{k},'=varargin{',int2str(k+1),'};']);
             end
         end
         
-        function [xOpt,para] = solve(this,A,b,x,PC)
+        function [xOpt,para] = solve(this,A,b,~,~)
             
+            % no additional outputs
             para = [];
+
+            % solve
+            % xOpt = A \ b;
             
-            if not(isempty(this.PC))
-                % overwrite PC provided by the objective function
-                PC = this.PC;
-            end
-                
-            if not(exist('PC','var')) || isempty(PC)
-                PC = opEye(size(b,1));
-            end
-            
-            if isnumeric(PC) 
-                PC = LinearOperator(size(b,1),size(b,1),@(x) PC\x, @(x) PC\x);
-            end
-            
-            
-            xOpt = (PC * A) \ (PC * b);
+            R = chol(A);
+            xOpt = R \ (R' \ b);
             
         end
         
@@ -53,7 +44,7 @@ classdef directLinearSolver
         end
         
         function runMinimalExample(~)
-            spcg = feval(mfilename,'tol',1e-15,'maxIter',12);
+            spcg = feval(mfilename);
             A    = randn(10,10);
             xt = randn(10,1);
             rhs = A * xt;
