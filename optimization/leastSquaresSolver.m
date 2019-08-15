@@ -48,7 +48,6 @@ classdef leastSquaresSolver < optimizer
                     error('to be implemented')
                 otherwise
                     % use QR
-                    
                     % grab output Y and true values C
                     Y = fctn.Y;
                     C = fctn.C;
@@ -57,6 +56,10 @@ classdef leastSquaresSolver < optimizer
                     if fctn.pLoss.addBias
                        Y = padarray(Y,[1,0],1,'post');
                     end
+                    
+                    nex = sizeLastDim(Y);
+                    Y = sqrt(1/nex)*Y;
+                    C = sqrt(1/nex)*C;
                     
                     % regularization
                     if not(isempty(fctn.pRegW))
