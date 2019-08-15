@@ -49,7 +49,7 @@ classdef tikhonovReg
             
             dS = d2S*u;
           
-            Sc = .5*sum(vec(u'*dS));
+            Sc = .5*sum(vec(u.*dS));
             para = [Sc this.alpha];
         end
         

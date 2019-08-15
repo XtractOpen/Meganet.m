@@ -69,7 +69,7 @@ classdef l1Reg
             % quadratic part
             d2S2 = (this.B2'*this.B2)*this.alpha(2);
             dS2 = d2S2*u;
-            S2 = .5*sum(vec(u'*dS2));
+            S2 = .5*sum(vec(u.*dS2));
             
             % sum up
             Sc = S1+S2;

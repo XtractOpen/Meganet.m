@@ -1,47 +1,24 @@
-function[Ytrain,Ctrain,Ytest,Ctest] = setupSwissRoll(nTrain, nTest)
+function[Yt,Ct,Yv,Cv] = setupSwissRoll(n)
 
-if nargin==0 && nargout==0
-    runMinimalExample
-    return
+if nargin == 0
+    n = 256;
 end
 
-if not(exist('nTrain','var')) || isempty(nTrain)
-    nTrain = 1000;
-end
+theta = [0:4*pi/(2*n):4*pi];
+r     = linspace(0,1,length(theta));
+theta = theta(:); r = r(:);
 
-if not(exist('nTest','var')) || isempty(nTest)
-    nTest = 200;
-end
-
-thetaBlue = 4*pi*rand((nTrain+nTest)/2,1);
-thetaBlue = thetaBlue(:); r = thetaBlue(:)/(4*pi);
-xb = r.*cos(thetaBlue); yb = r.*sin(thetaBlue);
-
-thetaRed = 4*pi*rand((nTrain+nTest)/2,1);
-r = 0.2+thetaRed(:)/(4*pi); 
+xr = r.*cos(theta); yr = r.*sin(theta);
+r = linspace(0.2,1.2,length(theta)); 
 r = r(:);
-xr = r.*cos(thetaRed); yr = r.*sin(thetaRed);
+xb = r.*cos(theta); yb = r.*sin(theta);
 
-id      = randperm(nTrain+nTest);
-idTrain = id(1:nTrain);
-idTest  = id(nTrain+1:end);
+n = length(xr);
+Y = [[xr;xb],[yr;yb]];
+C = [[ones(n,1); zeros(n,1)],[zeros(n,1); ones(n,1)]];
 
-Y      = [xb', xr'; yb', yr'];
-C      = [1+0*xb',   0*xr'; 0*xb',  1+0*xr'];
-Ytrain = Y(:,idTrain);
-Ctrain = C(:,idTrain);
-Ytest  = Y(:,idTest);
-Ctest  = C(:,idTest);
+Yt = Y(1:2:end,:)';
+Ct = C(1:2:end,:)';
 
-
-function runMinimalExample
-[Ytrain,Ctrain,Ytest,Ctest] = feval(mfilename,200,100);
-figure(1); clf;
-subplot(1,2,1);
-viewFeatures2D(Ytrain,Ctrain);
-title('training data')
-axis equal tight
-subplot(1,2,2);
-viewFeatures2D(Ytest,Ctest);
-title('test data');
-axis equal tight
+Yv = Y(2:2:end,:)';
+Cv = C(2:2:end,:)';

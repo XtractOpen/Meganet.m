@@ -27,7 +27,7 @@ classdef steihaugPCG
             end
         end
         
-        function [xOpt,flag,relres,iterOpt,resvec] = solve(this,A,b,x,PC)
+        function [xOpt,para] = solve(this,A,b,x,PC)
 %             if isa(A,'opBlkdiag') && (isempty(PC) || isa(PC,'opBlkdiag'))
 %                 % see if the block sizes are the same and if so call this
 %                 % code for each block separately to use the block structure
@@ -72,12 +72,13 @@ classdef steihaugPCG
                 PC = LinearOperator(size(b,1),size(b,1),@(x) PC\x, @(x) PC\x);
             end
             
+            
             if norm(b)==0
                 x=0*b;
-                flag = -2;
-                relres = 0;
-                iter = 0;
-                resvec = 0;
+                para.flag = -2;
+                para.relres = 0;
+                para.iterOpt = 0; % change
+                para.resvec = 0;
                 return;
             end
             
@@ -93,11 +94,11 @@ classdef steihaugPCG
             
             resvec = zeros(this.maxIter+1,1);
             resvec(1) = gather(norm(b));
-            flag = 1;
+            para.flag = 1;
             
             xOpt    = x;
             resOpt  = resvec(1); % optimal residual
-            iterOpt = []; % iteration of optimal residual
+            para.iterOpt = 1; % iteration of optimal residual - should we start with []???
             
             for iter=1:this.maxIter
                 Ap    = A*p;
@@ -122,8 +123,10 @@ classdef steihaugPCG
                     x = x + tau*p;
                     r = r - tau*Ap;
                     resvec(iter+1) = norm(r);
-                    flag = 2;
-                    break
+                    para.flag = 2;
+                    %para.resvec = resvec;
+                    %para.printOuts(1) = iter;
+                    break;
                 end
                 
                 xt = x + (gamma./curv)*p;
@@ -139,7 +142,8 @@ classdef steihaugPCG
                     r = r - tau*Ap;
                     resvec(iter+1) = gather(norm(r));
                     
-                    flag = 3;
+                    % para.resvec = resvec;
+                    para.flag = 3;
                     break
                 end
                 
@@ -149,22 +153,33 @@ classdef steihaugPCG
                 resvec(iter+1) = gather(norm(r));
                 if resvec(iter+1) < resOpt
                     resOpt = resvec(iter+1);
-                    iterOpt = iter;
+                    para.iterOpt = iter;
                     xOpt = x;
                 end
                 if resvec(iter+1)/resvec(1) <= this.tol
-                    flag = 0;
-                    break
+                    para.flag = 0;
+                    break;
                 end
                 
                 z = PC*r;
                 beta = z'*r / gamma;
                 p    = z + beta*p;
             end
-            resvec = resvec(1:iter+1);
-            relres = resOpt/resvec(1);
-            
+            para.resvec = resvec(1:iter+1);
+            para.relres = resOpt/resvec(1);  % relres
+
         end
+        
+        function [str,frmt] = hisNames(this)
+            % define the labels for each column in his table
+            str  = {'iterCG','relresCG'};
+            frmt = {'%-12d','%-12.2e'};
+        end
+        
+        function his = hisVals(this,para)
+            his = [para.iterOpt, para.relres];
+        end
+            
         
         function runMinimalExample(~)
             spcg = feval(mfilename,'tol',1e-15,'maxIter',12);
@@ -172,8 +187,8 @@ classdef steihaugPCG
             A  = A'*A;
             xt = randn(10,1);
             rhs = A*xt;
-            [x,flag,relres,iter,resvec] = solve(spcg,A,rhs);
-            
+            % [x,flag,relres,iter,resvec] = solve(spcg,A,rhs);
+            [x,~] = solve(spcg,A,rhs);
             norm(A*x-rhs)/norm(rhs)
         end
     end

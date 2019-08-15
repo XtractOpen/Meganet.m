@@ -160,6 +160,44 @@ classdef singleLayer < abstractMeganetElement
         end
         
         
+        function dth = JthJthetaTmv(this,dtheta,W,theta,Y,tmp)
+            nd = ndims(Y);
+            
+            [th1, ~,~,th4]  = split(this,theta);
+            
+            [dA,KY,A,d2A] = getTempsForSens(this,theta,Y,tmp);
+            [dth1,dth2,dth3,dth4] = split(this,dtheta);
+            
+            dZ = Jthetamv(this.K,dth1,th1,Y);
+             if not(isempty(this.normLayer))
+                dZ  = Jmv(this.normLayer,dth4,dZ,th4,KY,[]);
+            end
+            
+            if not(isempty(this.Bin))
+                dZ = dZ +  this.Bin*dth2;
+            end
+            dZ = d2A.*dZ;
+            if not(isempty(this.Bout))
+                dZ = dZ +this.Bout*dth3;
+            end
+            dAZ = W.*dZ;
+            
+            if not(isempty(this.Bin))
+                dth2      = vec(sum(this.Bin'*dAZ,nd));
+            else
+                dth2 = [];
+            end
+            
+            if not(isempty(this.normLayer))
+               [dth4,dAZ] = JTmv(this.normLayer,dAZ,th4,KY); 
+            else
+               dth4 = [];
+            end
+            
+            dth1 = JthetaTmv(this.K,dAZ,theta,Y);
+            
+            dth = [dth1;dth2;dth3];
+        end
         
         
         function dZ = JYmv(this,dY,theta,Y,KY)
@@ -175,6 +213,106 @@ classdef singleLayer < abstractMeganetElement
             
         end
         
+        function [H1,H2] = getHessian(this,dZF,d2ZF,theta,Y,KY)
+            % Hessian matrix w.r.t. theta associated with a loss function
+            %
+            %    F(theta) = loss(Z(theta)) where Z(theta) = forwardProp(theta,Y)
+            %
+            %  Warning: Constructing the Hessian explicitly can be costly,
+            %  consider using matrix-free implementations.
+            % 
+            %  Inputs:
+            %    dZF  - gradient of the loss with respect to Z
+            %    d2ZF - Hessian of the loss with respect ot Z
+            %    theta - weights
+            %    Y     - features
+            %    KY    - temp results from forwardProp (if empty, recompute!)
+            %
+            %  Outputs:
+            %    H1    - spsd part of Hessian, i.e., H1 = J'*d2ZF*J, where
+            %            J is the Jacobian of Z w.r.t. theta
+            %    H2    - Jacobian of theta -> J(theta)'*dZF w.r.t. theta
+            %    
+            %   Restrictions:
+            %     This code does not yet support convolutions,
+            %     normalization layers, and Bout.
+            %    
+            
+            if isa(this.K,'convKernel')
+                error('nyi');
+            end
+            
+            if not(isempty(this.normLayer))
+                error('nyi');
+            end
+            if not(isempty(this.Bout))
+                error('nyi');
+            end
+            H2 = [];
+            
+            [th1,~,~,th4]  = split(this,theta);
+            [dA,KY,A,d2A] = getTempsForSens(this,theta,Y,KY);
+            nex = sizeLastDim(Y);
+
+            Ymat = [ kron(Y',speye(this.K.nK(1))), repmat(this.Bin,nex,1)];
+            Jth = dA(:).* Ymat; % Jacobian matrix w.r.t. theta
+
+            H1 = Jth'*d2ZF*Jth;
+            if not(isempty(this.K.Q))
+                H1 = this.K.Q' * H1 * this.K.Q;
+            end
+            
+            if nargout>1
+                H2 = (Ymat' *  (  (d2A(:).*vec(dZF)) .* Ymat));
+                if not(isempty(this.K.Q))
+                    H2 = this.K.Q' * H2 * this.K.Q;
+                end
+            end
+            
+        end
+        
+        function [Jth,JY] = getJacobians(this,theta,Y,KY)
+            % Jacobian matrices w.r.t. theta and Y
+            %
+            %  Warning: Constructing the Jacobians explicitly can be costly,
+            %  consider using matrix-free implementations: Jthetamv, JYmv,
+            %  ...
+            % 
+            %  Inputs:
+            %    theta - weights
+            %    Y     - features
+            %    KY    - temp results from forwardProp (if empty, recompute!)
+            %
+            %  Outputs:
+            %    Jth    - Jacobian of layer(theta,Y) w.r.t. theta
+            %    JY     - Jacobian of layer(theta,Y) w.r.t. Y
+            %    
+            %   Restrictions:
+            %     This code does not yet support convolutions,
+            %     normalization layers, and Bout.
+            %    
+            
+            if isa(this.K,'convKernel')
+                error('nyi');
+            end
+            if not(isempty(this.normLayer))
+                error('nyi');
+            end
+            if not(isempty(this.Bout))
+                error('nyi');
+            end
+            
+            [th1,~,~,th4]  = split(this,theta);
+            [dA,KY,A,d2A] = getTempsForSens(this,theta,Y,KY);
+            nex = sizeLastDim(Y);
+            Kop = getOp(this.K,th1);
+
+            Ymat = [ kron(Y',speye(this.K.nK(1))), repmat(this.Bin,nex,1)];
+            Jth = dA(:).* Ymat; 
+            
+            JY = dA(:).* kron(speye(nex),Kop);
+            
+        end
         
         function dZ = JYJYmv(this,dY,W,theta,Y,KY)
             [th1,~,~,th4]  = split(this,theta);
@@ -189,7 +327,6 @@ classdef singleLayer < abstractMeganetElement
             end
             dZ = dY.*d2A.*dZ;
         end
-        
         
          
         
