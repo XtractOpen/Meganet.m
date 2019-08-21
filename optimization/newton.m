@@ -177,7 +177,7 @@ classdef newton < optimizer
                 end
                 [Jc,para,dJ,d2J,PC] = fctn(xc);
 				
-                if size(his,2) >= numNames+4
+                if not(isempty(objNames)) || not(isempty(obj2Names)) 
                     hisStart = hisEnd+1;
                     his(iter,hisStart:end) = [gather(objHis(para)), gather(obj2His(pVal))];
                     if this.out>0
