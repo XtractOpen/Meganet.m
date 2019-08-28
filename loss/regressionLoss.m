@@ -28,35 +28,52 @@ classdef regressionLoss
             szY  = size(Y);
             W    = reshape(W,szW);
             
-            nex = size(Y,2);
-            Cp   = getLabels(this,W,Y);
-            err  = nnz(C-Cp)/2;
             
             if this.addBias==1
-                Y = [Y; ones(1,nex)];
+                Y = padarray(Y,[1,0],'post');
             end
-            res = W*Y - C;
-            F   = .5*sum(vec(res.^2))/nex;
-            para = [nex*F,nex,err];
+            WY  = W*Y;
+            [F,para,dF,d2F] = eval(this,WY,C,'doDerivative',doDY || doDW);
+            Cp        = getLabels(this,WY);
+            para  = [para nnz(C-Cp)/2];
+            
             
             if (doDW) && (nargout>=3)
-               dWF  = vec(res*Y')/nex;
+               dWF  = vec(dF*Y');
             end
             if (doDW) && (nargout>=4)
                 matW  = @(W) reshape(W,szW);
-                d2WFmv  = @(U) vec(((matW(U/nex)*Y)*Y'));
+                d2WFmv  = @(U) vec(((matW(d2F*U)*Y)*Y'));
                 d2WF = LinearOperator(prod(szW),prod(szW),d2WFmv,d2WFmv);
             end
             if doDY && (nargout>=5)
                 if this.addBias==1
                     W = W(:,1:end-1);
                 end
-                dYF  = vec(W'*res)/nex;
+                dYF  = vec(W'*dF);
             end
             if doDY && nargout>=6
                 matY   = @(Y) reshape(Y,szY);
-                d2YFmv = @(U) W'*(W*matY(U/nex));
+                d2YFmv = @(U) W'*(W*matY(d2F*U));
                 d2YF = LinearOperator(prod(szY),prod(szY),d2YFmv,d2YFmv);                
+            end
+        end
+        
+        function [F,para,dF,d2F] = eval(this,WY,C,varargin)
+            doDerivative = (nargout>2);
+            for k=1:2:length(varargin)     % overwrites default parameter
+                eval([varargin{k},'=varargin{',int2str(k+1),'};']);
+            end
+            dF = []; d2F = [];
+            
+            nex = size(C,2);
+            res = WY - C;
+            F   = .5*sum(vec(res.^2));
+            para = [F,nex];
+            F = F/nex;
+            if doDerivative
+                dF  = res/nex;
+                d2F = 1/nex;
             end
         end
         
@@ -70,17 +87,13 @@ classdef regressionLoss
             str = [para(1)/para(2),(1-para(3)/para(2))*100];
         end 
         
-        function Cp = getLabels(this,W,Y)
-            nex    = size(Y,2);
-            if this.addBias==1
-                Y     = [Y; ones(1,nex)];
-            end
-            P      = W*Y;
-            [~,jj] = max(P,[],1);
-            Cp     = zeros(numel(P),1);
-            ind    = sub2ind(size(P),jj(:),(1:nex)');
+        function Cp = getLabels(this,WY)
+            nex    = size(WY,2);
+            [~,jj] = max(WY,[],1);
+            Cp     = zeros(numel(WY),1);
+            ind    = sub2ind(size(WY),jj(:),(1:nex)');
             Cp(ind)= 1;
-            Cp     = reshape(Cp,size(P,1),[]);
+            Cp     = reshape(Cp,size(WY,1),[]);
         end
     end
     
