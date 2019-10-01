@@ -1,3 +1,4 @@
+
 clear all; clc;
 
 K     = dense([3 3]);
@@ -18,6 +19,9 @@ dfdth = df'*dth;
 d2fdth1 = dth'* JthetaTmv(layer,Jthetamv(layer,dth,th,Y,tmp),th,Y,tmp);
 d2fdth2 = dth'*JthJthetaTmv(layer,dth,res,th,Y,tmp);
 d2fdth = d2fdth1 + d2fdth2;
+
+% [HKb1,HKb2] = getHessian(layer,res,eye(numel(res)),th,Y,tmp);
+
 
 err = zeros(20,4);
 for k=1:size(err,1)

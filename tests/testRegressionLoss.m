@@ -3,16 +3,19 @@ pLoss = regressionLoss();
 
 a = 3;
 b = 2;
-% Sour
-Y = randn(500,2);
-W = randn(10,501);
-C = randn(10,2);
+nf =  30;
+nex = 1;
+Y = randn(nf,nex);
+W = randn(10,nf+1);
+C = randn(10,nex);
+Gamma = diag(rand(10,1));
+pLoss.Gamma=Gamma
 W  = W(:);
 
 %% check calls of regression
 [F,~,dWF,d2WF,dYF,d2YF] = getMisfit(pLoss,W,Y,C);
 if not(numel(F)==1)
-    error('first output argument of softMax must be a scalar')
+    error('first output argument of regressionLoss must be a scalar')
 end
 if any(size(dWF)~=size(W))
     error('size of gradient dWF and W must match')
@@ -21,6 +24,9 @@ if any(numel(dYF)~=numel(Y))
     error('size of gradient dYF and Y must match')
 end
 
+%% check if outputs of getMisfit and eval match
+WY = reshape(W,size(C,1),[])*[Y; ones(1,size(Y,2))];
+[Ft,~,dFt,d2Ft] = eval(pLoss,WY,C);
 %% check derivatives and Hessian w.r.t. W
 W0 = randn(size(W));
 dW = randn(size(W));
@@ -53,7 +59,7 @@ dY = randn(size(Y));
 
 [F,~,~,~,dF,d2F] = getMisfit(pLoss,W,Y0,C);
 dFdY = dF'*dY(:);
-d2FdY = dY(:)'*(d2F*dY(:));
+d2FdY = dY(:)'*vec(d2F*dY(:));
 err    = zeros(30,4);
 for k=1:size(err,1)
     h = 2^(-k);

@@ -1,7 +1,8 @@
 % close all; clear all;
 
-[Ytrain,Ctrain] = setupPeaks(5000,5);
-[Yv,Cv] = setupPeaks(200,5);
+rng(42);
+[Ytrain,Ctrain] = setupPeaks(1000,5);
+[Yv,Cv] = setupPeaks(1000,5);
 
 % dynamic = 'antiSym-ResNN';
 dynamic = 'ResNN';
@@ -74,8 +75,10 @@ fctn = dnnVarProObjFctn(net,pRegTh,pLoss,pRegW,classSolver,Ytrain,Ctrain);
 fval = dnnObjFctn(net,[],pLoss,[],Yv,Cv);
 
 %% solve the problem
-th0       = 1e-1*initTheta(net);
+th0       = initTheta(net);
+tic;
 thetaOpt  = solve(opt,fctn,th0,fval);
+toc
 [Jc,para] = eval(fctn,thetaOpt);
 WOpt      = reshape(para.W,[],5);
 

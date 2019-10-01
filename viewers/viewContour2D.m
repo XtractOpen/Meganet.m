@@ -23,7 +23,7 @@ end
 if not(isempty(theta))
     [Y,tmp] = forwardProp(net,theta,Y);
 end
-[Cp] = getLabels(pLoss,W,Y);
+[Cp,Pp] = getLabels(pLoss,W,Y);
 Cp = reshape((1:size(Cp,1))*Cp,N,N);
 [C,ca] = contourf(xa,ya,Cp);
 cmap

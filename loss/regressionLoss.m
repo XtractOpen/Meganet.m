@@ -7,11 +7,13 @@ classdef regressionLoss
     
     properties
         addBias 
+        Gamma % weighting matrix
     end
     
     methods
         function this = regressionLoss(varargin)
             this.addBias = 1;
+            this.Gamma = 1;
             for k=1:2:length(varargin)     % overwrites default parameter
                 eval(['this.' varargin{k},'=varargin{',int2str(k+1),'};']);
             end
@@ -43,7 +45,7 @@ classdef regressionLoss
             end
             if (doDW) && (nargout>=4)
                 matW  = @(W) reshape(W,szW);
-                d2WFmv  = @(U) vec(((matW(d2F*U)*Y)*Y'));
+                d2WFmv  = @(U) vec(((d2F*matW(U)*Y)*Y'));
                 d2WF = LinearOperator(prod(szW),prod(szW),d2WFmv,d2WFmv);
             end
             if doDY && (nargout>=5)
@@ -54,7 +56,7 @@ classdef regressionLoss
             end
             if doDY && nargout>=6
                 matY   = @(Y) reshape(Y,szY);
-                d2YFmv = @(U) W'*(W*matY(d2F*U));
+                d2YFmv = @(U) W'*(W*(d2F*matY(U)));
                 d2YF = LinearOperator(prod(szY),prod(szY),d2YFmv,d2YFmv);                
             end
         end
@@ -67,13 +69,13 @@ classdef regressionLoss
             dF = []; d2F = [];
             
             nex = size(C,2);
-            res = WY - C;
+            res = this.Gamma*(WY - C);
             F   = .5*sum(vec(res.^2));
             para = [F,nex];
             F = F/nex;
             if doDerivative
-                dF  = res/nex;
-                d2F = 1/nex;
+                dF  = (this.Gamma'*res)/nex;
+                d2F = (this.Gamma'*this.Gamma)/nex;
             end
         end
         

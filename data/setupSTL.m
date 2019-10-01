@@ -103,7 +103,7 @@ function runMinimalExample
 [Ytrain,~,Ytest,~] = feval(mfilename,50,40);
 figure(1);clf;
 subplot(2,1,1);
-montageArray(Ytrain(:,:,1,:),10);
+montageArray(Ytrain(:,:,:,:),10);
 axis equal tight
 colormap gray
 colorbar
@@ -111,7 +111,7 @@ title('training images');
 
 
 subplot(2,1,2);
-montageArray(Ytest(:,:,1,:),10);
+montageArray(Ytest(:,:,:,:),10);
 axis equal tight
 colormap gray
 colorbar

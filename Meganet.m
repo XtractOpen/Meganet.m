@@ -249,7 +249,7 @@ classdef Meganet < abstractMeganetElement
                 if not(isempty(tmp{k}))
                     W = JYTmv(this.blocks{k},W,thk,tmp{k}{1,1},tmp{k});
                 else
-                    W = JYTmv(this.blocks{k},W,thk,[],[]);
+                    W = JYTmv(this.blocks{k},W,thk,Y,[]);
                 end                    
                 cnt = cnt+nk;
             end

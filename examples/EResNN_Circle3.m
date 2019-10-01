@@ -1,6 +1,6 @@
 close all; clear all;
 
-[Ytrain,Ctrain,Yv,Cv] = setupBox('ntrain',1000,'nval',200);
+[Ytrain,Ctrain,Yv,Cv] = setupCircle(1000,200);
 
 Ctrain = Ctrain(1,:); 
 Cv = Cv(1,:);

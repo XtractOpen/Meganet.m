@@ -20,7 +20,7 @@ Ctrain = Ctrain(1,:);
 Cv = Cv(1,:);
 
 minLevel = 4;
-maxLevel = 10;
+maxLevel = 6;
 
 figure(1); clf;
 subplot(2,10,1);
@@ -44,7 +44,7 @@ alpha = 5e-3;
 regOp = opTimeDer(nTheta(net),nt,h);
 pRegK = tikhonovReg(regOp,h*alpha,[]);
 regOpW = opEye((prod(sizeFeatOut(net))+1)*size(Ctrain,1));
-pRegW = tikhonovReg(regOpW,1e-3);
+pRegW = tikhonovReg(regOpW,1e-4);
 %% setup solver for classification problem
 classSolver = newton();
 classSolver.maxIter=4;
@@ -79,12 +79,17 @@ for level=minLevel:maxLevel
     WOpt = para.W;
     [Yn,tmp] = forwardProp(net,theta,Yv);
     figure(1);
-    subplot(2,10,level);
+    subplot(2,maxLevel,level);
     viewFeatures2D(Yn,Cv);
+    hold on;
+    ww = @(x) - (WOpt(1)*x + WOpt(3))./WOpt(2);
+    ax = axis;
+    plot(ax(1:2),ww(ax(1:2)),'-r')
+    axis(ax);
     axis equal
     title('output features')
     axis equal tight
-    subplot(2,10,level+10);
+    subplot(2,maxLevel,level+maxLevel);
     viewContour2D([-1.2 1.2 -1.2 1.2],theta,reshape(WOpt,1,[]),net,pLoss);
     hold on
     viewFeatures2D(Yv,Cv);
