@@ -292,6 +292,8 @@ classdef singleLayer < abstractMeganetElement
             %     normalization layers, and Bout.
             %    
             
+            JY = [];
+            
             if isa(this.K,'convKernel')
                 error('nyi');
             end
@@ -310,7 +312,9 @@ classdef singleLayer < abstractMeganetElement
             Ymat = [ kron(Y',speye(this.K.nK(1))), repmat(this.Bin,nex,1)];
             Jth = dA(:).* Ymat; 
             
-            JY = dA(:).* kron(speye(nex),Kop);
+            if nargout>1
+                JY = dA(:).* kron(speye(nex),Kop);
+            end
             
         end
         

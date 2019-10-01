@@ -161,7 +161,11 @@ classdef LinearOperator
             if isscalar(this.n) && isscalar(B.n)
                 mAB = this.m;
                 nAB = prod(this.n) + prod(B.n);
-                ABf  = @(x) this.Amv(reshape(x(1:prod(this.n)),this.n)) + B.Amv(reshape(x(prod(this.n)+1:end),B.n));
+                if numel(nAB)==1
+                    ABf  = @(x) this.Amv(x(1:prod(this.n))) + B.Amv(x(prod(this.n)+1:end));
+                else
+                    ABf  = @(x) this.Amv(reshape(x(1:prod(this.n)),this.n)) + B.Amv(reshape(x(prod(this.n)+1:end),B.n));
+                end
                 ABTf = @(x) [vec(this.ATmv(x)); vec(B.ATmv(x))];
                 AB = LinearOperator(mAB,nAB,ABf,ABTf);
             else
