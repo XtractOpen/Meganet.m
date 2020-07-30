@@ -11,7 +11,7 @@ classdef softmaxLoss
     
     methods
         function this = softmaxLoss(varargin)
-            this.theta   = 1e-3;
+            this.theta   = 0;
             this.addBias = 1;
             for k=1:2:length(varargin)     % overwrites default parameter
                 eval(['this.' varargin{k},'=varargin{',int2str(k+1),'};']);
@@ -20,7 +20,7 @@ classdef softmaxLoss
         
         
         
-        function [F,para,dWF,d2WF,dYF,d2YF] = getMisfit(this,W,Y,C,varargin)
+        function [F,para,dWF,d2WF,dYF,d2YF,dWYF,d2WYF] = getMisfit(this,W,Y,C,varargin)
         % [F,para,dWF,d2WF,dYF,d2YF] = getMisfit(this,W,Y,C,varargin)
         %
         % Input:
@@ -35,12 +35,14 @@ classdef softmaxLoss
         %
         % Output:
         %
-        %  F    - loss (average per example)
-        %  para - vector of 3 values: unaveraged loss, nExamples, error
-        %  dWF  - gradient of F wrt W (nWeights-by-1)
-        %  d2WF - Hessian of F wrt W  (LinearOperator, nWeights-by-nWeights)
-        %  dYF  - gradient of F wrt Y (nFeatures*nExamples-by-1)
-        %  d2YF - Hessian of F wrt Y  (LinearOperator, nFeat*nEx-by-nFeat*nEx)
+        %  F     - loss (average per example)
+        %  para  - vector of 3 values: unaveraged loss, nExamples, error
+        %  dWF   - gradient of F wrt W (nWeights-by-1)
+        %  d2WF  - Hessian of F wrt W  (LinearOperator, nWeights-by-nWeights)
+        %  dYF   - gradient of F wrt Y (nFeatures*nExamples-by-1)
+        %  d2YF  - Hessian of F wrt Y  (LinearOperator, nFeat*nEx-by-nFeat*nEx)
+        %  dWYF  - gradient of F wrt W*Y (nTargets*nExamples-by-1)
+        %  d2WYF - Hessian of F wrt W*Y (LinearOperator, nTargets*nEx-by-nTargets*nEx)
             
             doDY = (nargout>3);
             doDW = (nargout>1);
@@ -76,33 +78,45 @@ classdef softmaxLoss
             F    = F/nex;
 
             
-        if (doDW) && (nargout>=2)
-               dF   = -C + S./sum(S,1); %S./sum(S,2));
-               dWF  = vec(dF*(Y'/nex));
+            if (doDW) && (nargout>=2)
+               dWYF = (-C + S./sum(S,1))/ nex;
+               dWF  = vec(dWYF*Y');
             end
             if (doDW) && (nargout>=3)
-                d2F = @(U) this.theta *U + (U.*S)./sum(S,1) - ...
-                    S.*(repmat(sum(S.*U,1)./sum(S,1).^2,size(S,1),1));
+%                 d2WYF = @(U)  (1 / nex) *(this.theta *U + (U.*S)./sum(S,1) - ...
+%                     S.*(sum(S.*U,1)./sum(S,1).^2));
+                sumS = sum(S,1);
+                d2WYF = @(U) this.d2Fmv(U,S,nex,sumS);
                 matW  = @(W) reshape(W,szW);
-                d2WFmv  = @(U) vec((d2F(matW(U/nex)*Y)*Y'));
+                d2WFmv  = @(U) vec((d2WYF(matW(U)*Y)*Y'));
                 d2WF = LinearOperator(prod(szW),prod(szW),d2WFmv,d2WFmv);
             end
             if doDY && (nargout>=4)
                 if this.addBias==1
                     W = W(:,1:end-1);
                 end
-                dYF  =   vec(W'*dF)/nex;
+                dYF  =   vec(W'*dWYF);
             end
             if doDY && nargout>=5
                 WI     = @(T) W*T;  %kron(W,speye(size(Y,1)));
                 WIT    = @(T) W'*T;
                 matY   = @(Y) reshape(Y,szY);
-                d2YFmv = @(T) WIT(((d2F(WI(matY(T/nex))))));
+                d2YFmv = @(T) WIT(((d2WYF(WI(matY(T))))));
     
                 d2YF = LinearOperator(prod(szY),prod(szY),d2YFmv,d2YFmv);
             end
         end
 
+        function d2Fv = d2Fmv(this,U,S,nex,sumS)
+            SU = S.*U;
+            sumSU = sum(SU,1);
+            
+            d2Fv = SU./sumS - S.*(sumSU./sumS.^2);
+            if this.theta > 0
+                d2Fv = d2Fv + this.theta*U;
+            end
+            d2Fv = (1/nex)*d2Fv;
+        end
         %%
         function [F,para,dF,d2F] = getMisfitS(this,WY,C,varargin)
             

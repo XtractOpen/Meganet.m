@@ -4,38 +4,29 @@ classdef sgd < optimizer
     % stochastic gradient descent optimizer for minimizing nonlinear objectives
     
     properties
-        maxEpochs
-        miniBatch
-        atol
-        rtol
-        lossTol
-        maxStep
-        out
-        learningRate
-        momentum
-        nesterov
-		ADAM
-        P
+        maxEpochs = 10
+        miniBatch = 16
+        atol      = 1e-3
+        rtol      = 1e-3
+        lossTol   = -Inf
+        maxStep   = 1.0
+        out       = 0
+        learningRate = 0.1
+        momentum  = 0.9
+        nesterov  = true
+		ADAM      = false
+        P         = @(x) x
+        maxWorkUnits = Inf
     end
     
     methods
         
         function this = sgd(varargin)
-            this.maxEpochs = 10;
-            this.miniBatch = 16;
-            this.atol    = 1e-3;
-            this.rtol    = 1e-3;
-            this.lossTol = -Inf;
-            this.maxStep = 1.0;
-            this.out     = 0;
-            this.learningRate = 0.1;
-            this.momentum  = .9;
-            this.nesterov  = true;
-			this.ADAM      = false;
-            this.P = @(x) x;
-            for k=1:2:length(varargin)     % overwrites default parameter
-                eval(['this.' varargin{k},'=varargin{',int2str(k+1),'};']);
+            
+            for k = 1:2:length(varargin)
+                this.(varargin{k}) = varargin{k+1};
             end
+
             if this.ADAM && this.nesterov
                 warning('sgd(): ADAM and nestrov together - choosing ADAM');
                 this.nesterov  = false;
@@ -43,8 +34,8 @@ classdef sgd < optimizer
         end
         
         function [str,frmt] = hisNames(this)
-            str  = {'epoch', 'Jc','|x-xOld|','learningRate'};
-            frmt = {'%-12d','%-12.2e','%-12.2e','%-12.2e'};
+            str  = {'epoch', 'Jc','|x-xOld|','lr','TotalWork'};
+            frmt = {'%-12d','%-12.2e','%-12.2e','%-12.2e','%-12d'};
         end
         
         function [xc,His,xOptAcc,xOptLoss] = solve(this,fctn,xc,fval,varargin)
@@ -69,6 +60,7 @@ classdef sgd < optimizer
             % evaluate training and validation
             
             epoch = 1;
+            workUnits = 2;
             xOld = xc;
             dJ = 0*xc;
             mJ = 0;
@@ -90,14 +82,15 @@ classdef sgd < optimizer
             end
             
             if this.out>0
-                fprintf('== sgd (n=%d,maxEpochs=%d, lr = %1.1e, momentum = %1.1e, ADAM = %d, Nesterov = %d, miniBatch=%d, lossTol=%1.1e) ===\n',...
-                    numel(xc), this.maxEpochs, learningRate(1) ,this.momentum, this.ADAM,this.nesterov,this.miniBatch,this.lossTol);
+                fprintf('== sgd (n=%d,maxEpochs=%d, maxWorkUnits=%d, lr = %1.1e, momentum = %1.1e, ADAM = %d, Nesterov = %d, miniBatch=%d, lossTol=%1.1e) ===\n',...
+                    numel(xc), this.maxEpochs, this.maxWorkUnits, learningRate(1) ,this.momentum, this.ADAM,this.nesterov,this.miniBatch,this.lossTol);
                 fprintf([repmat('%-12s',1,numel(str)) '\n'],str{:});
             end
             xc = this.P(xc);
             his = zeros(1,numel(str));
+
             
-            while epoch <= this.maxEpochs
+            while (epoch <= this.maxEpochs && workUnits <= this.maxWorkUnits)
                 
                 nex = sizeLastDim(objFctn.Y);
                 ids = randperm(nex);
@@ -153,28 +146,30 @@ classdef sgd < optimizer
                     valHis =[];
                 end
                 
-                his(epoch,1:4)  = [epoch,gather(Jc),gather(norm(xOld(:)-xc(:))),lr];
+                his(epoch,1:5)  = [epoch,gather(Jc),gather(norm(xOld(:)-xc(:))),lr,workUnits];
                 if this.out>0
-                    fprintf([frmt{1:4}], his(epoch,1:4));
+                    fprintf([frmt{1:5}], his(epoch,1:5));
                 end
                 xOld       = xc;
                 
-                if size(his,2)>=5
-                    his(epoch,5:end) = [gather(objHis(para)), valHis];
+                if size(his,2)>=6
+                    his(epoch,6:end) = [gather(objHis(para)), valHis];
                     if this.out>0
-                        fprintf([frmt{5:end}],his(epoch,5:end));
+                        fprintf([frmt{6:end}],his(epoch,6:end));
                     end
                 end
                 if this.out>0
                     fprintf('\n');
                 end
-                if (this.lossTol>-Inf) && (his(epoch,5) < this.lossTol)
+                if (this.lossTol>-Inf) && (his(epoch,6) < this.lossTol)
                     fprintf('--- %s reached loss tolerance: terminate ---\n',mfilename);
                     break;
                 end
                 epoch = epoch + 1;
+                workUnits = workUnits + 2;
             end
-            His = struct('str',{str},'frmt',{frmt},'his',his(1:min(epoch,this.maxEpochs),:));
+            % His = struct('str',{str},'frmt',{frmt},'his',his(1:min(epoch,this.maxEpochs),:));
+            His = struct('str',{str},'frmt',{frmt},'his',his(1:min(epoch,size(his,1)),:));
         end
         
         function [fctn,objFctn,objNames,objFrmt,objHis] = parseObjFctn(this,fctn)

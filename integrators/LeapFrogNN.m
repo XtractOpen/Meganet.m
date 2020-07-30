@@ -79,12 +79,13 @@ classdef LeapFrogNN < abstractMeganetElement
         end
         
         % ------- forwardProp forward problems -----------
-function [Y,tmp] = forwardProp(this,theta,Y,varargin)
+        function [Y,tmp] = forwardProp(this,theta,Y,varargin)
             for k=1:2:length(varargin)     % overwrites default parameter
                 eval([varargin{k},'=varargin{',int2str(k+1),'};']);
             end
             
-            theta = reshape(theta,[],this.nt);
+            theta = reshape(theta,[],this.nt); 
+            Yin = Y;
             Yold = Y;
             for i=1:this.nt
                 Z     = forwardProp(this.layer,theta(:,i),Y);
@@ -92,15 +93,15 @@ function [Y,tmp] = forwardProp(this,theta,Y,varargin)
                 Y     =  2*Y - Yold + this.h^2 * Z;
                 Yold  = Ytemp;
             end
-            tmp = {Y,Yold};
+            tmp = {Yin, Y,Yold};
         end
         
         % -------- Jacobian matvecs ---------------
-        function dY = JYmv(this,dY,theta,Y,~)
+        function dY = JYmv(this,dY,theta,~,tmp)
             if isempty(dY)
                 dY = 0.0;
             end
-            
+            Y = tmp{1};
             dYold = dY;
             Yold  = Y;
             
@@ -123,11 +124,12 @@ function [Y,tmp] = forwardProp(this,theta,Y,varargin)
         
         
 
-        function dY = Jmv(this,dtheta,dY,theta,Y,~)
+        function dY = Jmv(this,dtheta,dY,theta,~,tmp)
             if isempty(dY)
                 dY = 0.0;
             end
             
+            Y = tmp{1};
             dYold = dY;
             Yold  = Y;
             
@@ -159,8 +161,8 @@ function [Y,tmp] = forwardProp(this,theta,Y,varargin)
             end
             
             % get last two time points
-            Yold = tmp{1};
-            Y    = tmp{2};
+            Yold = tmp{2};
+            Y    = tmp{3};
             
             theta  = reshape(theta,[],this.nt);
             Wold = 0*W;
@@ -197,8 +199,8 @@ function [Y,tmp] = forwardProp(this,theta,Y,varargin)
             end
             
             % get last two time points
-            Yold = tmp{1};
-            Y    = tmp{2};
+            Yold = tmp{2};
+            Y    = tmp{3};
             
             theta  = reshape(theta,[],this.nt);
             dtheta = 0*theta;

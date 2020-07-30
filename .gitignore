@@ -7,3 +7,7 @@
 *.tar.gz
 *.m~
 *.png
+data/CIFAR
+data/DCR
+data/MNIST
+results

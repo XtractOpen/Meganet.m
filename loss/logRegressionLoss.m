@@ -11,7 +11,7 @@ classdef logRegressionLoss
     
     methods
         function this = logRegressionLoss(varargin)
-            this.theta   = 1e-3;
+            this.theta   = 0;
             this.addBias = 1;
             for k=1:2:length(varargin)     % overwrites default parameter
                 eval(['this.' varargin{k},'=varargin{',int2str(k+1),'};']);
@@ -20,7 +20,7 @@ classdef logRegressionLoss
         
         
         
-        function [F,para,dWF,d2WF,dYF,d2YF] = getMisfit(this,W,Y,C,varargin)
+        function [F,para,dWF,d2WF,dYF,d2YF,dWYF,d2WYF] = getMisfit(this,W,Y,C,varargin)
             doDY = (nargout>3);
             doDW = (nargout>1);
             for k=1:2:length(varargin)     % overwrites default parameter
@@ -30,11 +30,10 @@ classdef logRegressionLoss
             
             szY  = size(Y);
             nex  = szY(2);
-            if this.addBias==1
-                Y   = [Y; ones(1,nex)];
-            end
+            Y = [Y; ones(this.addBias,nex,'like',Y)];
+            
             szW  = [size(C,1),size(Y,1)];
-             W    = reshape(W,szW);
+            W    = reshape(W,szW);
             
             
             S  = W*Y;
@@ -49,14 +48,14 @@ classdef logRegressionLoss
             
             
             if (doDW) && (nargout>=2)
-                dF  = (C - 1./(1+exp(-S)));
-                dWF = -Y*dF';
-                dWF = vec(dWF)/nex;
+                dWYF  = -(C - 1./(1+exp(-S)))/nex;
+                dWF = vec(Y*dWYF');
             end
             if (doDW) && (nargout>=3)
-                d2F  = 1./(2*cosh(S/2)).^2;
+                d2F  = (1/nex)./(2*cosh(S/2)).^2;
+                d2WYF = @(x) d2F.*x;                
                 matW  = @(W) reshape(W,szW);
-                d2WFmv = @(U) Y*(((d2F + this.theta).*(matW(U/nex)*Y)))';
+                d2WFmv = @(U) Y*(((d2F + this.theta).*(matW(U)*Y)))';
 %                 d2WFmv = @(U) (((d2F + this.theta).*(matW(U/nex)*Y)))*Y';
                 d2WF = LinearOperator(prod(szW),prod(szW),d2WFmv,d2WFmv);
             end
@@ -64,7 +63,7 @@ classdef logRegressionLoss
                 if this.addBias==1
                     W = W(:,1:end-1);
                 end
-                dYF  =   -vec(W'*dF)/nex;
+                dYF  =   vec(W'*dWYF);
             end
             if doDY && nargout>=5
                 WI     = @(T) W*T;  %kron(W,speye(size(Y,1)));
