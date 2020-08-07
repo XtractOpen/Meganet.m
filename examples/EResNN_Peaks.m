@@ -1,6 +1,17 @@
-% close all; clear all;
+% Academic test problem for classification based on MATLAB's peaks function
+%
+% The optimization uses Variable Projection as described in:
+%
+% @article{newman2020train,
+% 	title={Train Like a (Var)Pro: Efficient Training of Neural Networks with Variable Projection},
+% 	author={Elizabeth Newman and Lars Ruthotto and Joseph Hart and Bart van Bloemen Waanders},
+% 	year={2020},
+% 	journal={arXiv preprint arxiv.org/abs/2007.13171},
+% }
 
-rng(42);
+close all; clear all;
+
+% rng(42);
 [Ytrain,Ctrain] = setupPeaks(1000,5);
 [Yv,Cv] = setupPeaks(1000,5);
 
@@ -17,7 +28,8 @@ axis tight
 %% setup network
 T  = 5;   % final time
 nt = 8;  % number of time steps
-nc = 8;   % number of channels (width)
+h = T/nt;
+nc = 16;   % number of channels (width)
 
 
 % first block (single layer that opens up)
@@ -32,7 +44,8 @@ switch dynamic
     case 'antiSym-ResNN'
         K      = getDenseAntiSym([nc,nc]);
         layer  = singleLayer(K,'Bout',ones(nc,1));
-        block2 = ResNN(layer,nt,T/nt);
+        tY      = linspace(0,T,nt);
+        block2  = ResNNrk4(layer,tY,tY);
     case 'leapfrog'
          K      = dense([nc,nc]);
        layer  = doubleSymLayer(K,'Bout',ones(nc,1));
@@ -44,31 +57,24 @@ switch dynamic
     otherwise
         error('Example %s not yet implemented',dynamic);
 end
-h      = block2.h;
 
 % combine both blocks
 net = Meganet({block1,block2});
 %% regularization
-alpha  = 5e-6;
-reg1 = tikhonovReg(opEye(nTheta(block1)),alpha);
-reg2 = tikhonovReg(opTimeDer(nTheta(block2),nt,h),alpha);
+reg1 = tikhonovReg(opEye(nTheta(block1)),1e-3);
+reg2 = tikhonovReg(opTimeDer(nTheta(block2),nt,h),1e-3);
 pRegTh = blockReg({reg1,reg2});
 regOpW = opEye((sizeFeatOut(net)+1)*size(Ctrain,1));
-pRegW = tikhonovReg(regOpW,1e-10);
+pRegW = tikhonovReg(regOpW,1e-3);
 
 %% setup classification and Newton solver for this subproblem
 pLoss = softmaxLoss();
-classSolver = newton();
-classSolver.maxIter=10;
-classSolver.linSol.maxIter=10;
+classSolver = trnewton('atol',1e-10,'rtol',1e-10);
 
 %% setup outer optimization scheme
-opt      = newton();
+opt      = trnewton('linSol',GMRES('m',20));
 opt.out  = 2;
-opt.atol = 1e-16;
-opt.maxIter=40;
-opt.LS.maxIter=20;
-opt.linSol.maxIter=20;
+opt.maxIter=30;
 
 %% setup objective function with training and validation data
 fctn = dnnVarProObjFctn(net,pRegTh,pLoss,pRegW,classSolver,Ytrain,Ctrain);
