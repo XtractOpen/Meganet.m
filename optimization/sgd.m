@@ -34,8 +34,8 @@ classdef sgd < optimizer
         end
         
         function [str,frmt] = hisNames(this)
-            str  = {'epoch', 'Jc','|x-xOld|','lr','TotalWork'};
-            frmt = {'%-12d','%-12.2e','%-12.2e','%-12.2e','%-12d'};
+            str  = {'epoch', 'Jc','|x-xOld|','lr','TotalWork','Time'};
+            frmt = {'%-12d','%-12.2e','%-12.2e','%-12.2e','%-12d','%-12.2f'};
         end
         
         function [xc,His,xOptAcc,xOptLoss] = solve(this,fctn,xc,fval,varargin)
@@ -90,14 +90,16 @@ classdef sgd < optimizer
             his = zeros(1,numel(str));
 
             
-            while (epoch <= this.maxEpochs && workUnits <= this.maxWorkUnits)
-                
                 nex = sizeLastDim(objFctn.Y);
                 ids = randperm(nex);
+             while (epoch <= this.maxEpochs && workUnits <= this.maxWorkUnits)
+                startTime = tic;
+                
+
                 lr = learningRate(epoch);
                 for k=1:floor(nex/this.miniBatch)
                     idk = ids((k-1)*this.miniBatch+1: min(k*this.miniBatch,nex));
-                    
+
 %                     if k==1
 %                         % update time stepping
 %                         Yk = objFctn.Y(:,:,:,idk);
@@ -126,7 +128,7 @@ classdef sgd < optimizer
                 % we sample 2^12 images from the training set for displaying the objective.     
                 [Jc,para] = fctn(xc,ids(1:min(nex,2^15))); 
                 if doVal
-                    if isa(objFctn,'segVarProBatchObjFctn') || isa(objFctn,'dnnVarProBatchObjFctn') ||isa(objFctn,'dnnMultiStepVarProBatchObjFctn') || isa(objFctn,'dnnVarProObjFctn')
+                    if isa(objFctn,'segVarProBatchObjFctn') || isa(objFctn,'dnnVarProBatchObjFctn') ||isa(objFctn,'dnnMultiStepVarProBatchObjFctn') || isa(objFctn,'dnnVarProObjFctn') || contains(class(objFctn),'VarPro') || contains(class(objFctn),'Tik')
                     [Fval,pVal] = fval([xc; para.W(:)],[]);
                     else
                         [Fval,pVal] = fval(xc,[]);
@@ -145,23 +147,23 @@ classdef sgd < optimizer
                 else
                     valHis =[];
                 end
-                
-                his(epoch,1:5)  = [epoch,gather(Jc),gather(norm(xOld(:)-xc(:))),lr,workUnits];
+                endTime = toc(startTime);
+                his(epoch,1:6)  = [epoch,gather(Jc),gather(norm(xOld(:)-xc(:))),lr,workUnits,endTime];
                 if this.out>0
-                    fprintf([frmt{1:5}], his(epoch,1:5));
+                    fprintf([frmt{1:6}], his(epoch,1:6));
                 end
                 xOld       = xc;
                 
-                if size(his,2)>=6
-                    his(epoch,6:end) = [gather(objHis(para)), valHis];
+                if size(his,2)>=7
+                    his(epoch,7:end) = [gather(objHis(para)), valHis];
                     if this.out>0
-                        fprintf([frmt{6:end}],his(epoch,6:end));
+                        fprintf([frmt{7:end}],his(epoch,7:end));
                     end
                 end
                 if this.out>0
                     fprintf('\n');
                 end
-                if (this.lossTol>-Inf) && (his(epoch,6) < this.lossTol)
+                if (this.lossTol>-Inf) && (his(epoch,7) < this.lossTol)
                     fprintf('--- %s reached loss tolerance: terminate ---\n',mfilename);
                     break;
                 end
@@ -173,10 +175,11 @@ classdef sgd < optimizer
         end
         
         function [fctn,objFctn,objNames,objFrmt,objHis] = parseObjFctn(this,fctn)
-            if exist('fctn','var') && not(isempty(fctn)) && isa(fctn,'objFctn')
+            if exist('fctn','var') && not(isempty(fctn)) && (isa(fctn,'objFctn') || isa(fctn,'handle'))
                 objFctn  = fctn;
                 [objNames,objFrmt] = objFctn.hisNames();
                 objHis   = @(para) objFctn.hisVals(para);
+
                 fctn = @(x,ids) eval(fctn,x,ids);
             else
                 objFctn  = [];
