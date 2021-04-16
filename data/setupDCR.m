@@ -28,7 +28,7 @@ if not(exist('DCR_Data.mat','file'))
     
     warning('DCR_Data cannot be found in MATLAB path')
     
-    dataURL = 'http://www.mathcs.emory.edu/~lruthot/pubs/2020-GNvpro/DCR_Data.mat';
+    dataURL = 'http://www.mathcs.emory.edu/~lruthot/publication/newman-et-al-2020/DCR_Data.mat';
     dataDir = [fileparts(which('Meganet.m')) filesep 'data' filesep 'DCR'];
     
     doDownload = input(sprintf('Do you want to download %s (around 64 MB) to %s? Y/N [Y]: ',dataURL,dataDir),'s');
