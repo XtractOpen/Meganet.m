@@ -38,7 +38,7 @@ classdef sgd < optimizer
             frmt = {'%-12d','%-12.2e','%-12.2e','%-12.2e','%-12d','%-12.2f'};
         end
         
-        function [xc,His,xOptAcc,xOptLoss] = solve(this,fctn,xc,fval,varargin)
+        function [xc,His,infoOptAcc,infoOptLoss] = solve(this,fctn,xc,fval,varargin)
             optValAcc    = 0;
             optValLoss   = Inf;
             for k=1:2:length(varargin)     % overwrites default parameter
@@ -46,8 +46,8 @@ classdef sgd < optimizer
             end
             
             if not(exist('fval','var')); fval = []; end;
-            xOptAcc = [];  % iterate with optimal validation accuracy
-            xOptLoss = []; % iterate with optimal validation loss
+            infoOptAcc = [];  % iterate with optimal validation accuracy
+            infoOptLoss = []; % iterate with optimal validation loss
             [str,frmt] = hisNames(this);
             
             % parse objective functions
@@ -91,10 +91,10 @@ classdef sgd < optimizer
 
             
                 nex = sizeLastDim(objFctn.Y);
-                ids = randperm(nex);
+                % ids = randperm(nex);
              while (epoch <= this.maxEpochs && workUnits <= this.maxWorkUnits)
                 startTime = tic;
-                
+                ids = randperm(nex);
 
                 lr = learningRate(epoch);
                 for k=1:floor(nex/this.miniBatch)
@@ -128,19 +128,23 @@ classdef sgd < optimizer
                 % we sample 2^12 images from the training set for displaying the objective.     
                 [Jc,para] = fctn(xc,ids(1:min(nex,2^15))); 
                 if doVal
-                    if isa(objFctn,'segVarProBatchObjFctn') || isa(objFctn,'dnnVarProBatchObjFctn') ||isa(objFctn,'dnnMultiStepVarProBatchObjFctn') || isa(objFctn,'dnnVarProObjFctn') || contains(class(objFctn),'VarPro') || contains(class(objFctn),'Tik')
-                    [Fval,pVal] = fval([xc; para.W(:)],[]);
+                    if contains(class(objFctn),'VarPro') || contains(class(objFctn),'Tik')
+                        [Fval,pVal] = fval([xc; para.W(:)],[]);
                     else
                         [Fval,pVal] = fval(xc,[]);
                     end
                     valAcc = obj2His(pVal);
                     if (nargout>2) && (valAcc(2)>optValAcc)
-                        xOptAcc = gather(xc);
-                        optValAcc = valAcc(2);
+                        xOptAcc    = gather(xc);
+                        paraOptAcc = para;
+                        optValAcc  = valAcc(2);
+                        infoOptAcc = struct('xOptAcc',xOptAcc,'paraOpt',paraOptAcc,'optValAcc',optValAcc);
                     end
                     if (nargout>3) && (valAcc(1)<optValLoss)
-                        xOptLoss = gather(xc);
-                        optValLoss = valAcc(1);
+                        xOptLoss    = gather(xc);
+                        paraOptLoss = para;
+                        optValLoss  = valAcc(1);
+                        infoOptAcc  = struct('xOptLoss',xOptLoss,'paraOptLoss',paraOptLoss,'optValLoss',optValLoss);
                     end
                     
                     valHis = gather(obj2His(pVal));
