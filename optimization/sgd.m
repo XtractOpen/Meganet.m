@@ -50,6 +50,10 @@ classdef sgd < optimizer
             infoOptLoss = []; % iterate with optimal validation loss
             [str,frmt] = hisNames(this);
             
+            if contains(class(fctn),'SlimTik')
+                W0 = fctn.WPrev;
+            end
+            
             % parse objective functions
             [fctn,objFctn,objNames,objFrmt,objHis]     = parseObjFctn(this,fctn);
             str = [str,objNames{:}]; frmt = [frmt,objFrmt{:}];
@@ -89,12 +93,20 @@ classdef sgd < optimizer
             xc = this.P(xc);
             his = zeros(1,numel(str));
 
+
             
                 nex = sizeLastDim(objFctn.Y);
                 % ids = randperm(nex);
              while (epoch <= this.maxEpochs && workUnits <= this.maxWorkUnits)
                 startTime = tic;
                 ids = randperm(nex);
+                
+                WFull = [];
+                if exist('W0','var')
+                    WFull = cat(2,WFull,W0(:));
+                else
+                    WFull = cat(2,WFull,xc(:));
+                end
 
                 lr = learningRate(epoch);
                 for k=1:floor(nex/this.miniBatch)
@@ -109,9 +121,9 @@ classdef sgd < optimizer
                         
                     
                     if this.nesterov && ~this.ADAM
-                        [Jk,~,dJk] = fctn(xc-this.momentum*dJ,idk);
+                        [Jk,para,dJk] = fctn(xc-this.momentum*dJ,idk);
                     else
-                        [Jk,~,dJk] = fctn(xc,idk); 
+                        [Jk,para,dJk] = fctn(xc,idk); 
                     end
                     
                     if this.ADAM
@@ -123,10 +135,13 @@ classdef sgd < optimizer
                        dJ = lr*dJk + this.momentum*dJ;
                     end
                     xc = this.P(xc - dJ);
+                    
+
                 end
                 
                 % we sample 2^12 images from the training set for displaying the objective.     
                 [Jc,para] = fctn(xc,ids(1:min(nex,2^15))); 
+                
                 if doVal
                     if contains(class(objFctn),'VarPro') || contains(class(objFctn),'Tik')
                         [Fval,pVal] = fval([xc; para.W(:)],[]);
@@ -144,7 +159,7 @@ classdef sgd < optimizer
                         xOptLoss    = gather(xc);
                         paraOptLoss = para;
                         optValLoss  = valAcc(1);
-                        infoOptAcc  = struct('xOptLoss',xOptLoss,'paraOptLoss',paraOptLoss,'optValLoss',optValLoss);
+                        infoOptLoss  = struct('xOptLoss',xOptLoss,'paraOptLoss',paraOptLoss,'optValLoss',optValLoss);
                     end
                     
                     valHis = gather(obj2His(pVal));
