@@ -78,7 +78,7 @@ classdef convKernel  < handle
         
         function theta = initTheta(this)
             n = size(this.Q,2);
-            sd = sqrt(2/n);
+            sd = sqrt(2/(this.sK(3)*this.sK(2)));
             theta = sd*randn(this.nTheta(),1);
             id1 = find(theta>2*sd);
             theta(id1(:)) = randn(numel(id1),1);

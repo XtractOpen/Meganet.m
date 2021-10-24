@@ -14,8 +14,8 @@ classdef reshapeLayer < abstractMeganetElement
     end
     methods
         function this = reshapeLayer(nIn,nOut,varargin)
-            if nargin==0
-                help(mfilename)
+            if nargout==0 && nargin==0
+                this.runMinimalExample;
                 return;
             end
             perm  = [1 2 3 4];
@@ -23,14 +23,32 @@ classdef reshapeLayer < abstractMeganetElement
                     eval([varargin{k},'=varargin{',int2str(k+1),'};']);
             end
             
-            this.perm = perm;
+            this.perm = perm(1:numel(nIn));
             this.nOut = nOut;
             this.nIn = nIn;
         end
         function [Y,dA] = forwardProp(this,~,Y,varargin)
-            Y   = permute(Y,[this.perm 4]);
+            nex = sizeLastDim(Y);
+            Y   = permute(Y,[this.perm numel(this.perm)+1]);
             dA  = [];
-            Y   = reshape(Y,this.nOut(1),[]);
+            Y   = reshape(Y,[ this.nOut nex]);
+        end
+        
+        
+        function runMinimalExample(~)
+            nc = 4;
+            nx = 16;
+            ny = 28;
+            nex = 12;
+            Y = randn(nc,nx,ny,nex);
+            rshp = reshapeLayer([nc,nx,ny], nc*nx*ny);
+            rshpInv = reshapeLayer(nc*nx*ny ,[nc,nx,ny] );
+            Ym = forwardProp(rshp,[],Y);
+            Yt = forwardProp(rshpInv,[],Ym);
+            size(Y)
+            size(Ym)
+            size(Yt)
+            norm(Y(:)-Yt(:),'fro')
         end
         
         
@@ -51,7 +69,8 @@ classdef reshapeLayer < abstractMeganetElement
         
         
         function dY = Jthetamv(this,dtheta,theta,Y,~)
-           dY = reshape(0*Y,this.nOut);
+           nex = sizeLastDim(Y);
+           dY = reshape(0*Y,[this.nOut nex]);
         end
         
         function dtheta = JthetaTmv(this,Z,theta,Y,~)
@@ -64,9 +83,10 @@ classdef reshapeLayer < abstractMeganetElement
         end
         
         function Z = JYTmv(this,Z,theta,~,~)
+           nex = sizeLastDim(Z);
            szT = this.nIn([this.perm]);
-           Z = reshape(Z,szT(1),szT(2),szT(3),[]);
-           Z = ipermute(Z,[this.perm 4]);
+           Z = reshape(Z,[szT nex]);
+           Z = ipermute(Z,[this.perm numel(this.perm)+1]);
         end
         end
 end

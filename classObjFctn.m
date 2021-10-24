@@ -60,8 +60,8 @@ classdef classObjFctn < objFctn
             end
 
             if nargout>4
-%                 PC = opEye(numel(W));
-                PC = getPC(this.pRegW);
+%                   PC = opEye(numel(W));
+                  PC = getPC(this.pRegW);
 %                 PC = @(x) d2R\x;
             end
         end

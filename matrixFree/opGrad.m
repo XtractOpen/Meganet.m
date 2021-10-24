@@ -42,12 +42,12 @@ classdef opGrad < RegularizationOperator
             this.ATmv = @(x)derTranspose(this,x);
         end
         
-        function Z = der(this,x)
-            x     = reshape(x,[this.nImg,this.nChannels]);
-            dx1   = reshape(convn(x,[1 -1]', 'valid')/this.h(1), [],this.nChannels);
-            dx2   = reshape(convn(x,[1 -1], 'valid')/this.h(2),[],this.nChannels);
+        function Z = der(this,x)            
+            x     = reshape(x,this.nImg(1), this.nImg(2),[]);
+            dx1   = reshape(convn(x,[1 -1]', 'valid')/this.h(1), (this.nImg(1)-1) * this.nImg(2),[]);
+            dx2   = reshape(convn(x,[1 -1], 'valid')/this.h(2), this.nImg(1) * (this.nImg(2)-1), []);
             Z     = [dx1;dx2];
-            Z     = this.beta*vec(Z);
+            Z     = this.beta*reshape(Z,size(Z,1)*this.nChannels, []);
         end
         
         function [lam,lamInv] = getEigs(this)
@@ -74,15 +74,16 @@ classdef opGrad < RegularizationOperator
         
         function Y = derTranspose(this,Z)
             m1 = prod(this.nImg-[1,0]);
-            Z  = reshape(Z,[],this.nChannels);
+            m2 = prod(this.nImg-[0,1]);
+            Z  = reshape(Z,m1+m2,[]);
             Z1 = Z(1:m1,:); 
-            Z1 = reshape(Z1,[this.nImg this.nChannels] -[1,0,0]);
+            Z1 = reshape(Z1, this.nImg(1)-1,this.nImg(2), []);
             Z2 = Z(m1+1:end,:);
-            Z2 = reshape(Z2,[this.nImg this.nChannels] -[0,1,0]);
+            Z2 = reshape(Z2,this.nImg(1), this.nImg(2)-1, []);
             
-            Y   =    vec(convn(Z1,[-1 1]'))/this.h(1)...
-                   + vec(convn(Z2,[-1 1]))/this.h(2);
-            Y   = this.beta*Y;
+            Y   =    convn(Z1,[-1 1]')/this.h(1)...
+                   + convn(Z2,[-1 1])/this.h(2);
+            Y   = this.beta*reshape(Y,prod(this.nImg)*this.nChannels,[]);
         end
         
         function PCop = getPCop(this)
