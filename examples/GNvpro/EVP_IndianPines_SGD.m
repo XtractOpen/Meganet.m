@@ -100,7 +100,7 @@ nc      = 32;    % number of channels (width)
 nLevels = 1;    % number of levels
 
 % regularization
-alpha1 = 1e-3/8; % theta
+alpha1 = 1e-3; % theta
 alpha2 = 1e-3; % W
 
 %% Setup network
