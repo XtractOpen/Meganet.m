@@ -1,14 +1,23 @@
 classdef ResNN < abstractMeganetElement
     % Residual Neural Network block
     %
-    % Y_k+1 = Y_k + h*layer{k}(trafo(theta{k},Y_k))
+    % Y_k+1 = Y_k + h*layer{k}(Theta(t_k),Y_k)
+    % 
+    % Theta(t) = sum_{i=1}^n p_i(t) * theta_i
+    % 
+    % with 
+    %  - theta_i = coefficients of the weight function Theta,
+    %  length(theta_i) = nTheta(layer) 
+    %  - p_i = basis functions
+    % 
     
     properties
         layer
         nt
         h
         useGPU
-        precision
+        precision 
+        A       % A_ij = p_i(t_j), t_j = j x h 
     end
     
     methods
@@ -17,8 +26,10 @@ classdef ResNN < abstractMeganetElement
                 this.runMinimalExample;
                 return;
             end
+            % This is the default parameters but can be overwritten
             useGPU = [];
             precision = [];
+            A = speye(nt); 
             for k=1:2:length(varargin)     % overwrites default parameter
                eval([varargin{k},'=varargin{',int2str(k+1),'};']);
             end
@@ -32,12 +43,13 @@ classdef ResNN < abstractMeganetElement
             if any(sizeFeatOut(layer)~=sizeFeatIn(layer))
                 error('%s - dim. of input and output features must agree for ResNet layers',mfilename);
             end
+            this.A     = A;
             this.nt    = nt;
             this.h     = h;
         end
         
         function n = nTheta(this)
-            n = this.nt*nTheta(this.layer);
+            n = size(this.A,1)*nTheta(this.layer);
         end
         function n = sizeFeatIn(this)
             n = sizeFeatIn(this.layer);
@@ -47,7 +59,7 @@ classdef ResNN < abstractMeganetElement
         end
         
         function theta = initTheta(this)
-            theta = repmat(vec(initTheta(this.layer)),this.nt,1);
+            theta = repmat(vec(initTheta(this.layer)),size(this.A,1),1);
         end
         
         function [net2,theta2] = prolongateWeights(this,theta)
@@ -61,8 +73,8 @@ classdef ResNN < abstractMeganetElement
         end
         
         
-        % ------- forwardProp forward problems -----------
-        function [Y,tmp] = forwardProp(this,theta,Y,varargin)
+        %% ------- forwardProp forward problems -----------
+        function [Y,tmp] = forwardProp(this,theta,Y,varargin) % interpret theta as coeff of polynomial (function of t), vector of coefficients
             doDerivative = (nargout>1);
             for k=1:2:length(varargin)     % overwrites default parameter
                 eval([varargin{k},'=varargin{',int2str(k+1),'};']);
@@ -70,11 +82,13 @@ classdef ResNN < abstractMeganetElement
             
             if nargout>1;    tmp = cell(this.nt,2); end
             
-            theta = reshape(theta,[],this.nt);
+            % evaluate polynomial at points 0,h,2h,etc. (time points)
+            theta = reshape(theta,nTheta(this.layer),[]); % number of rows is number of weights layer needs, number of cols = how many coeffs
+            Theta = theta*this.A;  % can be A*coeff, we will replace eye with A, # coeffs x # time pts
             
             for i=1:this.nt
                 if doDerivative, tmp{i,1} = Y; end
-                [Z,tmp{i,2}] = forwardProp(this.layer,theta(:,i),Y,'doDerivative',doDerivative);
+                [Z,tmp{i,2}] = forwardProp(this.layer,Theta(:,i),Y,'doDerivative',doDerivative);
                 Y =  Y + this.h * Z;
             end
         end
@@ -87,9 +101,10 @@ classdef ResNN < abstractMeganetElement
                 nex = numel(dY)/numelFeatIn(this);
                 dY   = reshape(dY,[],nex);
             end
-            theta  = reshape(theta,[],this.nt);
+            theta = reshape(theta,nTheta(this.layer),[]); % number of rows is number of weights layer needs, number of cols = how many coeffs
+            Theta = theta*this.A;  % can be A*coeff, we will replace eye with A, # coeffs x # time pts
             for i=1:this.nt
-                dY = dY + this.h* JYmv(this.layer,dY,theta(:,i),tmp{i,1},tmp{i,2});
+                dY = dY + this.h* JYmv(this.layer,dY,Theta(:,i),tmp{i,1},tmp{i,2});
             end
         end
         
@@ -102,10 +117,14 @@ classdef ResNN < abstractMeganetElement
 %                 dY   = reshape(dY,[],nex);
             end
             
-            theta  = reshape(theta,[],this.nt);
-            dtheta = reshape(dtheta,[],this.nt);
+            theta = reshape(theta,nTheta(this.layer),[]); % number of rows is number of weights layer needs, number of cols = how many coeffs
+            Theta = theta*this.A;  % can be A*coeff, we will replace eye with A, # coeffs x # time pts
+            dtheta = reshape(dtheta,nTheta(this.layer),[]); % number of rows is number of weights layer needs, number of cols = how many coeffs
+            dTheta = dtheta*this.A;  % can be A*coeff, we will replace eye with A, # coeffs x # time pts
+            
+            
             for i=1:this.nt
-                  dY = dY + this.h* Jmv(this.layer,dtheta(:,i),dY,theta(:,i),tmp{i,1},tmp{i,2});
+                  dY = dY + this.h* Jmv(this.layer,dTheta(:,i),dY,Theta(:,i),tmp{i,1},tmp{i,2});
             end
         end
         
@@ -115,11 +134,12 @@ classdef ResNN < abstractMeganetElement
             if isempty(W)
                 W = 0;
             end
-            theta  = reshape(theta,[],this.nt);
+            theta = reshape(theta,nTheta(this.layer),[]); 
+            Theta = theta*this.A;  
             
             for i=this.nt:-1:1
                 Yi = tmp{i,1};
-                dW = JYTmv(this.layer,W,theta(:,i),Yi,tmp{i,2});
+                dW = JYTmv(this.layer,W,Theta(:,i),Yi,tmp{i,2});
                 W  = W + this.h*dW;
             end
         end
@@ -133,20 +153,24 @@ classdef ResNN < abstractMeganetElement
                 W = 0;
             end
             
-            theta  = reshape(theta,[],this.nt);
-            dtheta = 0*theta;
+            theta = reshape(theta,nTheta(this.layer),[]); 
+            Theta = theta*this.A;  
+            dTheta = 0*Theta;
+            
+            
             for i=this.nt:-1:1
                 Yi = tmp{i,1};
-                [dthetai,dW] = JTmv(this.layer,W,theta(:,i),Yi,tmp{i,2});
-                dtheta(:,i)  = this.h*dthetai;
+                [dThetai,dW] = JTmv(this.layer,W,Theta(:,i),Yi,tmp{i,2});
+                dTheta(:,i)  = this.h*dThetai;
                 W = W + this.h*dW;
             end
-            dtheta = vec(dtheta);
+            dtheta = vec(dTheta*this.A');
             if nargout==1 && all(doDerivative==1)
                 dtheta=[dtheta(:); W(:)];
             end
         end
         
+      %%  
         function [thFine] = prolongateConvStencils(this,theta,getRP)
             % prolongate convolution stencils, doubling image resolution
             %
@@ -194,11 +218,14 @@ classdef ResNN < abstractMeganetElement
             thCoarse = vec(thCoarse);
         end
         
-        % ------- functions for handling GPU computing and precision ---- 
+        %% ------- functions for handling GPU computing and precision ---- 
+        % the A matrix needs to be moved to GPU if we use this
+        
         function this = set.useGPU(this,value)
             if (value~=0) && (value~=1)
                 error('useGPU must be 0 or 1.')
             else
+                this.A = gpuVar(value, this.layer.precision, this.A);
                 this.layer.useGPU  = value;
             end
         end
@@ -206,6 +233,7 @@ classdef ResNN < abstractMeganetElement
             if not(strcmp(value,'single') || strcmp(value,'double'))
                 error('precision must be single or double.')
             else
+                this.A = gpuVar(this.layer.useGPU, value, this.A);
                 this.layer.precision = value;
             end
         end
@@ -215,7 +243,7 @@ classdef ResNN < abstractMeganetElement
         function precision = get.precision(this)
             precision = this.layer.precision;
         end
-
+        
         
         function runMinimalExample(~)
             nex = 10;
