@@ -13,7 +13,7 @@ axis equal
 title('input features');
 %% setup network
 T = 20;
-nt = 8;
+nt = 10;
 nf = size(Ytrain,1);
 K     = dense([nf,nf]);
 layer = singleLayer(K,'Bin',eye(nf));
@@ -33,7 +33,7 @@ classSolver = trnewton('atol',1e-10,'rtol',1e-10,'maxIter',100);
 
 
 opt = trnewton();
-opt.linSol=arnoldi('m',10);
+opt.linSol=GMRES('m',10);
 opt.out  = 1;
 opt.atol=1e-10;
 opt.rtol=1e-10;
