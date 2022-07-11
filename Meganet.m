@@ -276,7 +276,12 @@ classdef Meganet < abstractMeganetElement
         end
         
        
-        function [dtheta,W] = JTmv(this,W,theta,Y,tmp,doDerivative)
+        function [dtheta,W] = JTmv(this,W,theta,Y,tmp,doDerivative,varargin)
+            reduceDim=true;
+            for k=1:2:length(varargin)     % overwrites default parameter
+                eval([varargin{k},'=varargin{',int2str(k+1),'};']);
+            end
+            
             if not(exist('doDerivative','var')) || isempty(doDerivative) 
                doDerivative =[1;0]; 
             end
@@ -285,17 +290,20 @@ classdef Meganet < abstractMeganetElement
             end
             
             nBlocks  = numel(this.blocks);
-            dtheta = 0*theta;
-            
+            if reduceDim
+                dtheta = 0*theta;
+            else
+                dtheta = zeros(numel(theta),sizeLastDim(Y));
+            end
             cnt = 0;
             for k=nBlocks:-1:1
                 nk = nTheta(this.blocks{k});
                 if isempty(tmp{k})
-                   [dThetak,W] = JTmv(this.blocks{k},W,theta(end-cnt-nk+1:end-cnt),[],tmp{k});
+                   [dThetak,W] = JTmv(this.blocks{k},W,theta(end-cnt-nk+1:end-cnt),[],tmp{k},[],'reduceDim',reduceDim);
                 else
-                   [dThetak,W] = JTmv(this.blocks{k},W,theta(end-cnt-nk+1:end-cnt),tmp{k}{1,1},tmp{k});
+                   [dThetak,W] = JTmv(this.blocks{k},W,theta(end-cnt-nk+1:end-cnt),tmp{k}{1,1},tmp{k},[],'reduceDim',reduceDim);
                 end
-                dtheta(end-cnt-nk+1:end-cnt) = dThetak;
+                dtheta(end-cnt-nk+1:end-cnt,:) = dThetak;
                 cnt = cnt+nk;
             end
             if nargout==1 && all(doDerivative==1)

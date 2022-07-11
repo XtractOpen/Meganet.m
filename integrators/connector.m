@@ -56,7 +56,7 @@ classdef connector < abstractMeganetElement
             dY = this.K*dY;
         end
             
-        function [dtheta,W] = JTmv(this,W,~,Y,~,doDerivative)
+        function [dtheta,W] = JTmv(this,W,~,Y,~,doDerivative,varargin)
             if isempty(W)
                 W = 0;
             end

@@ -72,7 +72,7 @@ classdef kernelTest < matlab.unittest.TestCase
               
               th  = initTheta(ks);
               dth = randn(nTheta(ks),1,'like',th); % dense kernel has no sK
-              nex = 1;
+              nex = 3;
               Y  = randn([sizeFeatIn(ks),nex],'like',th)+nex;
               Z  = randn([sizeFeatOut(ks),nex],'like',th)-nex;
               

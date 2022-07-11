@@ -1,4 +1,4 @@
-classdef BFGS < optimizer
+classdef bfgs < optimizer
     % classdef BFGS < optimizer
     %
     % BFGS method for minimizing non-linear objective function. 
@@ -47,7 +47,7 @@ classdef BFGS < optimizer
     
     methods
         
-        function this = BFGS(varargin)
+        function this = bfgs(varargin)
             % constructor, no input required to get instance with default
             % parameters
             

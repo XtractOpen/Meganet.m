@@ -73,7 +73,7 @@ classdef reshapeLayer < abstractMeganetElement
            dY = reshape(0*Y,[this.nOut nex]);
         end
         
-        function dtheta = JthetaTmv(this,Z,theta,Y,~)
+        function dtheta = JthetaTmv(this,Z,theta,Y,~,varargin)
             dtheta = [];
         end
        
@@ -82,7 +82,7 @@ classdef reshapeLayer < abstractMeganetElement
            dY = forwardProp(this,theta,dY);
         end
         
-        function Z = JYTmv(this,Z,theta,~,~)
+        function Z = JYTmv(this,Z,theta,~,~,varargin)
            nex = sizeLastDim(Z);
            szT = this.nIn([this.perm]);
            Z = reshape(Z,[szT nex]);

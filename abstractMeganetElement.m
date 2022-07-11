@@ -245,7 +245,7 @@ methods
             dY = JJYmv(this,dtheta,[],W,theta,Y,tmp);
         end
         
-        function dtheta = JthetaTmv(this,W,theta,Y,tmp)
+        function dtheta = JthetaTmv(this,W,theta,Y,tmp,varargin)
             % dY = abstractMeganetElement.JthetaTmv(this,W,theta,Y,tmp)
             %
             % computes dtheta = transpose(J_theta(theta,Y))*W 
@@ -262,7 +262,8 @@ methods
             % Output: 
             %
             %   dtheta - directional derivative, numel(dtheta)==numel(theta)
-            dtheta = JTmv(this,W,theta,Y,tmp);
+            
+            dtheta = JTmv(this,W,theta,Y,tmp,[],varargin{:});
         end
         function dtheta = JthetaTJYmv(this,Z,W,theta,Y,tmp)
             dtheta = JTJYmv(this,Z,W,theta,Y,tmp);
@@ -356,7 +357,7 @@ methods
             end
         end
         
-        function [dtheta,dY] = JTmv(this,W,theta,Y,tmp,doDerivative)
+        function [dtheta,dY] = JTmv(this,W,theta,Y,tmp,doDerivative,varargin)
             % dZ = abstractMeganetElement.JTmv(this,W,theta,Y,tmp,doDerivative)
             %
             % computes [dtheta;dY] = [J_theta(theta,Y)'; J_Y(theta)']*W
@@ -385,13 +386,14 @@ methods
             %
             % There are different modes for the output. If nargout==2 
             
+
             if not(exist('tmp','var')); tmp=[]; end
             if not(exist('doDerivative','var')) || isempty(doDerivative) 
                doDerivative =[1;0]; 
             end
-            dtheta = JthetaTmv(this,W,theta,Y,tmp);
+            dtheta = JthetaTmv(this,W,theta,Y,tmp,varargin{:});
             if nargout==2 || doDerivative(2)==1
-                dY     = JYTmv(this,W,theta,Y,tmp);
+                dY     = JYTmv(this,W,theta,Y,tmp,varargin{:});
             end
             
             if nargout==1 && all(doDerivative==1)

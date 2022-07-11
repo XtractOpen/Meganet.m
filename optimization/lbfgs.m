@@ -1,4 +1,4 @@
-classdef lBFGS < optimizer
+classdef lbfgs < optimizer
     
     properties
        maxIter  = 10

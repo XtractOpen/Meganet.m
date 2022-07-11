@@ -255,7 +255,12 @@ classdef NN < abstractMeganetElement
             end
         end
             
-        function [dtheta,W] = JTmv(this,W,theta,Y,tmp,doDerivative)
+        function [dtheta,W] = JTmv(this,W,theta,Y,tmp,doDerivative,varargin)
+            reduceDim=true;
+            for k=1:2:length(varargin)     % overwrites default parameter
+                eval([varargin{k},'=varargin{',int2str(k+1),'};']);
+            end
+            
             if not(exist('doDerivative','var')) || isempty(doDerivative) 
                doDerivative =[1;0]; 
             end
@@ -264,7 +269,12 @@ classdef NN < abstractMeganetElement
                 W = 0;
             end
             
-            dtheta = 0*theta;
+           if reduceDim
+                dtheta = 0*theta;
+            else
+                dtheta = zeros(numel(theta),sizeLastDim(Y));
+            end
+
             nt = numel(this.layers);
             
             cnt = 0; 
@@ -272,8 +282,8 @@ classdef NN < abstractMeganetElement
                 Yi = tmp{i,1};
                 ni = nTheta(this.layers{i});
                 [dmbi,W] = JTmv(this.layers{i},W,theta(end-cnt-ni+1:end-cnt),...
-                    Yi,tmp{i,2});
-                dtheta(end-cnt-ni+1:end-cnt)  = dmbi;
+                    Yi,tmp{i,2},[],varargin{:});
+                dtheta(end-cnt-ni+1:end-cnt,:)  = dmbi;
                 cnt = cnt+ni;
             end
             

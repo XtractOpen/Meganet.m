@@ -97,9 +97,18 @@ classdef dense
             J      = kron(Y',speye(this.nK(1)));
         end
         
-       function dtheta = JthetaTmv(this,Z,~,Y,~)
+        function dtheta = JthetaTmv(this,Z,~,Y,~,varargin)
+            reduceDim=true;
+            for k=1:2:length(varargin)     % overwrites default parameter
+                eval([varargin{k},'=varargin{',int2str(k+1),'};']);
+            end
+
             % Jacobian transpose matvec.
-            dtheta   = vec(Z*Y');
+            if reduceDim
+                dtheta   = vec(Z*Y');
+            else
+                dtheta = reshape(reshape(Z,size(Z,1),1,[]) .* reshape(Y,1,size(Y,1),[]),[],sizeLastDim(Y));
+            end
             if not(isempty(this.Q))
                 dtheta = this.Q'*dtheta;
             end

@@ -12,7 +12,8 @@ out      = 0;
 tol      = 1.9;
 nSuccess = 3;
 v        = randn(size(x0));
-
+doPlot = 0;
+nTrials = 30;
 for k=1:2:length(varargin)     % overwrites default parameter
     eval([varargin{k},'=varargin{',int2str(k+1),'};']);
 end
@@ -43,13 +44,15 @@ if norm(vec(dvF))/(norm(x0)+norm(x0)==0) < 1e-10
     warning('gradient is small');
 end
 nF     = norm(vec(F));
-Err   = zeros(30,2);
-Order   = zeros(30,2);
-Success = zeros(30,1);
-for j=1:30
-    Ft = fctn(x0+2.0^(-j)*v);      % function value
+Err   = zeros(nTrials,2);
+Order   = zeros(nTrials,2);
+Success = zeros(nTrials,1);
+h = zeros(nTrials,1);
+for j=1:nTrials
+    h(j) = 2.0^(-j);
+    Ft = fctn(x0+h(j)*v);      % function value
     Err(j,1) = gather(norm(vec(F-Ft))/nF);    % Error TaylorPoly 0
-    Err(j,2) = gather(norm(vec(F + 2.0^(-j)*dvF - Ft))/nF); % Error TaylorPoly 1
+    Err(j,2) = gather(norm(vec(F + h(j)*dvF - Ft))/nF); % Error TaylorPoly 1
     if j>1
         Order(j,:) = log2(Err(j-1,:)./Err(j,:));
     end
@@ -60,4 +63,9 @@ for j=1:30
     end
 end
 isOK = sum(Success) > nSuccess;
+if doPlot
+    loglog(h,Err(:,1),'-b');
+    hold on;
+    loglog(h,Err(:,2),'-r');
+    
 end

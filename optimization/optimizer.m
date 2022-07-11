@@ -1,4 +1,4 @@
-classdef optimizer
+classdef optimizer < handle
     % classdef optimizer
     %
     % master class for optimizers. Used for dispatching and to collect

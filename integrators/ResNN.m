@@ -144,7 +144,12 @@ classdef ResNN < abstractMeganetElement
             end
         end
         
-        function [dtheta,W] = JTmv(this,W,theta,Y,tmp,doDerivative)
+        function [dtheta,W] = JTmv(this,W,theta,Y,tmp,doDerivative,varargin)
+            reduceDim=true;
+            for k=1:2:length(varargin)     % overwrites default parameter
+                eval([varargin{k},'=varargin{',int2str(k+1),'};']);
+            end
+
             if not(exist('doDerivative','var')) || isempty(doDerivative)
                doDerivative =[1;0]; 
             end
@@ -155,16 +160,30 @@ classdef ResNN < abstractMeganetElement
             
             theta = reshape(theta,nTheta(this.layer),[]); 
             Theta = theta*this.A;  
-            dTheta = 0*Theta;
+            if reduceDim
+                dTheta = 0*Theta;
+            else
+                dTheta = zeros(size(Theta,1),size(Theta,2),sizeLastDim(Y));
+            end
             
             
             for i=this.nt:-1:1
                 Yi = tmp{i,1};
-                [dThetai,dW] = JTmv(this.layer,W,Theta(:,i),Yi,tmp{i,2});
-                dTheta(:,i)  = this.h*dThetai;
+                [dThetai,dW] = JTmv(this.layer,W,Theta(:,i),Yi,tmp{i,2},[],varargin{:});
+                if reduceDim
+                    dTheta(:,i)  = this.h*dThetai;
+                else
+                    dTheta(:,i,:) = this.h*dThetai;
+                end
                 W = W + this.h*dW;
             end
-            dtheta = vec(dTheta*this.A');
+            if reduceDim
+                dtheta = vec(dTheta*this.A');
+            else
+%                 dtheta = sum(dTheta .* reshape(this.A',size(this.A,2),size(this.A,1),1),2);
+                    dtheta = reshape(dTheta,[],sizeLastDim(Y));
+            end
+
             if nargout==1 && all(doDerivative==1)
                 dtheta=[dtheta(:); W(:)];
             end

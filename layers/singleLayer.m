@@ -438,7 +438,12 @@ classdef singleLayer < abstractMeganetElement
             end
         end
         
-        function [dtheta,dY] = JTmv(this,Z,theta,Y,KY,doDerivative)
+        function [dtheta,dY] = JTmv(this,Z,theta,Y,KY,doDerivative,varargin)
+            reduceDim=true;
+            for k=1:2:length(varargin)     % overwrites default parameter
+                eval([varargin{k},'=varargin{',int2str(k+1),'};']);
+            end
+
             if not(exist('doDerivative','var')) || isempty(doDerivative)
                doDerivative =[1;0]; 
             end
@@ -456,7 +461,10 @@ classdef singleLayer < abstractMeganetElement
             
             
             if not(isempty(this.Bout))
-                dth3 = vec(sum( this.Bout'*Z ,nd));
+                dth3 = this.Bout'*Z ;
+                if reduceDim
+                dth3 = vec(sum(dth3 ,nd));
+                end
             else 
                 dth3 = [];
             end
@@ -466,22 +474,26 @@ classdef singleLayer < abstractMeganetElement
             dAZ  = dA.*reshape(Z,size(dA));
             
             if not(isempty(this.Bin))
-                dth2   = vec(sum(this.Bin'*dAZ,nd));
+                dth2 = this.Bin'*dAZ;
+                if reduceDim
+                    dth2   = vec(sum(dth2,nd));
+                end
             else
                 dth2 = [];
             end
             
             if not(isempty(this.normLayer))
+                error('nyi');
                [dth4,dAZ] = JTmv(this.normLayer,dAZ,th4,KY); 
             else
                dth4 = [];
             end
-            dth1   = JthetaTmv(this.K, dAZ,theta,Y);
+            dth1   = JthetaTmv(this.K, dAZ,theta,Y,[],'reduceDim',reduceDim);
             
             if nargout==2 || doDerivative(2)==1
                 dY   = Kop'*dAZ;
             end
-            dtheta = [dth1(:); dth2(:); dth3(:); dth4(:);];
+            dtheta = [dth1; dth2; dth3; dth4;];
             
             if nargout==1 && all(doDerivative==1)
                 dtheta = [dtheta(:);dY(:)];

@@ -12,6 +12,7 @@ classdef convFFT < convKernel
     
     properties
         S % the eigenvalues
+        pad
     end
     
     methods
@@ -21,6 +22,7 @@ classdef convFFT < convKernel
                 this.runMinimalExample;
                 return;
             end
+            this.pad=0;
             this.S = gpuVar(this.useGPU, this.precision, getEigs(this));
             
         end
@@ -40,6 +42,12 @@ classdef convFFT < convKernel
             end
             this.S = gpuVar(useGPU,precision,this.S);
         end
+        function n = nImgOut(this)
+            n =  [((this.nImg(1:2)))./this.stride this.sK(4)];
+            n = ceil(n);
+%             n = [(this.nImg(1:2) + this.pad - (this.sK(1:2)-1))./this.stride this.sK(4)];
+        end
+        
 
         function runMinimalExample(~)
             nImg   = [16 16];
@@ -132,20 +140,27 @@ classdef convFFT < convKernel
             dY   = getOp(this,dtheta)*Y;
         end
         
-        function dtheta = JthetaTmv(this,Z,~,Y)
+        function dtheta = JthetaTmv(this,Z,~,Y,~,varargin)
+            reduceDim=true;
+            for k=1:2:length(varargin)     % overwrites default parameter
+                eval([varargin{k},'=varargin{',int2str(k+1),'};']);
+            end
+            nex = sizeLastDim(Y);
             
-            dth1    = zeros([this.sK(1)*this.sK(2),this.sK(3:4)],'like',Y);
-            Y     = permute(Y,[1 2 4 3]);
-            Yh    = reshape(fft2(Y),prod(this.nImg(1:2)),[]);
-            Zh    = permute(ifft2(Z),[1 2 4 3]);
-            Zh     = reshape(Zh,[], this.sK(4));
+            dth1  = zeros([this.sK(1)*this.sK(2),this.sK(3:4),nex],'like',Y);
+            Yh    = reshape(fft2(Y),prod(this.nImg(1:2)),[],nex);
+            Zh    = ifft2(Z);
+            Zh    = reshape(Zh,[], this.sK(4),nex);
             
             for k=1:prod(this.sK(1:2)) % loop over kernel components
                 temp = bsxfun(@times,conj(this.S(:,k)),Yh);
-                temp = reshape(temp,[],this.sK(3));
-                dth1(k,:,:) = conj(temp')*Zh;
+%                 temp = reshape(temp,[],this.sK(3));
+                dth1(k,:,:,:) = pagemtimes(conj(temp),'ctranspose',Zh,'none');
             end
-            dtheta = real(this.Q'*dth1(:));
+            dtheta = real(this.Q'*reshape(dth1,[],nex));
+            if reduceDim
+                dtheta = sum(dtheta,2);
+            end
         end
     end
 end

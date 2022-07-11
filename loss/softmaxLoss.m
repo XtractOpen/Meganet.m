@@ -118,34 +118,37 @@ classdef softmaxLoss
             d2Fv = (1/nex)*d2Fv;
         end
         %%
-        function [F,para,dF,d2F] = getMisfitS(this,WY,C,varargin)
+        function [F,para,dF,d2F,H] = eval(this,WY,C,varargin)
             
             nex   = size(C,2);
             doDF  = (nargout>2);
             doD2F = (nargout>3);
+            reduceDim=true;
             for k=1:2:length(varargin)     % overwrites default parameter
                 eval([varargin{k},'=varargin{',int2str(k+1),'};']);
             end
             dF = []; d2F = [];
             
-            s  = max(WY,[],2);
+             s  = max(WY,[],1);
             WY = WY-s;
             S    = exp(WY);
-            
-            Cp   = getLabels(this,S);
+            [Cp,P]   = getLabels(this,S);
             err  = nnz(C-Cp)/2;
-            F    = -sum(sum(C.*(WY))) + sum(log(sum(S,1)));
-            para = [F,nex,err];
-            F    = F/nex;
+            F    = (1/nex)*(-sum(C.*(WY),1) +  log(sum(S,1)));
+            para = [sum(F),nex,err];
+            if reduceDim
+                F    = sum(F,2);
+            end
            
             if (doDF) && (nargout>=2)
-               dF   = vec(-C + S./sum(S,1))/nex; %S./sum(S,2));
+               dF   = (-C + P)/nex; 
+               if reduceDim
+                   dF = sum(dF,2);
+               end
             end
             if (doD2F) && (nargout>=3)
-                matU  = @(U) reshape(U,size(S));
-                d2Fmv = @(U) vec((matU(U).*S)./sum(S,1)/size(S,1)); 
-                        %- S.*sum(S.*matU(U),1)./sum(S,1).^2;
-                
+                H =(1/nex)* reshape(P,[],1,nex).*(eye(size(S,1)).*ones(1,1,nex) - reshape(P,1,[],nex));
+                d2Fmv = @(x) squeeze(pagemtimes(H,reshape(x,[],1,nex)));
                 szS = size(S);       
                 d2F = LinearOperator(prod(szS),prod(szS),d2Fmv,d2Fmv);
             end

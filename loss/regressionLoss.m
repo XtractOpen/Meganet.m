@@ -61,8 +61,9 @@ classdef regressionLoss
             end
         end
         
-        function [F,para,dF,d2F] = eval(this,WY,C,varargin)
+        function [F,para,dF,d2F,H] = eval(this,WY,C,varargin)
             doDerivative = (nargout>2);
+            reduceDim = true;
             for k=1:2:length(varargin)     % overwrites default parameter
                 eval([varargin{k},'=varargin{',int2str(k+1),'};']);
             end
@@ -70,12 +71,15 @@ classdef regressionLoss
             
             nex = size(C,2);
             res = this.Gamma*(WY - C);
-            F   = .5*sum(vec(res.^2));
-            para = [F,nex];
-            F = F/nex;
+            F   = (.5/nex)*sum(res.^2,1);       
+            para = [sum(F),nex];
+            if reduceDim
+                F = sum(F);
+            end
             if doDerivative
                 dF  = (this.Gamma'*res)/nex;
                 d2F = (this.Gamma'*this.Gamma)/nex;
+                H = d2F .* ones(1,1,nex);
             end
         end
         
