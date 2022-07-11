@@ -72,7 +72,7 @@ classdef regressionLoss
             nex = size(C,2);
             res = this.Gamma*(WY - C);
             F   = (.5/nex)*sum(res.^2,1);       
-            para = [sum(F),nex];
+            para = [sum(F),nex,sum(F)];
             if reduceDim
                 F = sum(F);
             end

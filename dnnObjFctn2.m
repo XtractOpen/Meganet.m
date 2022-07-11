@@ -87,16 +87,14 @@ classdef dnnObjFctn2 < objFctn
             YN = reshape(YN,[],nex); % loss expects 2D input
             
             % evaluate loss function
-            [F,para,dF,d2F] = eval(this.pLoss,YN,C);
-            Jc = F;
+            [F,para,dF,d2F] = eval(this.pLoss,YN,C,'reduceDim',0);
+            Jc = sum(F);
             
             if compGrad && (this.matrixFree || not(compHess))
-                dF  = JthetaTmv(this.net,dF,theta,Y,tmp);
-                dJ = dF;
+                dJ  = JthetaTmv(this.net,dF,theta,Y,tmp);
             elseif compGrad
                 Jac = getJacobians(this.net,theta,Y,tmp);
-                dF  = Jac'*dF(:);
-                dJ = dF;
+                dJ  = Jac'*dF(:);
             end
             
             if compHess
@@ -112,7 +110,7 @@ classdef dnnObjFctn2 < objFctn
                 end
                 
             end
-            para = struct('F',F);
+            para = struct('F',Jc);
 
             % evaluate regularizer for DNN weights             
             if not(isempty(this.pReg))

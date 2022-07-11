@@ -62,8 +62,9 @@ end
 net = Meganet({block1,block2});
 %% regularization
 reg1 = tikhonovReg(opEye(nTheta(block1)),1e-3);
-reg2 = tikhonovReg(opTimeDer(nTheta(block2),nt,h),1e-3);
-pRegTh = blockReg({reg1,reg2});
+% reg2 = tikhonovReg(opTimeDer(nTheta(block2),nt,h),1e-3);
+% pRegTh = blockReg({reg1,reg2});
+pRegTh = tikhonovReg(opEye(nTheta(net)),1e-3);
 regOpW = opEye((sizeFeatOut(net)+1)*size(Ctrain,1));
 pRegW = tikhonovReg(regOpW,1e-3);
 

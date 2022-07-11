@@ -76,3 +76,27 @@ hold on;
 loglog(err(:,1), err(:,4),'-k','linewidth',3);
 legend('E0','E1','E2');
 
+%% test eval function
+Z = randn(size(C));
+[F,para,dF,d2F,H] = eval(loss,Z,C,'reduceDim',false);
+dZ = randn(size(Z),'like',Z);
+dFdZ = sum(dF .* dZ,1);
+d2FdZ = sum(dZ.*(d2F * dZ),1);
+
+err    = zeros(30,4);
+for k=1:size(err,1)
+    h = 2^(-k);
+    Ft = eval(loss,Z+h*dZ,C,'reduceDim',false);
+    
+    err(k,:) = [h, norm(F-Ft), norm(F+h*dFdZ-Ft), norm(F+h*dFdZ+h^2/2*d2FdZ-Ft)];
+    
+    fprintf('h=%1.2e\tE0=%1.2e\tE1=%1.2e\tE1=%1.2e\n',err(k,:))
+end
+
+figure; clf;
+loglog(err(:,1),err(:,2),'-b','linewidth',3);
+hold on;
+loglog(err(:,1), err(:,3),'-r','linewidth',3);
+hold on;
+loglog(err(:,1), err(:,4),'-k','linewidth',3);
+legend('E0','E1','E2');
