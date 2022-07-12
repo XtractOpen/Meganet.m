@@ -110,7 +110,7 @@ classdef dnnObjFctn2 < objFctn
                 end
                 
             end
-            para = struct('F',Jc);
+            para = struct('F',Jc,'accuracy',100 * (1 - para(3) / sizeLastDim(Y)));
 
             % evaluate regularizer for DNN weights             
             if not(isempty(this.pReg))
@@ -133,8 +133,8 @@ classdef dnnObjFctn2 < objFctn
         
         function [str,frmt] = hisNames(this)
             [str,frmt] = hisNames(this.pLoss);
-            str = {'loss'};
-            frmt = {'%-12.2e'};
+            str = {'loss','accuracy'};
+            frmt = {'%-12.2e','%-12.2f'};
             if not(isempty(this.pReg))
                 [s,f] = hisNames(this.pReg);
                 s{1} = [s{1} '(theta)'];
@@ -145,7 +145,7 @@ classdef dnnObjFctn2 < objFctn
         end
         
         function his = hisVals(this,para)
-            his = para.F;
+            his = [para.F,para.accuracy];
             if not(isempty(this.pReg))
                 his = [his, hisVals(this.pReg,para.hisR)];
             end
