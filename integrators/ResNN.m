@@ -63,13 +63,19 @@ classdef ResNN < abstractMeganetElement
         end
         
         function [net2,theta2] = prolongateWeights(this,theta)
-            % piecewise linear interpolation of network weights 
-            t1 = 0:this.h:(this.nt-1)*this.h;
-            
-            net2 = ResNN(this.layer,2*this.nt,this.h/2,'useGPU',this.useGPU,'precision',this.precision);
-            t2 = 0:net2.h:(net2.nt-1)*net2.h;
-            
-            theta2 = inter1D(theta,t1,t2);
+            if norm(this.A - eye(this.nt),'fro')/this.nt < 1e-5
+
+                % piecewise linear interpolation of network weights
+                t1 = 0:this.h:(this.nt-1)*this.h;
+                
+
+                net2 = ResNN(this.layer,2*this.nt,this.h/2,'useGPU',this.useGPU,'precision',this.precision,'A', speye(this.nt*2));
+                t2 = 0:net2.h:(net2.nt-1)*net2.h;
+
+                theta2 = inter1D(theta,t1,t2);
+            else
+                error('prolongation not compatible with weight parameterization')
+            end
         end
         
         
