@@ -187,7 +187,7 @@ classdef ResNN < abstractMeganetElement
                 dtheta = vec(dTheta*this.A');
             else
 %                 dtheta = sum(dTheta .* reshape(this.A',size(this.A,2),size(this.A,1),1),2);
-                  dtheta = pagemtimes(dTheta,'none',this.A,'transpose');
+                  dtheta = pagemtimes(dTheta,'none',full(this.A),'transpose');
                   dtheta = reshape(dtheta,[],sizeLastDim(Y));
             end
 
