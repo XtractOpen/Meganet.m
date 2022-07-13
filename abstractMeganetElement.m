@@ -393,7 +393,7 @@ methods
             end
             dtheta = JthetaTmv(this,W,theta,Y,tmp,varargin{:});
             if nargout==2 || doDerivative(2)==1
-                dY     = JYTmv(this,W,theta,Y,tmp,varargin{:});
+                dY     = JYTmv(this,W,theta,Y,tmp);
             end
             
             if nargout==1 && all(doDerivative==1)

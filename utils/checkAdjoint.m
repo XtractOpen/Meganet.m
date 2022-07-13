@@ -15,9 +15,9 @@ if not(exist('precision','var')) || isempty(precision)
 end
 
 if isa(A,'LinearOperator')
-    v = randn([A.n,3]);
+    v = randn([A.n,1]);
 else
-    v = randn(size(A,2),3);
+    v = randn(size(A,2),1);
 end
 [v] = gpuVar(useGPU,precision,v);
 

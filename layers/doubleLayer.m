@@ -305,11 +305,19 @@ classdef doubleLayer < abstractMeganetElement
         
         % ----------- Jacobian' matvecs ----------
         
-        function [dth,dAZ1] = JthetaTmv(this,W,theta,Y,dA)
+        function [dth,dAZ1] = JthetaTmv(this,W,theta,Y,dA,varargin)
+            reduceDim=true;
+            for k=1:2:length(varargin)     % overwrites default parameter
+                eval([varargin{k},'=varargin{',int2str(k+1),'};']);
+            end
+
             nd = ndims(Y);
             dth3 = []; dth4=[]; dth5 = []; dth6 = []; dth7=[];
             if not(isempty(this.Bout))
-                dth5 = vec(sum(this.Bout'*W,nd));
+                dth5 = this.Bout'*W;
+                if reduceDim
+                    dth5 = vec(sum(dth5,ndims(dth5)));
+                end
             end
             [th1,th2,~,~,~,th6,th7] = this.split(theta);
             
@@ -317,24 +325,31 @@ classdef doubleLayer < abstractMeganetElement
 
             dAZ2 = dA2.*W;
             if not(isempty(this.Bin2))
-                dth4 = vec(sum(this.Bin2'*dAZ2,nd));
+                dth4 = this.Bin2'*dAZ2;
+                if reduceDim
+                    dth4 = vec(sum(dth4,ndims(dth4)));
+                end
+
             end
             if not(isempty(this.normLayer2))
-                [dth7,dAZ2] = JTmv(this.normLayer2,dAZ2,th7,K2Z,tmpNL2);
+                [dth7,dAZ2] = JTmv(this.normLayer2,dAZ2,th7,K2Z,tmpNL2,[],'reduceDim',reduceDim);
             end
-            dth2 = JthetaTmv(this.K2,dAZ2,th2,A1);
+            dth2 = JthetaTmv(this.K2,dAZ2,th2,A1,[],'reduceDim',reduceDim);
             
             
             dAZ1 = dA1.*(getOp(this.K2,th2)'*dAZ2);
             if not(isempty(this.Bin1))
-                dth3      = vec(sum(this.Bin1'*dAZ1,nd));
+                dth3 = this.Bin1'*dAZ1;
+                if reduceDim
+                    dth3      = vec(sum(dth3,ndims(dth3)));
+                end
             end
             if not(isempty(this.normLayer1))
-                [dth6,dAZ1] = JTmv(this.normLayer1,dAZ1,th6,K1Y,tmpNL1);
+                [dth6,dAZ1] = JTmv(this.normLayer1,dAZ1,th6,K1Y,tmpNL1,[],'reduceDim',reduceDim);
             end
-            dth1 = JthetaTmv(this.K1,dAZ1,th1,Y);
+            dth1 = JthetaTmv(this.K1,dAZ1,th1,Y,[],'reduceDim',reduceDim);
             
-            dth = [dth1(:); dth2(:); dth3(:); dth4(:); dth5(:);dth6(:);dth7(:)];
+            dth = [dth1; dth2; dth3; dth4; dth5;dth6;dth7];
         end
         
         function dY = JYTmv(this,Z,theta,Y,dA)

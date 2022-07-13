@@ -22,11 +22,11 @@ classdef opCNNBias < LinearOperator
       
         function Y = applyTranspose(this,Z)
             
-            perm = 1:ndims(Z);
-            perm(end-1:end)  = [ndims(Z) ndims(Z)-1];
-            Z = permute(Z,perm);
-            Z = reshape(Z,[],this.nImg(end));
-            Y = vec(sum(Z,1));
+%             perm = 1:ndims(Z);
+%             perm(end-1:end)  = [ndims(Z) ndims(Z)-1];
+%             Z = permute(Z,perm);
+%             Z = reshape(Z,[],this.nImg(end));
+            Y = squeeze(sum(sum(Z,1),2));
         end
     end
 end

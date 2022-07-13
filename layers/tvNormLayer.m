@@ -129,14 +129,23 @@ classdef tvNormLayer < abstractMeganetElement
            end
         end
         
-        function dtheta = JthetaTmv(this,Z,theta,Y,~)
+        function dtheta = JthetaTmv(this,Z,theta,Y,~,varargin)
+            reduceDim=true;
+            for k=1:2:length(varargin)     % overwrites default parameter
+                eval([varargin{k},'=varargin{',int2str(k+1),'};']);
+            end
+
             if this.isWeight
                 % compute derivative when affine scaling layer is present
                 Y  = Y./sqrt(sum(Y.^2,3)+this.eps);
                 
                 W = Y.*Z;
-                dtheta     = vec(sum(sum(sum(W,1),2),4));
-                dtheta = [dtheta; vec(sum(sum(sum(Z,1),2),4))];
+                dth1 = squeeze(sum(sum(W,1),2));
+                dth2 = squeeze(sum(sum(Z,1),2));
+                dtheta = [dth1;dth2];
+                if reduceDim
+                    dtheta = vec(sum(dtheta,2));
+                end
             else
                 dtheta = [];
             end

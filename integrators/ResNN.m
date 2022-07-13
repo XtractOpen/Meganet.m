@@ -29,7 +29,7 @@ classdef ResNN < abstractMeganetElement
             % This is the default parameters but can be overwritten
             useGPU = [];
             precision = [];
-            A = speye(nt); 
+            A = eye(nt); 
             for k=1:2:length(varargin)     % overwrites default parameter
                eval([varargin{k},'=varargin{',int2str(k+1),'};']);
             end

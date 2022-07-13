@@ -89,6 +89,23 @@ classdef layerTest < matlab.unittest.TestCase
                 testCase.verifyTrue(chkA);
             end
         end
+
+        function testJTwithReduceDim(testCase)
+           for k=1:numel(testCase.layers)
+              ks = testCase.layers{k};
+              Y  = randn([sizeFeatIn(ks),10]);
+              if nTheta(ks)>0
+                  th0 = randn(nTheta(ks),1);
+                  [Y,th0] = gpuVar(ks.useGPU,ks.precision,Y,th0);
+                  [YN,tmp] = forwardProp(ks,th0,Y);
+                  Z = randn(size(YN),'like',YN);
+                  dF = ks.JthetaTmv(Z,th0,Y,tmp,'reduceDim',true);
+                  dFi = ks.JthetaTmv(Z,th0,Y,tmp,'reduceDim',false);
+                  isOK = norm(dF-sum(dFi,2))/norm(dF) < 1e-5;
+                  testCase.verifyTrue(isOK);
+              end
+           end
+        end
         
     end
 end

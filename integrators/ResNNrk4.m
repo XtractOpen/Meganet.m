@@ -60,7 +60,7 @@ classdef ResNNrk4 < abstractMeganetElement
             useGPU = [];
             precision = [];
             nt = numel(tY);
-            A = speye(2*nt - 1);
+            A = eye(2*nt - 1);
             for k=1:2:length(varargin)     % overwrites default parameter
                 eval([varargin{k},'=varargin{',int2str(k+1),'};']);
             end

@@ -16,6 +16,7 @@ classdef ResNNTest < IntegratorTest
              ks{end+1} = ResNN(doubleLayer(TT,TT),4,.1) ;
              ks{end+1} = ResNN(doubleSymLayer(TT),4,.1,'useGPU',0,'precision','double') ;
              ks{end+1} = ResNN(doubleSymLayer(TT),4,.1,'useGPU',0,'precision','double','A',rand(2,4)) ;
+             
            testCase.integrators = ks;
         end
     end
