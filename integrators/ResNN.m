@@ -169,7 +169,7 @@ classdef ResNN < abstractMeganetElement
             if reduceDim
                 dTheta = 0*Theta;
             else
-                dTheta = zeros(size(Theta,1),size(Theta,2),sizeLastDim(Y));
+                dTheta = zeros(size(Theta,1),size(Theta,2),sizeLastDim(Y),'like',Theta);
             end
             
             
@@ -187,7 +187,8 @@ classdef ResNN < abstractMeganetElement
                 dtheta = vec(dTheta*this.A');
             else
 %                 dtheta = sum(dTheta .* reshape(this.A',size(this.A,2),size(this.A,1),1),2);
-                    dtheta = reshape(dTheta,[],sizeLastDim(Y));
+                  dtheta = pagemtimes(dTheta,'none',this.A,'transpose');
+                  dtheta = reshape(dtheta,[],sizeLastDim(Y));
             end
 
             if nargout==1 && all(doDerivative==1)

@@ -82,9 +82,6 @@ classdef ResNNrk4 < abstractMeganetElement
         function n = nTheta(this)
             n = size(this.A,1)*nTheta(this.layer);
         end
-%         function n = nTheta(this)
-%             n = numel(this.ttheta)*nTheta(this.layer);
-%         end
         function n = sizeFeatIn(this)
             n = sizeFeatIn(this.layer);
         end
@@ -92,26 +89,30 @@ classdef ResNNrk4 < abstractMeganetElement
             n = sizeFeatOut(this.layer);
         end
         
-        function theta = initTheta(this) % initilizaing coefficients of polynomial so the function is 
+        function theta = initTheta(this) % initilizaing coefficients of polynomial so the function is constant in time
             Theta = repmat(vec(initTheta(this.layer)),1,size(this.A,2));
             theta = Theta/this.A;
         end
         
         
         function [net2,theta2] = prolongateWeights(this,theta) 
-            % add new nodes at cell-centers. initialize weights using
-            % linear interpolation. 
+            nn = numel(this.tY); % number of nodes for Y
             
-            tOld = this.ttheta;
-            nc   = numel(tOld)-1;  % number of cells
-            tNew = linspace(tOld(1),tOld(end),2*nc+1);
-            
-            theta = reshape(theta,[],numel(tOld));
-            
-            theta2 = inter1D(theta,tOld,tNew);
-            net2 = this;
-            net2.ttheta = tNew;
-            
+            if norm(this.A - eye(2*nn - 1),'fro')/(2*nn - 1) < 1e-5
+                % add new nodes at cell-centers. initialize weights using
+                % linear interpolation.
+
+                tOld = linspace(this.tY(1),this.tY(end),2*nn-1); % time points for weights (including intermediate points for rk4)
+                tNew = linspace(tOld(1),tOld(end),2*numel(tOld)-1);
+                theta = reshape(theta,[],numel(tOld));
+                theta2 = inter1D(theta,tOld,tNew);
+                net2 = this;
+                net2.A = speye(numel(tNew));
+                net2.tY = tOld;
+            else
+                error('prolongation not compatible with weight parameterization')
+            end
+
         end
         
         %% ------- forwardProp forward propagation -----------
@@ -286,7 +287,12 @@ classdef ResNNrk4 < abstractMeganetElement
             
         end
         
-        function [dtheta,W] = JTmv(this,W,theta,Y,tmp,doDerivative)
+        function [dtheta,W] = JTmv(this,W,theta,Y,tmp,doDerivative,varargin)
+            reduceDim=true;
+            for k=1:2:length(varargin)     % overwrites default parameter
+                eval([varargin{k},'=varargin{',int2str(k+1),'};']);
+            end
+
             if not(exist('doDerivative','var')) || isempty(doDerivative)
                doDerivative =[1;0]; 
             end
@@ -297,7 +303,12 @@ classdef ResNNrk4 < abstractMeganetElement
             theta  = reshape(theta,[],size(this.A,1));
             dtheta = 0*theta;  
             Theta = theta*this.A;  
-            dTheta = 0*Theta;
+            if reduceDim
+                dTheta = 0*Theta;
+            else
+                dTheta = zeros(size(Theta,1),size(Theta,2),sizeLastDim(Y),'like',Theta);
+            end
+
             nt = numel(this.tY);
             
             for i=nt-1:-1:1
@@ -333,7 +344,13 @@ classdef ResNNrk4 < abstractMeganetElement
                                
                 W =  W + hi*(dW1 + dW2 + dW3 + dW4);
             end
-             dtheta = vec(dTheta*this.A');
+            if reduceDim
+                dtheta = vec(dTheta*this.A');
+            else
+%                 dtheta = sum(dTheta .* reshape(this.A',size(this.A,2),size(this.A,1),1),2);
+                  dtheta = pagemtimes(dTheta,'none',this.A,'transpose');
+                  dtheta = reshape(dtheta,[],sizeLastDim(Y));
+            end
             if nargout==1 && all(doDerivative==1)
                 dtheta=[dtheta(:); W(:)];
             end
