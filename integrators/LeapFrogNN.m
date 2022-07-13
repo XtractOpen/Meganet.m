@@ -21,6 +21,7 @@ classdef LeapFrogNN < abstractMeganetElement
         h
         useGPU
         precision
+        A       
     end
     
     methods
@@ -31,6 +32,7 @@ classdef LeapFrogNN < abstractMeganetElement
             end
             useGPU = [];
             precision = [];
+            A = speye(nt); 
             for k=1:2:length(varargin)     % overwrites default parameter
                 eval([varargin{k},'=varargin{',int2str(k+1),'};']);
             end
@@ -46,10 +48,11 @@ classdef LeapFrogNN < abstractMeganetElement
             end
             this.nt    = nt;
             this.h     = h;
+            this.A     = A;
         end
         
         function n = nTheta(this)
-            n = this.nt*nTheta(this.layer);
+            n = size(this.A,1)*nTheta(this.layer);
         end
         function n = sizeFeatIn(this)
             n = sizeFeatIn(this.layer);
@@ -64,10 +67,11 @@ classdef LeapFrogNN < abstractMeganetElement
 %             for k=1:this.nt
 %                 theta = [theta; vec(initTheta(this.layer))];
 %             end
-            theta = repmat(vec(initTheta(this.layer)),this.nt,1);
+           % theta = repmat(vec(initTheta(this.layer)),this.nt,1);
+            theta = repmat(vec(initTheta(this.layer)),size(this.A,1),1);
         end
         
-        function [net2,theta2] = prolongateWeights(this,theta)
+        function [net2,theta2] = prolongateWeights(this,theta) % need to go back to this
             % piecewise linear interpolation of network weights 
             t1 = 0:this.h:(this.nt-1)*this.h;
             
@@ -78,17 +82,20 @@ classdef LeapFrogNN < abstractMeganetElement
             theta2 = inter1D(theta,t1,t2);
         end
         
-        % ------- forwardProp forward problems -----------
+        %% ------- forwardProp forward problems -----------
         function [Y,tmp] = forwardProp(this,theta,Y,varargin)
             for k=1:2:length(varargin)     % overwrites default parameter
                 eval([varargin{k},'=varargin{',int2str(k+1),'};']);
             end
             
-            theta = reshape(theta,[],this.nt); 
+           
+            theta = reshape(theta,nTheta(this.layer),[]); 
+            Theta = theta*this.A;  
             Yin = Y;
             Yold = Y;
+            
             for i=1:this.nt
-                Z     = forwardProp(this.layer,theta(:,i),Y);
+                Z     = forwardProp(this.layer,Theta(:,i),Y); 
                 Ytemp = Y;
                 Y     =  2*Y - Yold + this.h^2 * Z;
                 Yold  = Ytemp;
@@ -96,7 +103,7 @@ classdef LeapFrogNN < abstractMeganetElement
             tmp = {Yin, Y,Yold};
         end
         
-        % -------- Jacobian matvecs ---------------
+        %% -------- Jacobian matvecs ---------------
         function dY = JYmv(this,dY,theta,~,tmp)
             if isempty(dY)
                 dY = 0.0;
@@ -104,15 +111,17 @@ classdef LeapFrogNN < abstractMeganetElement
             Y = tmp{1};
             dYold = dY;
             Yold  = Y;
+
+            theta = reshape(theta,nTheta(this.layer),[]); 
+            Theta = theta*this.A; 
             
-            theta  = reshape(theta,[],this.nt);
             for i=1:this.nt
                 % evaluate layer
-                [Z,tmp]     = forwardProp(this.layer,theta(:,i),Y,'storeInterm',1);
+                [Z,tmp]     = forwardProp(this.layer,Theta(:,i),Y,'storeInterm',1);
                 
                 % update dY
                 dYtemp = dY;
-                dY     = 2*dY - dYold + this.h^2* JYmv(this.layer,dY,theta(:,i),Y,tmp);
+                dY     = 2*dY - dYold + this.h^2* JYmv(this.layer,dY,Theta(:,i),Y,tmp);
                 dYold  = dYtemp;
 
                 % update Y
@@ -121,8 +130,7 @@ classdef LeapFrogNN < abstractMeganetElement
                 Yold  = Ytemp;
             end
         end
-        
-        
+              
 
         function dY = Jmv(this,dtheta,dY,theta,~,tmp)
             if isempty(dY)
@@ -133,15 +141,18 @@ classdef LeapFrogNN < abstractMeganetElement
             dYold = dY;
             Yold  = Y;
             
-            theta  = reshape(theta,[],this.nt);
-            dtheta = reshape(dtheta,[],this.nt);
+            theta = reshape(theta,nTheta(this.layer),[]); 
+            Theta = theta*this.A;  
+            dtheta = reshape(dtheta,nTheta(this.layer),[]); 
+            dTheta = dtheta*this.A;  
+            
             for i=1:this.nt
                 % evaluate layer
-                [Z,tmp]     = forwardProp(this.layer,theta(:,i),Y,'storeInterm',1);
+                [Z,tmp]     = forwardProp(this.layer,Theta(:,i),Y,'storeInterm',1);
                 
                 % update dY
                 dYtemp = dY;
-                dY = 2*dY - dYold + this.h^2* Jmv(this.layer,dtheta(:,i),dY,theta(:,i),Y,tmp);
+                dY = 2*dY - dYold + this.h^2* Jmv(this.layer,dTheta(:,i),dY,Theta(:,i),Y,tmp);
                 dYold = dYtemp;
                 
                 % update Y
@@ -151,7 +162,7 @@ classdef LeapFrogNN < abstractMeganetElement
             end
         end
         
-        % -------- Jacobian' matvecs ----------------
+        %% -------- Jacobian' matvecs ----------------
         
         function W = JYTmv(this,W,theta,~,tmp)
             % call JYTmv (saving computations of the derivatives w.r.t.
@@ -164,14 +175,16 @@ classdef LeapFrogNN < abstractMeganetElement
             Yold = tmp{2};
             Y    = tmp{3};
             
-            theta  = reshape(theta,[],this.nt);
+            theta = reshape(theta,nTheta(this.layer),[]); 
+            Theta = theta*this.A;
+            
             Wold = 0*W;
             for i=this.nt:-1:1
                 % evaluate layer
-                [Z,tmp]     = forwardProp(this.layer,theta(:,i),Y,'storeInterm',1);
+                [Z,tmp]     = forwardProp(this.layer,Theta(:,i),Y,'storeInterm',1);
                 
                 % compute Jacobian matvecs
-                dW = JYTmv(this.layer,W,theta(:,i),Y,tmp);
+                dW = JYTmv(this.layer,W,Theta(:,i),Y,tmp);
                 Wtemp = W;
                 if i>1
                     W     = 2*W - Wold + this.h^2*dW;
@@ -202,17 +215,18 @@ classdef LeapFrogNN < abstractMeganetElement
             Yold = tmp{2};
             Y    = tmp{3};
             
-            theta  = reshape(theta,[],this.nt);
-            dtheta = 0*theta;
+            theta = reshape(theta,nTheta(this.layer),[]); % number of rows is number of weights layer needs, number of cols = how many coeffs
+            Theta = theta*this.A;            
+            dTheta = 0*Theta;
             Wold   = 0*W;
             for i=this.nt:-1:1
                 
                 % evaluate layer
-                [Z,tmp]     = forwardProp(this.layer,theta(:,i),Y,'storeInterm',1);
+                [Z,tmp]     = forwardProp(this.layer,Theta(:,i),Y,'storeInterm',1);
                 
                 % compute Jacobian matvecs
-                [dmbi,dW] = JTmv(this.layer,W,theta(:,i),Y,tmp);
-                dtheta(:,i)  = this.h^2*dmbi;
+                [dmbi,dW] = JTmv(this.layer,W,Theta(:,i),Y,tmp);
+                dTheta(:,i)  = this.h^2*dmbi;
                 Wtemp = W;
                 if i>1
                     W     = 2*W - Wold + this.h^2*dW;
@@ -228,7 +242,7 @@ classdef LeapFrogNN < abstractMeganetElement
                 Y     =  2*Y - Yold + this.h^2 * Z;
                 Yold  = Ytemp;
             end
-            dtheta = vec(dtheta);
+            dtheta = vec(dTheta*this.A');
             if nargout==1 && all(doDerivative==1)
                 dtheta=[dtheta(:); W(:)];
             end
@@ -281,7 +295,7 @@ classdef LeapFrogNN < abstractMeganetElement
             thCoarse = vec(thCoarse);
         end
         
-        % ------- functions for handling GPU computing and precision ----
+        %% ------- functions for handling GPU computing and precision ----
         function this = set.useGPU(this,value)
             if (value~=0) && (value~=1)
                 error('useGPU must be 0 or 1.')

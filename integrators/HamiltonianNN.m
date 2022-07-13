@@ -21,6 +21,7 @@ classdef HamiltonianNN < abstractMeganetElement
         h
         useGPU
         precision
+        A
     end
     
     methods
@@ -40,6 +41,7 @@ classdef HamiltonianNN < abstractMeganetElement
             this.B = B;
             this.nt       = nt;
             this.h        = h;
+            this.A        = A;
         end
         
         function n = nTheta(this)
@@ -61,9 +63,9 @@ classdef HamiltonianNN < abstractMeganetElement
         end
 
         
-        function theta = initTheta(this)
+        function theta = initTheta(this) 
             theta = repmat([vec(initTheta(this.K));...
-                            zeros(sizeLastDim(this.B),1)],this.nt,1);
+                            zeros(sizeLastDim(this.B),1)],size(this.A,1),1);
         end
         
         function [net2,theta2] = prolongateWeights(this,theta)
@@ -78,12 +80,12 @@ classdef HamiltonianNN < abstractMeganetElement
         end
         
         function [thetaK,thetaB] = split(this,x)
-           x   = reshape(x,[],this.nt);
+           x   = reshape(x,[],size(this.A,1));
            thetaK = x(1:nTheta(this.K),:);
            thetaB = x(nTheta(this.K)+1:end,:);
         end
 
-               % ------- forwardProp forward problems -----------
+               %% ------- forwardProp forward problems -----------
         function [Y,tmp] = forwardProp(this,theta,Y0,varargin)
             for k=1:2:length(varargin)     % overwrites default parameter
                 eval([varargin{k},'=varargin{',int2str(k+1),'};']);
@@ -91,11 +93,15 @@ classdef HamiltonianNN < abstractMeganetElement
             
             Y = Y0;
             Z = 0*Y;
+            
+            theta = reshape(theta,nTheta(this.layer),[]);             
             [thetaK,thetaB] = split(this,theta);
+            ThetaK = thetaK*this.A; 
+            ThetaB = thetaB*this.A;
             
             for i=1:this.nt
-                Ki = getOp(this.K,thetaK(:,i)); 
-                bi = this.B*thetaB(:,i);
+                Ki = getOp(this.K,ThetaK(:,i)); 
+                bi = this.B*ThetaB(:,i);
                 
                 fY = this.activation(Ki'*Y + bi);
                 Z  = Z - this.h*fY;
@@ -136,13 +142,21 @@ classdef HamiltonianNN < abstractMeganetElement
             Z = 0*Y;
             dZ = 0*Z;
             
+            theta = reshape(theta,nTheta(this.layer),[]);  
             [thK,thB]   = split(this,theta);
+            ThK = thK*this.A; 
+            ThB = thB*this.A;
+            
+            dtheta = reshape(dtheta,nTheta(this.layer),[]);
             [dthK,dthB] = split(this,dtheta);
+            dThK = dthK*this.A; 
+            dThB = dthB*this.A;
+            
             for i=1:this.nt
-                 Ki  = getOp(this.K,thK(:,i));
-                 dKi = getOp(this.K,dthK(:,i));
-                 bi  = this.B*thB(:,i);
-                 dbi = this.B*dthB(:,i);
+                 Ki  = getOp(this.K,ThK(:,i)); 
+                 dKi = getOp(this.K,dThK(:,i));
+                 bi  = this.B*ThB(:,i);
+                 dbi = this.B*dThB(:,i);
                  
                  [fY,dfY]  = this.activation(Ki'*Y + bi);
                  JY = dfY.*(dKi'*Y+Ki'*dY+dbi);
@@ -156,7 +170,7 @@ classdef HamiltonianNN < abstractMeganetElement
             end
         end
         
-        % -------- Jacobian' matvecs ----------------
+        %% -------- Jacobian' matvecs ----------------
 %         function W = JYTmv(this,W,theta,X0,tmp)
 %             % nex = sizeLastDim(Y);
 %             if isempty(W)
@@ -201,16 +215,20 @@ classdef HamiltonianNN < abstractMeganetElement
             nd = ndims(Y);
             Z = tmp{2};
             [thK,thB]   = split(this,theta);
-            [dthK,dthB] = split(this,0*theta);
+            ThK = thK*this.A; 
+            ThB = thB*this.A;
             
-            for i=this.nt:-1:1
-                Ki = getOp(this.K,thK(:,i)); 
-                bi = this.B*thB(:,i);
+            dThK = 0*ThK;
+            dThB = 0*ThB;
+            
+            for i=this.nt:-1:1 
+                Ki = getOp(this.K,ThK(:,i)); 
+                bi = this.B*ThB(:,i);
                 
                 [fZ,dfZ] = this.activation(Ki*Z + bi);
                 dWZ = Ki'*(dfZ.*WY); 
-                dthK(:,i) = dthK(:,i)+ this.h*JthetaTmv(this.K,dfZ.*WY,[],Z);
-                dthB(:,i) = dthB(:,i) + this.h*vec(sum(this.B'*(dfZ.*WY),nd));
+                dThK(:,i) = dThK(:,i)+ this.h*JthetaTmv(this.K,dfZ.*WY,[],Z);
+                dThB(:,i) = dThB(:,i) + this.h*vec(sum(this.B'*(dfZ.*WY),nd));
                 WZ = WZ + this.h*dWZ;
                 Y  = Y - this.h*fZ;
                 
@@ -218,13 +236,15 @@ classdef HamiltonianNN < abstractMeganetElement
                 dWY = Ki*(dfY.*WZ); 
                 dJK = reshape(JthetaTmv(this.K,dfY.*WZ,[],Y),size(Ki));
                 dJK = vec(dJK');
-                dthK(:,i) = dthK(:,i) - this.h*dJK;
-                dthB(:,i) = dthB(:,i) - vec(sum(this.h*this.B'*(dfY.*WZ),nd));
+                dThK(:,i) = dThK(:,i) - this.h*dJK;
+                dThB(:,i) = dThB(:,i) - vec(sum(this.h*this.B'*(dfY.*WZ),nd));
                 WY = WY - this.h*dWY;
                 Z  = Z + this.h*fY;
             end
+            dthK = dThK*this.A'; 
+            dthB = dThB*this.A';
             dtheta = vec([dthK;dthB]);
-            
+
 %             W = unsplitData(this,WY,WZ);
             W = WY;
             if nargout==1 && all(doDerivative==1)
@@ -281,7 +301,7 @@ classdef HamiltonianNN < abstractMeganetElement
             end
             thCoarse = vec([th1Coarse;th2Coarse]);
         end
-        % ------- functions for handling GPU computing and precision ----
+        %% ------- functions for handling GPU computing and precision ----
         function this = set.useGPU(this,value)
             if (value~=0) && (value~=1)
                 error('useGPU must be 0 or 1.')
