@@ -15,8 +15,8 @@ close all; clear all;
 [Ytrain,Ctrain] = setupPeaks(1000,5);
 [Yv,Cv] = setupPeaks(1000,5);
 
-% dynamic = 'antiSym-ResNN';
-dynamic = 'ResNN';
+dynamic = 'antiSym-ResNN';
+% dynamic = 'ResNN';
 
 % rng(20); %seed random number generator
 figure(1); clf;
@@ -45,7 +45,7 @@ switch dynamic
         K      = getDenseAntiSym([nc,nc]);
         layer  = singleLayer(K,'Bout',ones(nc,1));
         tY      = linspace(0,T,nt);
-        block2  = ResNNrk4(layer,tY,tY);
+        block2  = ResNNrk4(layer,tY);
     case 'leapfrog'
          K      = dense([nc,nc]);
        layer  = doubleSymLayer(K,'Bout',ones(nc,1));

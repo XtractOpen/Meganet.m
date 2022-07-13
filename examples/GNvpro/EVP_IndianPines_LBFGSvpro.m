@@ -121,7 +121,7 @@ switch dynamic
         K       = getDenseAntiSym([nc,nc]);
         layer   = singleLayer(K,'Bin',eye(nc));
         tY      = linspace(0,T,nt);
-        block2  = ResNNrk4(layer,tY,tY);
+        block2  = ResNNrk4(layer,tY);
     case 'leapfrog'
         K      = dense([nc,nc]);
         layer  = doubleSymLayer(K,'Bout',ones(nc,1));
