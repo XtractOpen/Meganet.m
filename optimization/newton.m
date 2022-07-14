@@ -45,6 +45,7 @@ classdef newton < optimizer
     
     properties
         maxIter   % maximum number of iterations
+        maxWorkUnits % maximum number of work units
         atol      % absolute tolerance for stopping, stop if norm(dJ)<atol
         rtol      % relative tolerance for stopping, stop if norm(dJ)/norm(dJ0)<rtol
         maxStep   % maximum step (similar to trust region methods)
@@ -76,8 +77,8 @@ classdef newton < optimizer
             % define the labels for each column in his table
             [linSolStr,linSolFrmt] = hisNames(this.linSol);
             % str  = {'iter', 'Jc','|x-xOld|', '|dJ|/|dJ0|','iterCG','relresCG','mu','LS'};
-            str = [{'iter', 'Jc','|x-xOld|', '|dJ|/|dJ0|'},linSolStr,{'mu','LS'}];
-            frmt = [{'%-12d','%-12.2e','%-12.2e','%-12.2e'},linSolFrmt,{'%-12.2e','%-12d'}];
+            str = [{'iter', 'Jc','|x-xOld|', '|dJ|/|dJ0|'},linSolStr,{'mu','LS','TotalWork'}];
+            frmt = [{'%-12d','%-12.2e','%-12.2e','%-12.2e'},linSolFrmt,{'%-12.2e','%-12d','%-12d'}];
         end
         
         function [xc,His] = solve(this,fctn,xc,fval)
@@ -103,6 +104,7 @@ classdef newton < optimizer
                     [Fval,pVal] = fval(xc);
                 end
             end
+            workUnits = 2;
             
             if this.out>0
                 fprintf('== newton (n=%d,maxIter=%d,maxStep=%1.1e) ===\n',...
@@ -114,7 +116,7 @@ classdef newton < optimizer
             nrm0 = norm(dJ(:));
             iter = 1;
             xOld = xc;
-            while iter <= this.maxIter
+            while (iter <= this.maxIter) && (workUnits <= this.maxWorkUnits)
 
                 hisEnd = 4;
                 his(iter,1:hisEnd)  = [iter,gather(Jc),gather(norm(xOld(:)-xc(:))),gather(norm(dJ(:))/nrm0)];
@@ -127,6 +129,7 @@ classdef newton < optimizer
                 % [s,~,relresCG,iterCG,resvec] = solve(this.linSol,d2J,-dJ(:),[],PC);
                 [s,linSolPara] = solve(this.linSol,d2J,-dJ(:),[],PC);
                 linSolVals = hisVals(this.linSol,linSolPara);
+                workUnits = workUnits + 2 * linSolPara.iterOpt;
                 
                 if norm(s) == 0, s = -dJ(:)/norm(dJ(:)); end
                 clear d2J
@@ -150,16 +153,16 @@ classdef newton < optimizer
                 % line search
                 if iter == 1; mu = 1.0; end
                 [xt,mu,lsIter] = lineSearch(this.LS,fctn,xc,mu,s,Jc,dJ);
+                workUnits = workUnits + lsIter;
                 if (lsIter > this.LS.maxIter)
                     disp('LSB in newton'); %keyboard
                     his = his(1:iter,:);
                     break;
                 end
                 
-                
                 hisStart = hisEnd+1;
-                hisEnd = hisEnd+2;
-                his(iter,hisStart:hisEnd) = [mu lsIter];
+                hisEnd = hisEnd+3;
+                his(iter,hisStart:hisEnd) = [mu lsIter workUnits];
                 if this.out>0
                     fprintf([frmt{hisStart:hisEnd}], his(iter,hisStart:hisEnd));
                 end
@@ -176,6 +179,7 @@ classdef newton < optimizer
                     end
                 end
                 [Jc,para,dJ,d2J,PC] = fctn(xc);
+                workUnits = workUnits + 2;
 				
                 if not(isempty(objNames)) || not(isempty(obj2Names)) 
                     hisStart = hisEnd+1;
@@ -189,7 +193,7 @@ classdef newton < optimizer
                 end
                 iter = iter + 1;
             end
-            His = struct('str',{str},'frmt',{frmt},'his',his(1:min(iter,this.maxIter),:));
+            His = struct('str',{str},'frmt',{frmt},'his',his(1:min([iter,this.maxIter,size(his,1)]),:));
         end
     end
 end
