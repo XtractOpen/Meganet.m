@@ -202,7 +202,12 @@ classdef LeapFrogNN < abstractMeganetElement
             end
         end
         
-        function [dtheta,W] = JTmv(this,W,theta,~,tmp,doDerivative)
+        function [dtheta,W] = JTmv(this,W,theta,~,tmp,doDerivative,varargin)
+            reduceDim=true;
+            for k=1:2:length(varargin)     % overwrites default parameter
+                eval([varargin{k},'=varargin{',int2str(k+1),'};']);
+            end
+
             if not(exist('doDerivative','var')) || isempty(doDerivative)
                doDerivative =[1;0]; 
             end
@@ -217,7 +222,12 @@ classdef LeapFrogNN < abstractMeganetElement
             
             theta = reshape(theta,nTheta(this.layer),[]); % number of rows is number of weights layer needs, number of cols = how many coeffs
             Theta = theta*this.A;            
-            dTheta = 0*Theta;
+
+            if reduceDim
+                dTheta = 0*Theta;
+            else
+                dTheta = zeros(size(Theta,1),size(Theta,2),sizeLastDim(Y),'like',Theta);
+            end
             Wold   = 0*W;
             for i=this.nt:-1:1
                 
@@ -225,8 +235,13 @@ classdef LeapFrogNN < abstractMeganetElement
                 [Z,tmp]     = forwardProp(this.layer,Theta(:,i),Y,'storeInterm',1);
                 
                 % compute Jacobian matvecs
-                [dmbi,dW] = JTmv(this.layer,W,Theta(:,i),Y,tmp);
-                dTheta(:,i)  = this.h^2*dmbi;
+                [dThetai,dW] = JTmv(this.layer,W,Theta(:,i),Y,tmp,[],'reduceDim',reduceDim);
+                if reduceDim
+                    dTheta(:,i)  = this.h^2*dThetai;
+                else
+                    dTheta(:,i,:) = this.h^2*dThetai;
+                end
+                
                 Wtemp = W;
                 if i>1
                     W     = 2*W - Wold + this.h^2*dW;
@@ -242,7 +257,13 @@ classdef LeapFrogNN < abstractMeganetElement
                 Y     =  2*Y - Yold + this.h^2 * Z;
                 Yold  = Ytemp;
             end
-            dtheta = vec(dTheta*this.A');
+            if reduceDim
+                dtheta = vec(dTheta*this.A');
+            else
+                dtheta = pagemtimes(dTheta,'none',full(this.A),'transpose');
+                dtheta = reshape(dtheta,[],sizeLastDim(Y));
+            end
+
             if nargout==1 && all(doDerivative==1)
                 dtheta=[dtheta(:); W(:)];
             end

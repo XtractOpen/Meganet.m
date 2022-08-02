@@ -371,7 +371,7 @@ classdef doubleLayer < abstractMeganetElement
             dY  = K1Op'*dA1Z;
         end
         
-        function [dth,dY] = JTmv(this,Z,theta,Y,tmp,doDerivative)
+        function [dth,dY] = JTmv(this,Z,theta,Y,tmp,doDerivative,varargin)
             if not(exist('doDerivative','var')) || isempty(doDerivative)
                doDerivative =[1;0]; 
             end
@@ -379,7 +379,7 @@ classdef doubleLayer < abstractMeganetElement
             dY = [];
             
             [th1, ~] = this.split(theta);
-            [dth,dA1Z]  = JthetaTmv(this,Z,theta,Y,tmp);
+            [dth,dA1Z]  = JthetaTmv(this,Z,theta,Y,tmp,varargin{:});
             if nargout==2 || doDerivative(2)==1
                 dY  = getOp(this.K1,th1)'*dA1Z;
             end

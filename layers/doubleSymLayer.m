@@ -356,7 +356,7 @@ classdef doubleSymLayer < abstractMeganetElement
             end
             dth1      = JthetaTmv(this.K,dAZ,[],Y,[],'reduceDim',reduceDim);
             dth1      = dth1 + JthetaTmv(this.K,A,[],Z,[],'reduceDim',reduceDim);
-            dtheta    = [-dth1(:); -dth2(:); dth3(:);-dth4(:);dth5(:)];
+            dtheta    = [-dth1; -dth2; dth3;-dth4;dth5];
             
             if nargout==2 || doDerivative(2)==1
                 dY  = -(Kop'*dAZ);
