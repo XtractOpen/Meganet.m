@@ -26,6 +26,7 @@ classdef HamiltonianNN < abstractMeganetElement
     
     methods
         function this = HamiltonianNN(activation,K,B,nt,h,varargin)
+            A = eye(nt);
             if nargin==0
                 this.runMinimalExample;
                 return;
@@ -45,7 +46,7 @@ classdef HamiltonianNN < abstractMeganetElement
         end
         
         function n = nTheta(this)
-            n = this.nt*(nTheta(this.K)+ sizeLastDim(this.B));
+            n = size(this.A,1)*(nTheta(this.K)+ sizeLastDim(this.B));
         end
         function n = sizeFeatIn(this)
             n = sizeFeatOut(this.K);
@@ -94,7 +95,7 @@ classdef HamiltonianNN < abstractMeganetElement
             Y = Y0;
             Z = 0*Y;
             
-            theta = reshape(theta,nTheta(this.layer),[]);             
+            theta = reshape(theta,[],size(this.A,1));             
             [thetaK,thetaB] = split(this,theta);
             ThetaK = thetaK*this.A; 
             ThetaB = thetaB*this.A;
@@ -134,6 +135,34 @@ classdef HamiltonianNN < abstractMeganetElement
 %             dX = unsplitData(this,dY,dZ);
 %         end
         
+        function dY = JYmv(this,dY,theta,~,tmp)
+            if isempty(dY)
+                dY = 0*tmp{1};
+            end
+            Y = tmp{3};
+            Z = 0*Y;
+            dZ = 0*Z;
+            
+            theta = reshape(theta,[],size(this.A,1));  
+            [thK,thB]   = split(this,theta);
+            ThK = thK*this.A; 
+            ThB = thB*this.A;
+            
+            for i=1:this.nt
+                 Ki  = getOp(this.K,ThK(:,i)); 
+                 bi  = this.B*ThB(:,i);
+                 
+                 [fY,dfY]  = this.activation(Ki'*Y + bi);
+                 JY = dfY.*(Ki'*dY);
+                 dZ = dZ - this.h*JY;
+                 Z  = Z  - this.h*fY;
+                 
+                 [fZ,dfZ] = this.activation(Ki*Z + bi);
+                 JZ = dfZ.*(Ki*dZ);
+                 dY = dY + this.h*JZ;
+                 Y = Y + this.h*fZ;
+            end
+        end
         function dY = Jmv(this,dtheta,dY,theta,~,tmp)
             if isempty(dY)
                 dY = 0*tmp{1};
@@ -142,12 +171,12 @@ classdef HamiltonianNN < abstractMeganetElement
             Z = 0*Y;
             dZ = 0*Z;
             
-            theta = reshape(theta,nTheta(this.layer),[]);  
+            theta = reshape(theta,[],size(this.A,1));  
             [thK,thB]   = split(this,theta);
             ThK = thK*this.A; 
             ThB = thB*this.A;
             
-            dtheta = reshape(dtheta,nTheta(this.layer),[]);
+            dtheta = reshape(dtheta,[],size(this.A,1));
             [dthK,dthB] = split(this,dtheta);
             dThK = dthK*this.A; 
             dThB = dthB*this.A;
@@ -198,7 +227,12 @@ classdef HamiltonianNN < abstractMeganetElement
 %             W = unsplitData(this,WY,WZ);
 %         end
         
-        function [dtheta,W] = JTmv(this,W,theta,X0,tmp,doDerivative)
+        function [dtheta,W] = JTmv(this,W,theta,X0,tmp,doDerivative,varargin)
+            reduceDim=true;
+            for k=1:2:length(varargin)     % overwrites default parameter
+                eval([varargin{k},'=varargin{',int2str(k+1),'};']);
+            end
+
             if not(exist('doDerivative','var')) || isempty(doDerivative)
                doDerivative =[1;0]; 
             end
@@ -218,33 +252,58 @@ classdef HamiltonianNN < abstractMeganetElement
             ThK = thK*this.A; 
             ThB = thB*this.A;
             
-            dThK = 0*ThK;
-            dThB = 0*ThB;
-            
+            if reduceDim
+                dThK = 0*ThK;
+                dThB = 0*ThB;
+            else
+                nex = sizeLastDim(Y);          
+                dThK = zeros(size(ThK,1),size(ThK,2),nex,'like',theta);
+                dThB = zeros(size(ThB,1),size(ThB,2),nex,'like',theta);                
+            end
+
             for i=this.nt:-1:1 
                 Ki = getOp(this.K,ThK(:,i)); 
                 bi = this.B*ThB(:,i);
                 
                 [fZ,dfZ] = this.activation(Ki*Z + bi);
                 dWZ = Ki'*(dfZ.*WY); 
-                dThK(:,i) = dThK(:,i)+ this.h*JthetaTmv(this.K,dfZ.*WY,[],Z);
-                dThB(:,i) = dThB(:,i) + this.h*vec(sum(this.B'*(dfZ.*WY),nd));
+                if reduceDim
+                    dThK(:,i) = dThK(:,i) + this.h*JthetaTmv(this.K,dfZ.*WY,[],Z);
+                    dThB(:,i) = dThB(:,i) + this.h*vec(sum(this.B'*(dfZ.*WY),nd));
+                else
+                    dThK(:,i,:) = squeeze(dThK(:,i,:)) + this.h*JthetaTmv(this.K,dfZ.*WY,[],Z,[],'reduceDim',reduceDim);
+                    dThB(:,i,:) = squeeze(dThB(:,i,:)) + this.h*this.B'*(dfZ.*WY);
+                end
                 WZ = WZ + this.h*dWZ;
                 Y  = Y - this.h*fZ;
                 
                 [fY,dfY] = this.activation(Ki'*Y + bi);
                 dWY = Ki*(dfY.*WZ); 
-                dJK = reshape(JthetaTmv(this.K,dfY.*WZ,[],Y),size(Ki));
-                dJK = vec(dJK');
-                dThK(:,i) = dThK(:,i) - this.h*dJK;
-                dThB(:,i) = dThB(:,i) - vec(sum(this.h*this.B'*(dfY.*WZ),nd));
+                if reduceDim
+                    dJK = reshape(JthetaTmv(this.K,dfY.*WZ,[],Y),size(Ki));
+                    dJK = vec(dJK');
+                    dThK(:,i) = dThK(:,i) - this.h*dJK;
+                    dThB(:,i) = dThB(:,i) - this.h*vec(sum(this.B'*(dfY.*WZ),nd));
+                else
+                    dJK = JthetaTmv(this.K,dfY.*WZ,[],Y,[],'reduceDim',reduceDim);
+                    dJK = permute(reshape(dJK,size(Ki,1),size(Ki,2),[]),[2,1,3]);
+                    dThK(:,i,:) = squeeze(dThK(:,i,:)) - this.h*reshape(dJK,[],nex);
+                    dThB(:,i,:) = squeeze(dThB(:,i,:)) - this.h*this.B'*(dfY.*WZ);
+                end                    
                 WY = WY - this.h*dWY;
                 Z  = Z + this.h*fY;
             end
-            dthK = dThK*this.A'; 
-            dthB = dThB*this.A';
-            dtheta = vec([dthK;dthB]);
+            if reduceDim
+                dthK = dThK*this.A'; 
+                dthB = dThB*this.A';
+                dtheta = vec([dthK;dthB]);
 
+            else
+                dthK = pagemtimes(dThK,'none',full(this.A),'transpose');
+                dthB = pagemtimes(dThB,'none',full(this.A),'transpose');
+                dtheta = reshape(cat(1,dthK,dthB),[],nex);
+            end    
+            
 %             W = unsplitData(this,WY,WZ);
             W = WY;
             if nargout==1 && all(doDerivative==1)

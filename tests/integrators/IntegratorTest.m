@@ -48,8 +48,8 @@ classdef IntegratorTest < matlab.unittest.TestCase
                 [~,dA] = forwardProp(ks,th0,Y);
                 if nTheta(ks)>0
                 J  = getJthetaOp(ks,th0,Y,dA);
-                chkA = checkAdjoint(J,ks.useGPU,ks.precision);
-                testCase.verifyTrue(chkA);
+                [chkA,errA] = checkAdjoint(J,ks.useGPU,ks.precision);
+                testCase.verifyTrue(chkA,sprintf('adjoint error: %e',errA));
                 end
             end
         end
@@ -64,8 +64,8 @@ classdef IntegratorTest < matlab.unittest.TestCase
                 [~,dA] = forwardProp(ks,th0,Y);
                 
                 J  = getJYOp(ks,th0,Y,dA);
-                chkA = checkAdjoint(J,ks.useGPU,ks.precision);
-                testCase.verifyTrue(chkA);
+                [chkA,errA] = checkAdjoint(J,ks.useGPU,ks.precision);
+                testCase.verifyTrue(chkA,sprintf('adjoint error: %e',errA));
             end
         end
         
@@ -79,8 +79,8 @@ classdef IntegratorTest < matlab.unittest.TestCase
                 [~,dA] = forwardProp(ks,th0,Y);
                 
                 J  = getJOp(ks,th0,Y,dA);
-                chkA = checkAdjoint(J,ks.useGPU,ks.precision);
-                testCase.verifyTrue(chkA);
+                [chkA,errA] = checkAdjoint(J,ks.useGPU,ks.precision);
+                testCase.verifyTrue(chkA,sprintf('adjoint error: %e',errA));
             end
         end
 
