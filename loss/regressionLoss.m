@@ -37,7 +37,7 @@ classdef regressionLoss
             WY  = W*Y;
             [F,para,dF,d2F] = eval(this,WY,C,'doDerivative',doDY || doDW);
             Cp        = getLabels(this,WY);
-            para  = [para nnz(C-Cp)/2];
+            para  = [para];
             
             
             if (doDW) && (nargout>=3)
@@ -86,11 +86,11 @@ classdef regressionLoss
         
         
         function [str,frmt] = hisNames(this)
-              str  = {'F','accuracy'};
-            frmt = {'%-12.2e','%-12.2f'};
+              str  = {'F'};
+            frmt = {'%-12.2e'};
        end
         function str = hisVals(this,para)
-            str = [para(1)/para(2),(1-para(3)/para(2))*100];
+            str = [para(1)];
         end 
         
         function Cp = getLabels(this,WY)
