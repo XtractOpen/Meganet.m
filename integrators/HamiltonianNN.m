@@ -65,8 +65,7 @@ classdef HamiltonianNN < abstractMeganetElement
 
         
         function theta = initTheta(this) 
-            theta = repmat([vec(initTheta(this.K));...
-                            zeros(sizeLastDim(this.B),1)],size(this.A,1),1);
+            theta = vec(repmat([vec(initTheta(this.K)); zeros(sizeLastDim(this.B),1)],1,size(this.A,2))/this.A);
         end
         
         function [net2,theta2] = prolongateWeights(this,theta)

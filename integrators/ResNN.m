@@ -59,7 +59,7 @@ classdef ResNN < abstractMeganetElement
         end
         
         function theta = initTheta(this)
-            theta = repmat(vec(initTheta(this.layer)),size(this.A,1),1);
+            theta = vec(repmat(vec(initTheta(this.layer)),1,size(this.A,2))/this.A);
         end
         
         function [net2,theta2] = prolongateWeights(this,theta)

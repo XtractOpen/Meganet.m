@@ -68,7 +68,7 @@ classdef LeapFrogNN < abstractMeganetElement
 %                 theta = [theta; vec(initTheta(this.layer))];
 %             end
            % theta = repmat(vec(initTheta(this.layer)),this.nt,1);
-            theta = repmat(vec(initTheta(this.layer)),size(this.A,1),1);
+            theta = vec(repmat(vec(initTheta(this.layer)),1,size(this.A,2))/this.A);
         end
         
         function [net2,theta2] = prolongateWeights(this,theta) % need to go back to this

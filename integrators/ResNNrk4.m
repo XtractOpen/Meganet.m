@@ -90,8 +90,7 @@ classdef ResNNrk4 < abstractMeganetElement
         end
         
         function theta = initTheta(this) % initilizaing coefficients of polynomial so the function is constant in time
-            Theta = repmat(vec(initTheta(this.layer)),1,size(this.A,2));
-            theta = Theta/this.A;
+            theta = vec(repmat(vec(initTheta(this.layer)),1,size(this.A,2))/this.A);
         end
         
         

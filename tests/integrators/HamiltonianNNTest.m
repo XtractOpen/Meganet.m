@@ -12,15 +12,10 @@ classdef HamiltonianNNTest < IntegratorTest
             K       = dense([nc,nc]);
             ks{end+1}  = HamiltonianNN(@tanhActivation,K,eye(nc),nt,T/nt);
 %         
-%             tA = linspace(0,T,nt); % array of time points
-%         A = tA(:).^(0:3);
-%             [Q,R] = qr(A);
-%         
-%                   K     = dense([4 4]);
-%              layer = doubleSymLayer(K);
-%               ks{end+1}   = DoubleHamiltonianNN(layer,layer,10,.1);
-
-             %              ks{end+1}   = DoubleHamiltonianNN(layer,layer,100,.1);
+            tA = linspace(0,T,nt); % array of time points
+            A = tA(:).^(0:3);
+            [Q,R] = qr(A,'econ');
+            ks{end+1}   = HamiltonianNN(@tanhActivation,K,eye(nc),nt,T/nt,'A',Q');
             
            testCase.integrators = ks;
         end
