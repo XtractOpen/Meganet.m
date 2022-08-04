@@ -32,7 +32,11 @@ classdef regressionLoss
             
             
             if this.addBias==1
-                Y = padarray(Y,[1,0],1,'post');
+                if exist('padarray','file')
+                    Y = padarray(Y,[1,0],1,'post');
+                else
+                    Y = [Y; zeros(1,size(Y,2))];
+                end
             end
             WY  = W*Y;
             [F,para,dF,d2F] = eval(this,WY,C,'doDerivative',doDY || doDW);
